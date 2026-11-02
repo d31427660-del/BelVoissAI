@@ -5,8 +5,8 @@ import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 const VOICE_MAP_YANDEX: Record<string, { voice: string; emotion?: string }> = {
   anna: { voice: 'alena', emotion: 'good' },
   dmitry: { voice: 'filipp' },
-  polina: { voice: 'marina', emotion: 'friendly' },
-  maxim: { voice: 'alexander' },
+  polina: { voice: 'marina' },
+  maxim: { voice: 'ermil', emotion: 'good' },
 };
 
 function voxiTtsDevPlugin(env: Record<string, string>) {
