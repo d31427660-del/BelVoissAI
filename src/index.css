@@ -27,9 +27,44 @@ dialog::backdrop {
 }
 
 /* Accessible Keyboard Focus Indicator */
-:where(a:any-link, button, input, select, textarea):focus-visible {
+:where(a:any-link, button, input, select, textarea, summary):focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
+}
+
+/* Visually hidden helper for screen-reader descriptions (Modern Web Guidance: forms) */
+.visually-hidden {
+  position: absolute;
+  clip-path: inset(50%);
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+
+/* Light-themed Help Popover + Polyfill selector support (Modern Web Guidance) */
+.voxi-help-popover[popover] {
+  margin: auto;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  max-width: min(24rem, calc(100vw - 2rem));
+  width: 100%;
+}
+
+.voxi-help-popover[popover]:is(:popover-open, .\:popover-open) {
+  display: block;
+}
+
+.voxi-help-popover[popover]::backdrop {
+  background-color: rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(2px);
 }
 
 /* Respect Reduced Motion Preferences */
