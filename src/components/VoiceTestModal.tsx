@@ -781,7 +781,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
                     placeholder="Напишите вопрос, если неудобно говорить вслух..."
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+                    className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
                   />
                   <button
                     type="submit"
@@ -825,7 +825,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-2.5">
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => beginCall(selectedNiche, selectedVoice)}
@@ -851,7 +851,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
         {/* Bottom Phone Action Bar (Light Theme) */}
         {callState === 'connected' && (
-          <div className="px-5 py-3.5 bg-white border-t border-slate-200/80 flex items-center justify-center gap-4">
+          <div className="px-3 sm:px-5 py-3 bg-white border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={toggleMute}

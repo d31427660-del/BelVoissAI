@@ -472,24 +472,24 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className="text-[11px] text-slate-400 block">Услуга:</span>
-                      <strong className="text-slate-900 font-semibold block truncate">
+                      <strong className="text-slate-900 font-semibold block leading-snug break-words">
                         {activeCallDetail.capturedData?.service || 'Консультация'}
                       </strong>
                     </div>
 
                     <div>
                       <span className="text-[11px] text-slate-400 block">Желаемое время:</span>
-                      <strong className="text-slate-900 font-semibold block truncate">
+                      <strong className="text-slate-900 font-semibold block leading-snug break-words">
                         {activeCallDetail.capturedData?.preferredDate || 'Не уточнялось'}
                       </strong>
                     </div>
 
                     <div>
                       <span className="text-[11px] text-slate-400 block">Город / филиал:</span>
-                      <strong className="text-slate-900 font-semibold block truncate">
+                      <strong className="text-slate-900 font-semibold block leading-snug break-words">
                         {activeCallDetail.capturedData?.cityOrBranch || agent?.address || 'Минск'}
                       </strong>
                     </div>

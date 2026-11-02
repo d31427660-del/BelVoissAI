@@ -15,7 +15,7 @@ import { generateSystemPrompt } from '../../lib/vapiService';
 import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
-import { FieldLabel, FieldHint } from './FieldHelp';
+import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import {
   BelarusPhoneInput,
   InteractiveAddressBuilder,
@@ -252,10 +252,10 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                     />
                     <span className="text-xl shrink-0 mt-0.5">{n.icon}</span>
                     <div className="min-w-0">
-                      <div className={`text-xs font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
+                      <div className={`text-xs font-bold leading-snug ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
                         {n.label}
                       </div>
-                      <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                      <div className="text-[11px] text-slate-500 leading-snug mt-0.5">
                         {n.desc}
                       </div>
                     </div>
@@ -358,21 +358,21 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                   helpText="Напишите понятное на слух название без «ООО» и «УНП». Как только вы измените название здесь, оно автоматически обновится и в приветствии бота ниже."
                   helpExample="Автошкола Все категории&#10;Автосервис Минск-Моторс&#10;Стоматология Дент-Престиж"
                 />
-                <div className="h-[22px] mb-1.5 flex items-center">
+                <div className="mb-1.5 flex items-center">
                   <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70">
                     Автоподстановка в приветствие включена
                   </span>
                 </div>
-                <input
+                <AutoGrowTextarea
                   id="agent-company-name"
                   name="companyName"
-                  type="text"
+                  rows={1}
                   required
                   aria-describedby="agent-company-hint"
                   value={formData.companyName}
                   onChange={(e) => handleCompanyNameChange(e.target.value)}
                   placeholder="Напр.: Автошкола Все категории"
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                  className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-blue-600"
                 />
                 <FieldHint id="agent-company-hint">
                   Это название бот произнесёт клиенту в первую секунду звонка.

@@ -30,10 +30,10 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
   const popoverId = `field-help-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   return (
-    <div className="flex items-center justify-between gap-2 mb-1.5">
+    <div className="flex items-start justify-between gap-2 mb-1.5">
       <label
         htmlFor={htmlFor}
-        className="text-xs font-semibold text-slate-800 flex items-center gap-1.5 cursor-pointer"
+        className="text-xs font-semibold text-slate-800 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0 leading-snug cursor-pointer"
       >
         <span>{label}</span>
         {required && (
@@ -127,3 +127,31 @@ export const FieldHint: React.FC<FieldHintProps> = ({ id, children }) => (
     {children}
   </p>
 );
+
+interface AutoGrowTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  value: string;
+}
+
+export const AutoGrowTextarea: React.FC<AutoGrowTextareaProps> = ({
+  value,
+  className = '',
+  rows = 1,
+  onKeyDown,
+  ...rest
+}) => (
+  <div className="voxi-growable-wrap" data-replicated-value={value}>
+    <textarea
+      rows={rows}
+      value={value}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.shiftKey && rows === 1) {
+          e.preventDefault();
+        }
+        onKeyDown?.(e);
+      }}
+      className={`voxi-autogrow-textarea ${className}`}
+      {...rest}
+    />
+  </div>
+);
+

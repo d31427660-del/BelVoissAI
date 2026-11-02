@@ -67,6 +67,47 @@ dialog::backdrop {
   backdrop-filter: blur(2px);
 }
 
+/* Auto-growing multi-line fields that wrap instead of clipping horizontally (Modern Web Guidance: form-fields-automatically-fit-contents) */
+.voxi-autogrow-textarea {
+  field-sizing: content;
+  width: 100%;
+  height: auto;
+  min-block-size: 2.35rem;
+  max-block-size: 12lh;
+  resize: none;
+  overflow-wrap: anywhere;
+}
+
+@supports not (field-sizing: content) {
+  .voxi-growable-wrap {
+    display: grid;
+    width: 100%;
+  }
+
+  .voxi-growable-wrap::after,
+  .voxi-growable-wrap > .voxi-autogrow-textarea {
+    grid-area: 1 / 1 / 2 / 2;
+    font: inherit;
+    line-height: 1.5;
+    padding: 0.5rem 0.75rem;
+    box-sizing: border-box;
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .voxi-growable-wrap::after {
+    content: attr(data-replicated-value) " ";
+    white-space: pre-wrap;
+    visibility: hidden;
+    pointer-events: none;
+    min-block-size: 2.35rem;
+  }
+
+  .voxi-growable-wrap > .voxi-autogrow-textarea {
+    overflow: hidden;
+  }
+}
+
 /* Respect Reduced Motion Preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

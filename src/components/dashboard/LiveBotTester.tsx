@@ -453,7 +453,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 truncate">
+                    <div className="text-xs font-bold text-slate-900 leading-snug break-words">
                       {agent.companyName} ({voiceLabel})
                     </div>
                     <div className="text-[11px] mt-0.5">
@@ -516,10 +516,10 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
               {/* Live Speech Transcription Preview */}
               {interimTranscript && !isBotSpeaking && !isMicMuted && (
                 <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="w-2 h-2 mt-1 rounded-full bg-emerald-500 animate-ping shrink-0" />
                     <span className="font-semibold text-[11px] text-emerald-800 shrink-0">Вы:</span>
-                    <span className="italic truncate">«{interimTranscript}»</span>
+                    <span className="italic break-words leading-snug">«{interimTranscript}»</span>
                   </div>
                   <button
                     type="button"

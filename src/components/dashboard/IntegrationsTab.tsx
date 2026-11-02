@@ -15,7 +15,7 @@ import {
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
 import { SipSettings, TelegramSettings, WebhookSettings } from '../../types';
-import { FieldLabel, FieldHint } from './FieldHelp';
+import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';
 
 interface IntegrationsTabProps {
@@ -703,14 +703,14 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                   <span>Произносить</span>
                 </label>
               </div>
-              <input
+              <AutoGrowTextarea
                 id="recording-disclaimer-text"
                 name="disclaimerText"
-                type="text"
+                rows={1}
                 aria-describedby="recording-disclaimer-hint"
                 value={localSip.disclaimerText}
                 onChange={(e) => setLocalSip({ ...localSip, disclaimerText: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs focus:outline-none focus:border-blue-600"
+                className="px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs leading-relaxed focus:outline-none focus:border-blue-600"
               />
               <FieldHint id="recording-disclaimer-hint">
                 Если галочка «Произносить» снята, бот сразу перейдёт к приветствию без этой фразы.

@@ -10,7 +10,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { BusinessNiche, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
-import { FieldLabel, FieldHint } from './FieldHelp';
+import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 
 /* ============================================================================
  * 1. BELARUS PHONE INPUT (+375 operator pills + live formatting)
@@ -354,10 +354,10 @@ export const InteractiveAddressBuilder: React.FC<InteractiveAddressBuilderProps>
 
       <div
         id="agent-address-builder-hint"
-        className="px-3 py-2 rounded-lg bg-white border border-slate-200/80 text-[11px] text-slate-600 flex items-center gap-2"
+        className="px-3 py-2 rounded-lg bg-white border border-slate-200/80 text-[11px] text-slate-600 flex items-start gap-2"
       >
-        <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-        <span className="truncate">
+        <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+        <span className="leading-relaxed break-words">
           Бот скажет клиенту: <strong className="text-slate-900">{previewAddress}</strong>
         </span>
       </div>
@@ -572,7 +572,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
       </div>
 
       {/* Day Pills */}
-      <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="Рабочие дни недели">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5" role="group" aria-label="Рабочие дни недели">
         {WEEKDAYS.map((day) => {
           const isWorking = sched.is24x7 || sched.activeDays.includes(day.id);
           return (
@@ -581,7 +581,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
               type="button"
               aria-pressed={isWorking}
               onClick={() => toggleDay(day.id)}
-              className={`py-2 rounded-xl text-xs font-bold border transition-all flex flex-col items-center justify-center ${
+              className={`px-1 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold border transition-all flex flex-col items-center justify-center ${
                 isWorking
                   ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                   : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
@@ -636,7 +636,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
               type="button"
               aria-pressed={sched.noLunchBreak}
               onClick={() => update({ noLunchBreak: !sched.noLunchBreak })}
-              className={`ml-auto px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+              className={`sm:ml-auto px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                 sched.noLunchBreak
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
@@ -699,9 +699,9 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
         </div>
       )}
 
-      <div className="px-3 py-2 rounded-lg bg-white border border-slate-200/80 text-[11px] text-slate-600 flex items-center gap-2">
-        <ClockIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-        <span className="truncate">
+      <div className="px-3 py-2 rounded-lg bg-white border border-slate-200/80 text-[11px] text-slate-600 flex items-start gap-2">
+        <ClockIcon className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+        <span className="leading-relaxed break-words">
           Итоговый график: <strong className="text-slate-900">{previewText}</strong>
         </span>
       </div>
@@ -830,10 +830,10 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
         </button>
       </div>
 
-      <input
+      <AutoGrowTextarea
         id="agent-first-message"
         name="firstMessage"
-        type="text"
+        rows={1}
         aria-describedby="agent-greeting-hint"
         value={value}
         onChange={(e) => {
@@ -841,7 +841,7 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
           onChange(e.target.value);
         }}
         placeholder="Здравствуйте! Чем могу вам помочь?"
-        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+        className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-blue-600"
       />
       <FieldHint id="agent-greeting-hint">
         Название компании и имя бота обновляются в этой фразе автоматически при их изменении.
@@ -1036,34 +1036,36 @@ export const InteractiveServicesBuilder: React.FC<InteractiveServicesBuilderProp
       </div>
 
       {/* Rows List */}
-      <div className="space-y-2" aria-describedby="services-builder-hint">
+      <div className="space-y-2.5" aria-describedby="services-builder-hint">
         {rows.map((row, index) => (
           <div
             key={row.id}
-            className="p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center gap-2"
+            className="p-2.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-start gap-2"
           >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <span className="w-5 h-5 mt-1.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">
                 {index + 1}
               </span>
-              <input
-                id={`service-title-${row.id}`}
-                type="text"
-                aria-label={`Название услуги ${index + 1}`}
-                value={row.title}
-                onChange={(e) => updateRow(row.id, { title: e.target.value })}
-                placeholder="Название услуги (напр. Замена масла)"
-                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50/70 focus:bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
-              />
+              <div className="flex-1 min-w-0">
+                <AutoGrowTextarea
+                  id={`service-title-${row.id}`}
+                  rows={1}
+                  aria-label={`Название услуги ${index + 1}`}
+                  value={row.title}
+                  onChange={(e) => updateRow(row.id, { title: e.target.value })}
+                  placeholder="Название услуги или условия (напр. Замена масла)"
+                  className="px-3 py-2 rounded-lg bg-slate-50/70 focus:bg-white border border-slate-200 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-blue-600"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 pl-7 sm:pl-0 shrink-0">
+            <div className="flex items-center gap-1.5 pl-7 sm:pl-0 sm:pt-0.5 shrink-0">
               <button
                 type="button"
                 aria-pressed={row.isFrom}
                 onClick={() => updateRow(row.id, { isFrom: !row.isFrom })}
                 title="Включить приставку «от», если цена ориентировочная"
-                className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                className={`px-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors ${
                   row.isFrom
                     ? 'bg-blue-600 text-white border-blue-600'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-500 border-slate-200'
@@ -1079,10 +1081,10 @@ export const InteractiveServicesBuilder: React.FC<InteractiveServicesBuilderProp
                   aria-label={`Цена в BYN для услуги ${index + 1}`}
                   value={row.price}
                   onChange={(e) => updateRow(row.id, { price: e.target.value.replace(/[^0-9–-]/g, '') })}
-                  placeholder="50"
-                  className="w-full pl-2.5 pr-10 py-1.5 rounded-lg bg-slate-50/70 focus:bg-white border border-slate-200 text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                  placeholder="—"
+                  className="w-full pl-2.5 pr-10 py-2 rounded-lg bg-slate-50/70 focus:bg-white border border-slate-200 text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                 />
-                <span className="absolute right-2.5 top-1.5 text-[10px] font-bold text-emerald-700 pointer-events-none">
+                <span className="absolute right-2.5 top-2 text-[10px] font-bold text-emerald-700 pointer-events-none">
                   BYN
                 </span>
               </div>
@@ -1119,7 +1121,7 @@ export const InteractiveServicesBuilder: React.FC<InteractiveServicesBuilderProp
               key={sug.title}
               type="button"
               onClick={() => addRow(sug)}
-              className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 text-[11px] font-medium transition-colors"
+              className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 text-[11px] font-medium text-left leading-snug transition-colors"
             >
               + {sug.title} ({sug.isFrom ? 'от ' : ''}{sug.price} BYN)
             </button>
