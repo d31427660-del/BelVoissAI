@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --apple-bg: #ffffff;
+  --apple-surface: #f5f5f7;
+  --apple-text: #1d1d1f;
+  --apple-muted: #6e6e73;
+  --apple-border: #d2d2d7;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', sans-serif;
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #1d1d1f;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Native Modal Dialog Scroll Containment (Modern Web Guidance) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Accessible Keyboard Focus Indicator */
+:where(a:any-link, button, input, select, textarea):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Apple Display Heading — balanced, clean, sentence case, tight tracking */
+.apple-heading {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.03em;
+}
+
+/* 3D Perspective Stage for Apple Studio Microphone */
+.perspective-stage {
+  perspective: 1400px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Fine acoustic mesh inspired by Apple HomePod / Studio Microphone */
+.mic-mesh-pattern {
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, #1d1d1f 1px);
+  background-size: 6px 6px;
+  background-position: 0 0, 3px 3px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f5f5f7;
+}
+::-webkit-scrollbar-thumb {
+  background: #c7c7cc;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6e6e73;
+}

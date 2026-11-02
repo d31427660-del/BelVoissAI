@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "solar-icons": {
+      "source": "saoudi-h/solar-icons",
+      "sourceType": "github",
+      "skillPath": "skills/solar-icons/SKILL.md",
+      "computedHash": "ed98a21023c5b0c3bb5323ce448e264afc9fa4673e82bac7600ac8950143fbb2"
+    }
+  }
+}
