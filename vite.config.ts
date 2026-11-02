@@ -26,6 +26,7 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
           }
 
           const cleanText = text
+            .replace(/\bBYN\b/gi, 'рублей')
             .replace(/["«»]/g, '')
             .replace(/[&<>]/g, ' ')
             .replace(/\s+/g, ' ')

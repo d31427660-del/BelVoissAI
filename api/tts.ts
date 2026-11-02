@@ -51,6 +51,7 @@ export default async function handler(req: any, res: any) {
 
   // Cap synthesis length at 600 chars to protect Yandex SpeechKit quota
   const cleanText = rawText
+    .replace(/\bBYN\b/gi, 'рублей')
     .replace(/["«»]/g, '')
     .replace(/[&<>]/g, ' ')
     .replace(/\s+/g, ' ')
