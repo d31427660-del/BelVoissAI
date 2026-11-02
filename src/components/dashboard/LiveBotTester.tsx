@@ -59,18 +59,21 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   }, []);
 
   const speakBotMessage = useCallback((reply: string) => {
+    isBotSpeakingRef.current = true;
     setIsBotSpeaking(true);
     speechRecognition.setBotSpeaking(true);
-    lastBotMessageRef.current = reply.toLowerCase();
+    lastBotMessageRef.current = reply.trim().toLowerCase();
 
     VoiceSimulator.speak(
       reply,
       agent.voice,
       () => {
+        isBotSpeakingRef.current = true;
         setIsBotSpeaking(true);
         speechRecognition.setBotSpeaking(true);
       },
       () => {
+        isBotSpeakingRef.current = false;
         setIsBotSpeaking(false);
         speechRecognition.setBotSpeaking(false);
       },
@@ -83,8 +86,8 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
     const query = (customQuery || inputText).trim();
     if (!query || callStatusRef.current !== 'connected' || isBotSpeakingRef.current) return;
 
-    // Discard echo of bot's own phrase
-    if (lastBotMessageRef.current && lastBotMessageRef.current.includes(query.toLowerCase()) && query.length < 25) {
+    // Only discard exact full-sentence echo, never valid short answers like "диагностика" or "ремонт"
+    if (lastBotMessageRef.current && query.length >= 25 && lastBotMessageRef.current === query.toLowerCase()) {
       return;
     }
 
@@ -113,6 +116,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
       setMessages(prev => [...prev, { speaker: 'assistant', text: reply, time: aiTime }]);
       speakBotMessage(reply);
     } catch {
+      isBotSpeakingRef.current = false;
       setIsBotThinking(false);
       if (callStatusRef.current === 'connected') {
         speechRecognition.setBotSpeaking(false);
@@ -120,10 +124,10 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
     }
   }, [agent, callDuration, formatCallTime, inputText, speakBotMessage]);
 
-  // Speech Recognition Hook (1.8s calm silence delay)
+  // Speech Recognition Hook (snappy 1.35s silence auto-submit)
   const speechRecognition = useSpeechRecognition({
     lang: 'ru-RU',
-    silenceDelayMs: 1800,
+    silenceDelayMs: 1350,
     onFinalTranscript: (transcript) => {
       if (callStatusRef.current === 'connected' && !isBotSpeakingRef.current && !isMicMuted) {
         handleSendMessage(transcript);
@@ -165,14 +169,17 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   }, [callStatus]);
 
   const handleStartCall = () => {
+    callStatusRef.current = 'dialing';
     setCallStatus('dialing');
     setCallDuration(0);
     setIsMicMuted(false);
     setMessages([]);
     VoiceSimulator.stop();
+    VoiceSimulator.unlock();
 
     // Start mic in user gesture
     startListening();
+    isBotSpeakingRef.current = true;
     setBotSpeaking(true);
 
     // 1. Play dial tone
@@ -186,6 +193,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
         ringtoneStopRef.current = null;
       }
 
+      callStatusRef.current = 'connected';
       setCallStatus('connected');
 
       const welcome = agent.firstMessage || 'Здравствуйте! Чем я могу вам помочь?';

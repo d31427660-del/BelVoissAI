@@ -74,18 +74,21 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
   // Bot speech handler with soft mic ignore
   const speakBotMessage = useCallback((textToSpeak: string) => {
+    isBotSpeakingRef.current = true;
     setIsBotSpeaking(true);
     speechRecognition.setBotSpeaking(true);
-    lastBotMessageRef.current = textToSpeak.toLowerCase();
+    lastBotMessageRef.current = textToSpeak.trim().toLowerCase();
 
     VoiceSimulator.speak(
       textToSpeak,
       selectedVoice,
       () => {
+        isBotSpeakingRef.current = true;
         setIsBotSpeaking(true);
         speechRecognition.setBotSpeaking(true);
       },
       () => {
+        isBotSpeakingRef.current = false;
         setIsBotSpeaking(false);
         speechRecognition.setBotSpeaking(false);
       },
@@ -100,8 +103,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     const clean = userQuery.trim();
     if (!clean || callStateRef.current !== 'connected' || isBotSpeakingRef.current) return;
 
-    // Discard echo of bot's own phrase
-    if (lastBotMessageRef.current && lastBotMessageRef.current.includes(clean.toLowerCase()) && clean.length < 25) {
+    // Only discard exact full-sentence echo, never valid short answers like "диагностика" or "ремонт"
+    if (lastBotMessageRef.current && clean.length >= 25 && lastBotMessageRef.current === clean.toLowerCase()) {
       return;
     }
 
@@ -146,6 +149,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
       speakBotMessage(reply);
     } catch {
+      isBotSpeakingRef.current = false;
       setIsBotThinking(false);
       if (callStateRef.current === 'connected') {
         speechRecognition.setBotSpeaking(false);
@@ -153,10 +157,10 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     }
   }, [callDuration, currentTemplate, selectedNiche, selectedVoice, speakBotMessage]);
 
-  // Speech Recognition Hook (1.8s silence delay for calm conversation)
+  // Speech Recognition Hook (snappy 1.35s silence auto-submit)
   const speechRecognition = useSpeechRecognition({
     lang: 'ru-RU',
-    silenceDelayMs: 1800,
+    silenceDelayMs: 1350,
     onFinalTranscript: (spoken) => {
       if (callStateRef.current === 'connected' && !isBotSpeakingRef.current && !isMuted) {
         handleUserMessage(spoken);
@@ -175,6 +179,13 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     setMuted,
     submitNow
   } = speechRecognition;
+
+  // Automatically reveal text input fallback if browser speech recognition reports an error
+  useEffect(() => {
+    if (micError) {
+      setShowTextInput(true);
+    }
+  }, [micError]);
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -201,6 +212,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
   // Start call lifecycle: User clicks "Начать звонок"
   const beginCall = () => {
+    callStateRef.current = 'dialing';
     setCallState('dialing');
     setCallDuration(0);
     setTranscript([]);
@@ -208,9 +220,11 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     setShowTextInput(false);
     setCustomText('');
     VoiceSimulator.stop();
+    VoiceSimulator.unlock();
 
     // Start microphone during this user gesture so browser gives permission immediately
     startListening();
+    isBotSpeakingRef.current = true;
     setBotSpeaking(true); // ignore audio while dialing and bot speaks greeting
 
     // 1. Play dial tone
@@ -224,6 +238,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         ringtoneStopRef.current = null;
       }
 
+      callStateRef.current = 'connected';
       setCallState('connected');
 
       const welcome = currentTemplate.firstMessage;

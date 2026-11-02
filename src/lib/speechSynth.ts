@@ -5,12 +5,43 @@ import { PhoneticRule } from '../types';
 
 export class VoiceSimulator {
   private static synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
+  private static sharedAudio: HTMLAudioElement | null = null;
   private static currentAudio: HTMLAudioElement | null = null;
   private static isSpeaking = false;
   private static waveInterval: number | null = null;
   private static manifestCache: Record<string, string> | null = null;
   private static manifestPromise: Promise<Record<string, string>> | null = null;
   private static phoneticRules: PhoneticRule[] = [];
+
+  /**
+   * Unlocks a reusable HTMLAudioElement inside a user click gesture
+   * so async TTS responses after /api/chat play reliably in Safari & Chrome.
+   */
+  public static unlock() {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!this.sharedAudio) {
+        this.sharedAudio = new Audio();
+      }
+      // Minimal 1-sample silent WAV to bless element under user activation
+      this.sharedAudio.src =
+        'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      this.sharedAudio.volume = 0;
+      const p = this.sharedAudio.play();
+      if (p) {
+        p.then(() => {
+          if (this.sharedAudio && this.currentAudio !== this.sharedAudio) {
+            this.sharedAudio.pause();
+            this.sharedAudio.volume = 1;
+          }
+        }).catch(() => {
+          if (this.sharedAudio) this.sharedAudio.volume = 1;
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   public static setPhoneticRules(rules: PhoneticRule[]) {
     this.phoneticRules = rules || [];
@@ -80,8 +111,14 @@ export class VoiceSimulator {
           (spokenText === text ? manifest[rawKey] : undefined) ||
           `/api/tts?voice=${encodeURIComponent(voiceName)}&text=${encodeURIComponent(spokenText)}`;
 
-        const audio = new Audio(audioUrl);
+        const audio = this.sharedAudio || new Audio();
+        this.sharedAudio = audio;
+        audio.onplay = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.volume = 1;
         audio.preload = 'auto';
+        audio.src = audioUrl;
         this.currentAudio = audio;
 
         let started = false;
