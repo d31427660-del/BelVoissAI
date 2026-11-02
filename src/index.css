@@ -68,18 +68,24 @@ dialog::backdrop {
   background-position: 0 0, 3px 3px;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Standard Scrollbar Customization + Legacy WebKit Fallback (Modern Web Guidance) */
+.voxi-scroll {
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-track: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
-::-webkit-scrollbar-track {
-  background: #f5f5f7;
-}
-::-webkit-scrollbar-thumb {
-  background: #c7c7cc;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #6e6e73;
+
+@supports not (scrollbar-color: auto) {
+  .voxi-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .voxi-scroll::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+  }
+  .voxi-scroll::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
 }

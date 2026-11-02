@@ -1,12 +1,16 @@
 // Neural TTS & audio wave controller for Voxi.by
-// Uses pre-generated studio MP3 cache + live-streamed Yandex SpeechKit API v1 (/api/tts)
+// Uses Yandex SpeechKit studio MP3 cache (cache-busted) + live-streamed Yandex SpeechKit API v1 (/api/tts)
 
 import { PhoneticRule } from '../types';
+
+const VOICE_CACHE_VERSION = 'yc3';
 
 export class VoiceSimulator {
   private static synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
   private static sharedAudio: HTMLAudioElement | null = null;
   private static currentAudio: HTMLAudioElement | null = null;
+  private static currentObjectUrl: string | null = null;
+  private static activeToken = 0;
   private static isSpeaking = false;
   private static waveInterval: number | null = null;
   private static manifestCache: Record<string, string> | null = null;
@@ -15,7 +19,7 @@ export class VoiceSimulator {
 
   /**
    * Unlocks a reusable HTMLAudioElement inside a user click gesture
-   * so async TTS responses after /api/chat play reliably in Safari & Chrome.
+   * using a valid 44-byte silent PCM WAV so async TTS responses play reliably in Safari & Chrome.
    */
   public static unlock() {
     if (typeof window === 'undefined') return;
@@ -23,20 +27,21 @@ export class VoiceSimulator {
       if (!this.sharedAudio) {
         this.sharedAudio = new Audio();
       }
-      // Minimal 1-sample silent WAV to bless element under user activation
-      this.sharedAudio.src =
-        'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-      this.sharedAudio.volume = 0;
-      const p = this.sharedAudio.play();
-      if (p) {
-        p.then(() => {
-          if (this.sharedAudio && this.currentAudio !== this.sharedAudio) {
-            this.sharedAudio.pause();
-            this.sharedAudio.volume = 1;
-          }
-        }).catch(() => {
-          if (this.sharedAudio) this.sharedAudio.volume = 1;
-        });
+      if (!this.isSpeaking) {
+        this.sharedAudio.src =
+          'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+        this.sharedAudio.volume = 0;
+        const p = this.sharedAudio.play();
+        if (p) {
+          p.then(() => {
+            if (this.sharedAudio && !this.isSpeaking) {
+              this.sharedAudio.pause();
+              this.sharedAudio.volume = 1;
+            }
+          }).catch(() => {
+            if (this.sharedAudio) this.sharedAudio.volume = 1;
+          });
+        }
       }
     } catch {
       // ignore
@@ -71,7 +76,7 @@ export class VoiceSimulator {
   private static async loadManifest(): Promise<Record<string, string>> {
     if (this.manifestCache) return this.manifestCache;
     if (!this.manifestPromise) {
-      this.manifestPromise = fetch('/voices/manifest.json')
+      this.manifestPromise = fetch(`/voices/manifest.json?v=${VOICE_CACHE_VERSION}`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}))
         .then((data) => {
@@ -87,6 +92,13 @@ export class VoiceSimulator {
     return this.synth.getVoices().filter((v) => v.lang.startsWith('ru') || v.lang.startsWith('be'));
   }
 
+  private static revokeObjectUrl() {
+    if (this.currentObjectUrl) {
+      URL.revokeObjectURL(this.currentObjectUrl);
+      this.currentObjectUrl = null;
+    }
+  }
+
   public static speak(
     text: string,
     voiceName: 'anna' | 'dmitry' | 'polina' | 'maxim' = 'anna',
@@ -96,34 +108,36 @@ export class VoiceSimulator {
   ): Promise<void> {
     return new Promise((resolve) => {
       this.stop();
+      const token = ++this.activeToken;
 
       const runNeuralPlayback = async () => {
         const manifest = await this.loadManifest();
+        if (token !== this.activeToken) {
+          resolve();
+          return;
+        }
+
         const spokenText = this.applyPhonetics(text);
         const key = this.normalizeKey(voiceName, spokenText);
-        const fallbackKey = this.normalizeKey(voiceName === 'maxim' ? 'dmitry' : voiceName === 'polina' ? 'anna' : voiceName, spokenText);
+        const fallbackKey = this.normalizeKey(
+          voiceName === 'maxim' ? 'dmitry' : voiceName === 'polina' ? 'anna' : voiceName,
+          spokenText
+        );
         const rawKey = this.normalizeKey(voiceName, text);
 
-        // 1. Check pre-cached studio neural MP3 first for instant playback, otherwise use live /api/tts neural stream
-        const audioUrl =
+        const cachedPath =
           manifest[key] ||
           manifest[fallbackKey] ||
-          (spokenText === text ? manifest[rawKey] : undefined) ||
-          `/api/tts?voice=${encodeURIComponent(voiceName)}&text=${encodeURIComponent(spokenText)}`;
+          (spokenText === text ? manifest[rawKey] : undefined);
 
-        const audio = this.sharedAudio || new Audio();
-        this.sharedAudio = audio;
-        audio.onplay = null;
-        audio.onended = null;
-        audio.onerror = null;
-        audio.volume = 1;
-        audio.preload = 'auto';
-        audio.src = audioUrl;
-        this.currentAudio = audio;
+        // Append cache-buster ?v=yc3 to static MP3s so browsers never play stale pre-SpeechKit files
+        const audioUrl = cachedPath
+          ? `${cachedPath}?v=${VOICE_CACHE_VERSION}`
+          : `/api/tts?voice=${encodeURIComponent(voiceName)}&text=${encodeURIComponent(spokenText)}`;
 
         let started = false;
         const handleStart = () => {
-          if (started) return;
+          if (started || token !== this.activeToken) return;
           started = true;
           this.isSpeaking = true;
           onStart?.();
@@ -131,32 +145,57 @@ export class VoiceSimulator {
         };
 
         const handleFinish = () => {
-          if (this.currentAudio === audio) {
-            this.currentAudio = null;
+          if (token !== this.activeToken) {
+            resolve();
+            return;
           }
+          this.currentAudio = null;
+          this.revokeObjectUrl();
           this.isSpeaking = false;
           this.stopWaveformAnimation();
           onEnd?.();
           resolve();
         };
 
-        audio.onplay = handleStart;
-        audio.onended = handleFinish;
-        audio.onerror = () => {
-          if (this.currentAudio === audio) {
-            this.currentAudio = null;
-          }
-          // Fallback to browser synthesis only if network/file fails
-          this.speakBrowserFallback(text, voiceName, onStart, onEnd, onWaveformUpdate, resolve);
-        };
-
         try {
+          // Fetch MP3 bytes first so we always verify HTTP 200 Yandex SpeechKit audio
+          // and never trigger browser robotic fallback due to streaming race or stale element state
+          const res = await fetch(audioUrl);
+          if (token !== this.activeToken) {
+            resolve();
+            return;
+          }
+          if (!res.ok) {
+            throw new Error(`TTS HTTP ${res.status}`);
+          }
+          const blob = await res.blob();
+          if (token !== this.activeToken) {
+            resolve();
+            return;
+          }
+
+          this.revokeObjectUrl();
+          const objectUrl = URL.createObjectURL(blob);
+          this.currentObjectUrl = objectUrl;
+
+          const audio = this.sharedAudio || new Audio();
+          this.sharedAudio = audio;
+          audio.onplay = handleStart;
+          audio.onended = handleFinish;
+          audio.onerror = handleFinish;
+          audio.volume = 1;
+          audio.src = objectUrl;
+          this.currentAudio = audio;
+
           handleStart();
           await audio.play();
-        } catch {
-          if (this.currentAudio === audio) {
-            this.currentAudio = null;
+        } catch (err: any) {
+          if (token !== this.activeToken || err?.name === 'AbortError') {
+            resolve();
+            return;
           }
+          this.currentAudio = null;
+          this.revokeObjectUrl();
           this.speakBrowserFallback(text, voiceName, onStart, onEnd, onWaveformUpdate, resolve);
         }
       };
@@ -166,17 +205,20 @@ export class VoiceSimulator {
   }
 
   public static stop() {
+    this.activeToken += 1;
     if (this.currentAudio) {
       try {
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
+        this.currentAudio.onplay = null;
         this.currentAudio.onended = null;
         this.currentAudio.onerror = null;
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
       } catch {
         // ignore
       }
       this.currentAudio = null;
     }
+    this.revokeObjectUrl();
     if (this.synth) {
       this.synth.cancel();
     }
@@ -195,7 +237,6 @@ export class VoiceSimulator {
     let tick = 0;
     this.waveInterval = window.setInterval(() => {
       tick += 0.35;
-      // Natural human speech envelope (smoothly modulated sine + subtle organic jitter)
       const levels = Array.from({ length: 16 }, (_, i) => {
         const wave = Math.sin(tick + i * 0.55) * 0.5 + 0.5;
         const envelope = Math.sin(tick * 0.45) * 0.3 + 0.7;
@@ -251,25 +292,26 @@ export class VoiceSimulator {
       utterance.rate = 1.0;
     }
 
+    let finished = false;
+    const finishOnce = () => {
+      if (finished) return;
+      finished = true;
+      this.isSpeaking = false;
+      this.stopWaveformAnimation();
+      onEnd?.();
+      resolve?.();
+    };
+
     utterance.onstart = () => {
       this.isSpeaking = true;
       onStart?.();
       this.startWaveformAnimation(onWaveformUpdate);
     };
+    utterance.onend = finishOnce;
+    utterance.onerror = finishOnce;
 
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      this.stopWaveformAnimation();
-      onEnd?.();
-      resolve?.();
-    };
-
-    utterance.onerror = () => {
-      this.isSpeaking = false;
-      this.stopWaveformAnimation();
-      onEnd?.();
-      resolve?.();
-    };
+    // Watchdog in case browser speechSynthesis stalls
+    window.setTimeout(finishOnce, Math.min(Math.max(text.length * 90, 3500), 12000));
 
     this.synth.speak(utterance);
   }

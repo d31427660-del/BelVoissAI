@@ -570,10 +570,14 @@ export function App() {
                 setAgent(updated);
               } else if (loggedInUser.companyName && loggedInUser.companyName !== agent.companyName) {
                 const voiceLabel = agent.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+                const prevCompany = agent.companyName;
                 const updated: AgentConfig = {
                   ...agent,
                   companyName: loggedInUser.companyName,
                   name: `${voiceLabel} — ${loggedInUser.companyName}`,
+                  firstMessage: prevCompany
+                    ? agent.firstMessage.replace(prevCompany, loggedInUser.companyName)
+                    : agent.firstMessage,
                 };
                 updated.systemPrompt = generateSystemPrompt(updated);
                 setAgent(updated);
@@ -590,6 +594,7 @@ export function App() {
         <Suspense fallback={null}>
           <VoiceTestModal
             isOpen={isVoiceTestModalOpen}
+            initialNiche={agent.niche}
             onClose={() => setIsVoiceTestModalOpen(false)}
             onProceedToDashboard={() => {
               if (!user) setIsAuthModalOpen(true);

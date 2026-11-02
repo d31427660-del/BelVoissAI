@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircleIcon as CheckCircle2,
@@ -19,7 +19,7 @@ import {
 import { AgentConfig, BusinessNiche, VoiceId } from '../../types';
 import { NICHE_TEMPLATES } from '../../lib/mockData';
 import { generateSystemPrompt } from '../../lib/vapiService';
-import { requestAiPromptImprovement } from '../../lib/botDialogueEngine';
+import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
 
@@ -39,6 +39,10 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [promptGenStatus, setPromptGenStatus] = useState<string | null>(null);
 
+  useEffect(() => {
+    setFormData(agent);
+  }, [agent]);
+
   const niches: Array<{ id: BusinessNiche; label: string; desc: string; icon: string }> = [
     { id: 'auto_service', label: 'Автосервис (СТО)', desc: 'Запись на подъемник, диагностика, шиномонтаж', icon: '🚗' },
     { id: 'beauty_salon', label: 'Салон красоты', desc: 'Запись на маникюр, стрижку, окрашивание', icon: '💇‍♀️' },
@@ -48,9 +52,11 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
   const handleSelectNiche = (niche: BusinessNiche) => {
     const tmpl = NICHE_TEMPLATES[niche];
+    const voiceLabel = formData.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
     const updated: AgentConfig = {
       ...formData,
       niche,
+      name: `${voiceLabel} — ${tmpl.companyName}`,
       companyName: tmpl.companyName,
       city: tmpl.city,
       address: tmpl.address,
@@ -58,10 +64,25 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
       workingHours: tmpl.workingHours,
       pricingAndServices: tmpl.pricingAndServices,
       knowledgeBase: tmpl.knowledgeBase,
-      firstMessage: tmpl.firstMessage
+      firstMessage: adaptGreetingForVoice(tmpl.firstMessage, formData.voice, tmpl.companyName, tmpl.companyName),
+      updatedAt: new Date().toISOString(),
     };
     updated.systemPrompt = generateSystemPrompt(updated);
     setFormData(updated);
+    onSaveAgent(updated);
+  };
+
+  const handleSelectVoice = (voice: VoiceId) => {
+    const tmpl = NICHE_TEMPLATES[formData.niche] || NICHE_TEMPLATES.driving_school;
+    const voiceLabel = voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+    const updated: AgentConfig = {
+      ...formData,
+      voice,
+      name: `${voiceLabel} — ${formData.companyName}`,
+      firstMessage: adaptGreetingForVoice(formData.firstMessage || tmpl.firstMessage, voice, formData.companyName, tmpl.companyName),
+    };
+    setFormData(updated);
+    onSaveAgent(updated);
   };
 
   const handlePlayVoiceSample = (voice: VoiceId) => {
@@ -215,7 +236,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                 return (
                   <div
                     key={v.id}
-                    onClick={() => setFormData({ ...formData, voice: v.id })}
+                    onClick={() => handleSelectVoice(v.id)}
                     className={`p-3.5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between gap-2 ${
                       isSelected
                         ? 'border-blue-600 bg-blue-50/80 shadow-xs'
@@ -234,7 +255,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setFormData({ ...formData, voice: v.id });
+                        handleSelectVoice(v.id);
                         handlePlayVoiceSample(v.id);
                       }}
                       className="px-2.5 py-1 rounded-md bg-white hover:bg-slate-50 text-blue-600 border border-slate-200 text-[11px] font-semibold flex items-center gap-1 self-start transition-colors"
@@ -262,7 +283,15 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                 <input
                   type="text"
                   value={formData.companyName}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  onChange={(e) => {
+                    const nextCompany = e.target.value;
+                    const voiceLabel = formData.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+                    setFormData({
+                      ...formData,
+                      companyName: nextCompany,
+                      name: `${voiceLabel} — ${nextCompany}`,
+                    });
+                  }}
                   placeholder="напр. СТО Минск-Моторс"
                   className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
                 />

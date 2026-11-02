@@ -19,6 +19,60 @@ export interface DialogueTurn {
   text: string;
 }
 
+export const NICHE_QUICK_QUESTIONS: Record<
+  BusinessNiche,
+  Array<{ label: string; query: string }>
+> = {
+  driving_school: [
+    { label: 'Сколько стоит категория B?', query: 'Сколько стоит полный курс обучения на категорию B и топливо?' },
+    { label: 'Есть ли рассрочка?', query: 'Есть ли рассрочка без переплат на обучение?' },
+    { label: 'Где классы и автодром?', query: 'По какому адресу находятся учебные классы и автодром?' },
+    { label: 'Запишите в вечернюю группу', query: 'Запишите меня в вечернюю группу на 18:30' },
+  ],
+  auto_service: [
+    { label: 'Замена масла — цена?', query: 'Сколько стоит замена моторного масла и фильтра?' },
+    { label: 'Диагностика подвески', query: 'Сколько стоит диагностика подвески и куда подъехать?' },
+    { label: 'Запишите сегодня на 18:30', query: 'Можно записаться на диагностику сегодня на 18:30?' },
+    { label: 'Есть ли карта Халва?', query: 'Принимаете ли вы карты рассрочки Халва и есть ли гарантия?' },
+  ],
+  medical_clinic: [
+    { label: 'Острая боль — примете сегодня?', query: 'Болит зуб, сможете принять сегодня без очереди?' },
+    { label: 'Чистка зубов — стоимость?', query: 'Сколько стоит профессиональная чистка зубов ультразвуком и Air-Flow?' },
+    { label: 'Работаете по страховке?', query: 'Принимаете ли вы пациентов по полисам Белгосстрах и Ингосстрах?' },
+    { label: 'Запишите на завтра утром', query: 'Запишите меня на консультацию к стоматологу на завтра утром' },
+  ],
+  beauty_salon: [
+    { label: 'Сколько стоит стрижка?', query: 'Подскажите цены на стрижку и окрашивание?' },
+    { label: 'Запишите на пятницу 18:30', query: 'Есть ли свободное окно к мастеру в пятницу на 18:30?' },
+    { label: 'Где находится салон?', query: 'Подскажите точный адрес салона и график работы?' },
+    { label: 'Маникюр и уход', query: 'Сколько стоит комплексный маникюр с покрытием?' },
+  ],
+  custom: [
+    { label: 'Сколько стоят услуги?', query: 'Расскажите про ваши основные услуги и цены' },
+    { label: 'Где вы находитесь?', query: 'Подскажите ваш адрес и график работы' },
+    { label: 'Запишите на завтра', query: 'Можно записаться на завтра в удобное время?' },
+    { label: 'Способы оплаты', query: 'Какие способы оплаты и рассрочки у вас есть?' },
+  ],
+};
+
+export function adaptGreetingForVoice(
+  rawGreeting: string,
+  voice: string,
+  companyName?: string,
+  templateCompanyName?: string
+): string {
+  let result = rawGreeting || 'Здравствуйте! Чем я могу вам помочь?';
+  const voiceLabel =
+    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
+
+  result = result.replace(/меня зовут (Анна|Дмитрий|Полина|Максим)/gi, `меня зовут ${voiceLabel}`);
+
+  if (companyName && templateCompanyName && companyName.trim() && companyName !== templateCompanyName) {
+    result = result.replace(templateCompanyName, companyName.trim());
+  }
+  return result;
+}
+
 /**
  * Intelligent dialogue engine for Voxi.by phone bot simulation.
  * Returns natural, context-aware Russian responses tailored to the business niche and pricing.
