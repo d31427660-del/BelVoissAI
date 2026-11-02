@@ -16,6 +16,13 @@ import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/bot
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
 import { FieldLabel, FieldHint } from './FieldHelp';
+import {
+  BelarusPhoneInput,
+  InteractiveAddressBuilder,
+  InteractiveScheduleBuilder,
+  InteractiveGreetingBuilder,
+  InteractiveServicesBuilder
+} from './InteractiveAgentFields';
 
 interface SimpleAgentTabProps {
   agent: AgentConfig;
@@ -27,6 +34,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   onSaveAgent
 }) => {
   const [formData, setFormData] = useState<AgentConfig>(agent);
+  const [syncVersion, setSyncVersion] = useState(0);
   const [playingVoiceId, setPlayingVoiceId] = useState<VoiceId | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
@@ -34,6 +42,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
   useEffect(() => {
     setFormData(agent);
+    setSyncVersion((v) => v + 1);
   }, [agent]);
 
   const niches: Array<{ id: BusinessNiche; label: string; desc: string; icon: string }> = [
@@ -58,10 +67,11 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
       pricingAndServices: tmpl.pricingAndServices,
       knowledgeBase: tmpl.knowledgeBase,
       firstMessage: adaptGreetingForVoice(tmpl.firstMessage, formData.voice, tmpl.companyName, tmpl.companyName),
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     updated.systemPrompt = generateSystemPrompt(updated);
     setFormData(updated);
+    setSyncVersion((v) => v + 1);
     onSaveAgent(updated);
   };
 
@@ -77,10 +87,27 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
         voice,
         formData.companyName,
         formData.companyName
-      ),
+      )
     };
     setFormData(updated);
     onSaveAgent(updated);
+  };
+
+  const handleCompanyNameChange = (nextCompany: string) => {
+    const prevCompany = formData.companyName;
+    const voiceLabel = formData.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+    const syncedGreeting = adaptGreetingForVoice(
+      formData.firstMessage,
+      formData.voice,
+      nextCompany,
+      prevCompany
+    );
+    setFormData({
+      ...formData,
+      companyName: nextCompany,
+      name: `${voiceLabel} — ${nextCompany}`,
+      firstMessage: syncedGreeting
+    });
   };
 
   const handlePlayVoiceSample = (voice: VoiceId) => {
@@ -93,8 +120,8 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     VoiceSimulator.stop();
     const phrase =
       voice === 'dmitry'
-        ? 'Добрый день! Автосервис Минск-Моторс, мастер Дмитрий. Чем могу помочь вашему автомобилю?'
-        : 'Здравствуйте! Я ваш голосовой администратор Анна. С радостью подскажу цены и запишу вас на удобное время.';
+        ? `Добрый день! ${formData.companyName || 'Автосервис Минск-Моторс'}, мастер Дмитрий. Чем могу помочь?`
+        : `Здравствуйте! ${formData.companyName || 'Голосовой помощник'}, меня зовут Анна. С радостью подскажу цены и запишу вас!`;
 
     VoiceSimulator.speak(
       phrase,
@@ -114,16 +141,16 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     if (result?.systemPrompt) {
       setFormData((prev) => ({
         ...prev,
-        systemPrompt: result.systemPrompt,
+        systemPrompt: result.systemPrompt
       }));
-      setPromptGenStatus('Инструкция для бота обновлена нейросетью по вашим ценам и данным.');
+      setPromptGenStatus('Правила разговора обновлены нейросетью по вашим услугам и ценам.');
     } else {
       const localPrompt = generateSystemPrompt(formData);
       setFormData((prev) => ({
         ...prev,
-        systemPrompt: localPrompt,
+        systemPrompt: localPrompt
       }));
-      setPromptGenStatus('Сформирована базовая инструкция по вашим услугам и контактам.');
+      setPromptGenStatus('Правила разговора обновлены по вашему прайс-листу и графику.');
     }
   };
 
@@ -131,15 +158,16 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     e?.preventDefault();
     const finalized: AgentConfig = {
       ...formData,
-      systemPrompt: formData.systemPrompt?.trim()
-        ? formData.systemPrompt
-        : generateSystemPrompt(formData),
+      systemPrompt: generateSystemPrompt(formData),
       updatedAt: new Date().toISOString()
     };
+    setFormData(finalized);
     onSaveAgent(finalized);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
+
+  const syncKey = `${formData.niche}-${syncVersion}`;
 
   return (
     <form onSubmit={handleSave} className="space-y-6 max-w-5xl mx-auto">
@@ -150,7 +178,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             Настройка голосового бота
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Заполните данные о вашей компании простыми словами. Под каждым полем есть подсказка, а справа можно сразу проверить бота.
+            Выберите нужные параметры кнопками и списками — справа можно сразу проверить обновлённого бота голосом.
           </p>
         </div>
 
@@ -175,28 +203,31 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-medium"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Настройки сохранены! Бот уже использует новые цены, адрес и приветствие.</span>
+            <span>Настройки сохранены! Бот уже отвечает по новым услугам, графику и адресу.</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Form Column */}
+        {/* Left Interactive Builder Column */}
         <div className="lg:col-span-7 space-y-5">
           {/* Card 1: Сфера бизнеса */}
-          <fieldset className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-3">
+          <section
+            aria-labelledby="section-niche-heading"
+            className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-3"
+          >
             <div className="flex items-center justify-between gap-2">
-              <legend className="text-xs font-bold text-slate-900">
+              <h3 id="section-niche-heading" className="text-xs font-bold text-slate-900">
                 1. Выберите сферу вашего бизнеса
-              </legend>
+              </h3>
               <span className="text-[11px] text-slate-400">Готовый шаблон</span>
             </div>
 
             <p id="agent-niche-hint" className="text-[11px] text-slate-500 leading-relaxed">
-              При выборе сферы поля ниже заполнятся готовым примером — вы сможете заменить название, адрес и цены на свои.
+              При выборе сферы поля ниже заполнятся готовым набором услуг и графиком — вы сразу сможете настроить их под себя.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" aria-describedby="agent-niche-hint">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-describedby="agent-niche-hint">
               {niches.map((n) => {
                 const isSelected = formData.niche === n.id;
                 const radioId = `agent-niche-${n.id}`;
@@ -232,18 +263,21 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                 );
               })}
             </div>
-          </fieldset>
+          </section>
 
           {/* Card 2: Голос бота */}
-          <fieldset className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-3">
-            <legend className="text-xs font-bold text-slate-900">
+          <section
+            aria-labelledby="section-voice-heading"
+            className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-3"
+          >
+            <h3 id="section-voice-heading" className="text-xs font-bold text-slate-900">
               2. Каким голосом бот будет общаться с клиентами
-            </legend>
+            </h3>
             <p id="agent-voice-hint" className="text-[11px] text-slate-500 leading-relaxed">
-              Нажмите «Послушать пример», чтобы выбрать подходящий тембр. Имя в приветствии поменяется автоматически.
+              Нажмите «Послушать пример», чтобы выбрать подходящий голос. Имя в приветствии обновится само.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-describedby="agent-voice-hint">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-describedby="agent-voice-hint">
               {[
                 { id: 'anna' as const, name: 'Анна (женский)', desc: 'Доброжелательный, мягкий голос администратора' },
                 { id: 'dmitry' as const, name: 'Дмитрий (мужской)', desc: 'Спокойный, уверенный голос мастера-консультанта' }
@@ -298,24 +332,37 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                 );
               })}
             </div>
-          </fieldset>
+          </section>
 
-          {/* Card 3: Контакты, адрес и часы работы */}
-          <fieldset className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
-            <legend className="text-xs font-bold text-slate-900">
-              3. Основная информация о вашей компании
-            </legend>
+          {/* Card 3: Интерактивные данные компании (Название + Телефон + Адрес/метро + График работы) */}
+          <section
+            aria-labelledby="section-company-heading"
+            className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4"
+          >
+            <div className="pb-2.5 border-b border-slate-100">
+              <h3 id="section-company-heading" className="text-xs font-bold text-slate-900">
+                3. Основная информация о вашей компании
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Все изменения сразу подставляются в приветствие и ответы бота
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
               <div>
                 <FieldLabel
                   htmlFor="agent-company-name"
                   label="Название компании"
                   required
                   helpTitle="Как написать название компании"
-                  helpText="Напишите название так, как оно хорошо звучит на слух по телефону. Не используйте «ООО» или «ЧУП» — лучше укажите понятное клиенту имя."
-                  helpExample="Автосервис Минск-Моторс&#10;Стоматология Улыбка Плюс&#10;Салон красоты Белла"
+                  helpText="Напишите понятное на слух название без «ООО» и «УНП». Как только вы измените название здесь, оно автоматически обновится и в приветствии бота ниже."
+                  helpExample="Автошкола Все категории&#10;Автосервис Минск-Моторс&#10;Стоматология Дент-Престиж"
                 />
+                <div className="h-[22px] mb-1.5 flex items-center">
+                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70">
+                    Автоподстановка в приветствие включена
+                  </span>
+                </div>
                 <input
                   id="agent-company-name"
                   name="companyName"
@@ -323,155 +370,92 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                   required
                   aria-describedby="agent-company-hint"
                   value={formData.companyName}
-                  onChange={(e) => {
-                    const nextCompany = e.target.value;
-                    const voiceLabel = formData.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
-                    setFormData({
-                      ...formData,
-                      companyName: nextCompany,
-                      name: `${voiceLabel} — ${nextCompany}`,
-                    });
-                  }}
-                  placeholder="Напр.: Автосервис Минск-Моторс"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                  onChange={(e) => handleCompanyNameChange(e.target.value)}
+                  placeholder="Напр.: Автошкола Все категории"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
                 />
                 <FieldHint id="agent-company-hint">
-                  Это название бот назовёт клиенту в начале разговора.
+                  Это название бот произнесёт клиенту в первую секунду звонка.
                 </FieldHint>
               </div>
 
-              <div>
-                <FieldLabel
-                  htmlFor="agent-transfer-phone"
-                  label="Телефон сотрудника для перевода"
-                  helpTitle="Зачем нужен телефон сотрудника"
-                  helpText="Если клиент попросит соединить с живым человеком или задаст нестандартный вопрос, бот переключит вызов на этот мобильный или городской номер."
-                  helpExample="+375 (29) 112-44-55"
-                />
-                <input
-                  id="agent-transfer-phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  aria-describedby="agent-phone-hint"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+375 (29) 112-44-55"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
-                />
-                <FieldHint id="agent-phone-hint">
-                  Номер администратора или мастера на случай сложных вопросов.
-                </FieldHint>
-              </div>
+              <BelarusPhoneInput
+                id="agent-transfer-phone"
+                value={formData.phone}
+                onChange={(nextPhone) => setFormData({ ...formData, phone: nextPhone })}
+              />
             </div>
 
-            <div>
-              <FieldLabel
-                htmlFor="agent-address"
-                label="Адрес и удобный ориентир"
-                helpTitle="Как лучше указать адрес"
-                helpText="Добавьте не только улицу и дом, но и станцию метро, район или заметный ориентир рядом — клиенты часто спрашивают, как к вам проехать или где припарковаться."
-                helpExample="г. Минск, ул. Тимирязева, 121 (возле ТЦ Град, бесплатная парковка у шлагбаума)"
-              />
-              <input
-                id="agent-address"
-                name="address"
-                type="text"
-                autoComplete="street-address"
-                aria-describedby="agent-address-hint"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="г. Минск, пр-т Победителей, 65 (рядом с ТЦ Замок)"
-                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
-              />
-              <FieldHint id="agent-address-hint">
-                Укажите город, улицу, номер дома и ближайшую станцию метро или ориентир.
-              </FieldHint>
+            <InteractiveAddressBuilder
+              city={formData.city}
+              address={formData.address}
+              syncKey={syncKey}
+              onChange={(nextCity, nextAddress) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  city: nextCity,
+                  address: nextAddress
+                }))
+              }
+            />
+
+            <InteractiveScheduleBuilder
+              value={formData.workingHours}
+              syncKey={syncKey}
+              onChange={(nextHours) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  workingHours: nextHours
+                }))
+              }
+            />
+          </section>
+
+          {/* Card 4: Интерактивное приветствие и конструктор прайс-листа */}
+          <section
+            aria-labelledby="section-pricing-heading"
+            className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4"
+          >
+            <div className="pb-2.5 border-b border-slate-100">
+              <h3 id="section-pricing-heading" className="text-xs font-bold text-slate-900">
+                4. Приветствие и цены на услуги (в BYN)
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Добавляйте услуги карточками и отмечайте способы оплаты кнопками
+              </p>
             </div>
 
-            <div>
-              <FieldLabel
-                htmlFor="agent-working-hours"
-                label="График работы"
-                helpTitle="Зачем указывать часы работы"
-                helpText="Бот круглосуточно принимает звонки, но записывает клиентов именно в ваши рабочие часы и точно отвечает на вопрос «До скольки вы сегодня работаете?»."
-                helpExample="Пн–Пт с 09:00 до 20:00, Сб с 10:00 до 18:00, Вс — выходной"
-              />
-              <input
-                id="agent-working-hours"
-                name="workingHours"
-                type="text"
-                aria-describedby="agent-hours-hint"
-                value={formData.workingHours}
-                onChange={(e) => setFormData({ ...formData, workingHours: e.target.value })}
-                placeholder="Ежедневно с 09:00 до 21:00 без выходных"
-                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
-              />
-              <FieldHint id="agent-hours-hint">
-                Дни недели и время приёма клиентов (например: Пн–Сб 09:00–20:00).
-              </FieldHint>
-            </div>
-          </fieldset>
+            <InteractiveGreetingBuilder
+              value={formData.firstMessage}
+              companyName={formData.companyName}
+              voice={formData.voice}
+              niche={formData.niche}
+              onChange={(nextGreeting) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  firstMessage: nextGreeting
+                }))
+              }
+            />
 
-          {/* Card 4: Приветствие и прайс-лист */}
-          <fieldset className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
-            <legend className="text-xs font-bold text-slate-900">
-              4. Приветствие и цены на услуги (в BYN)
-            </legend>
+            <InteractiveServicesBuilder
+              value={formData.pricingAndServices}
+              niche={formData.niche}
+              syncKey={syncKey}
+              onChange={(nextPricing) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  pricingAndServices: nextPricing
+                }))
+              }
+            />
 
-            <div>
-              <FieldLabel
-                htmlFor="agent-first-message"
-                label="Первая фраза бота при ответе на звонок"
-                helpTitle="Каким должно быть приветствие"
-                helpText="Короткое приветствие из 1–2 предложений работает лучше всего: назовите компанию, имя ассистента и предложите помощь."
-                helpExample="Здравствуйте! Автошкола Драйв-Минск, администратор Анна. Чем могу вам помочь?"
-              />
-              <input
-                id="agent-first-message"
-                name="firstMessage"
-                type="text"
-                aria-describedby="agent-greeting-hint"
-                value={formData.firstMessage}
-                onChange={(e) => setFormData({ ...formData, firstMessage: e.target.value })}
-                placeholder="Здравствуйте! Компания ..., чем могу вам помочь?"
-                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
-              />
-              <FieldHint id="agent-greeting-hint">
-                Эту фразу клиент услышит сразу после снятия трубки.
-              </FieldHint>
-            </div>
-
-            <div>
-              <FieldLabel
-                htmlFor="agent-pricing"
-                label="Список основных услуг и цен (в белорусских рублях)"
-                helpTriggerLabel="Пример прайса"
-                helpTitle="Как заполнить услуги и цены"
-                helpText="Перечислите ваши самые частые услуги с новой строки. Если точная стоимость зависит от осмотра, напишите «от ... BYN». Суммы в BYN бот автоматически произносит как «белорусских рублей»."
-                helpExample="- Диагностика подвески — 35 BYN&#10;- Замена масла и фильтров — от 45 BYN&#10;- Шиномонтаж R16 (комплекс) — 75 BYN&#10;- Рассрочка по карте Халва — 3 месяца"
-              />
-              <textarea
-                id="agent-pricing"
-                name="pricingAndServices"
-                rows={5}
-                aria-describedby="agent-pricing-hint"
-                value={formData.pricingAndServices}
-                onChange={(e) => setFormData({ ...formData, pricingAndServices: e.target.value })}
-                placeholder="- Услуга 1 — 50 BYN&#10;- Услуга 2 — от 80 BYN"
-                className="w-full p-3 rounded-lg bg-white border border-slate-300 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-600"
-              />
-              <FieldHint id="agent-pricing-hint">
-                Пишите по одной услуге на строку в формате «Услуга — цена BYN». Также сюда можно добавить условия оплаты или рассрочки.
-              </FieldHint>
-            </div>
-
-            <div className="pt-1 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+            <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={handleGenerateAiPrompt}
                 disabled={isGeneratingPrompt}
-                className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 <Sparkles className="w-4 h-4 text-blue-600" />
                 <span>
@@ -485,7 +469,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                 </span>
               )}
             </div>
-          </fieldset>
+          </section>
 
           {/* Card 5: Дополнительные правила (Native <details> disclosure) */}
           <details className="group border border-slate-200/90 rounded-2xl bg-white overflow-hidden shadow-xs">
@@ -502,10 +486,10 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                 <FieldLabel
                   htmlFor="agent-system-prompt"
                   label="Подробная инструкция поведения бота"
-                  optionalText="заполняется автоматически"
+                  optionalText="собирается сама при сохранении"
                   helpTitle="Что можно дописать в инструкцию"
-                  helpText="Обычно менять это поле не нужно — оно создаётся само из ваших услуг и адреса. Но если у вас есть особые правила (например: «всегда уточнять марку и год машины» или «предупреждать взять паспорт»), допишите их сюда простым текстом."
-                  helpExample="Обязательно спроси у клиента имя, удобное время и марку автомобиля. Не обещай скидки без согласования с мастером."
+                  helpText="При нажатии «Сохранить настройки» эта инструкция автоматически пересобирается по вашим карточкам услуг, адресу и графику. При желании нажмите «Обновить правила разговора», чтобы улучшить формулировки через YandexGPT."
+                  helpExample="Обязательно спроси у клиента имя, удобное время и коробку передач (МКПП или АКПП)."
                 />
                 <textarea
                   id="agent-system-prompt"
@@ -514,10 +498,10 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                   aria-describedby="agent-system-prompt-hint"
                   value={formData.systemPrompt}
                   onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
-                  className="w-full p-3 rounded-lg bg-white border border-slate-300 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-600"
+                  className="w-full p-3 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-600"
                 />
                 <FieldHint id="agent-system-prompt-hint">
-                  Особые пожелания к диалогу: какие вопросы задать клиенту при записи и чего обещать нельзя.
+                  Особые пожелания к диалогу: какие вопросы уточнить у клиента и чего обещать нельзя.
                 </FieldHint>
               </div>
             </div>

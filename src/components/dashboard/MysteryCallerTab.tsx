@@ -15,6 +15,7 @@ import { INITIAL_MYSTERY_LEADS } from '../../lib/mockData';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { VoiceId, BusinessNiche, MysteryAuditItem } from '../../types';
 import { FieldLabel, FieldHint } from './FieldHelp';
+import { formatBelarusPhone } from './InteractiveAgentFields';
 
 interface MysteryCallerTabProps {
   currentVoice?: VoiceId;
@@ -239,10 +240,11 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
                 id="mystery-phone"
                 name="phone"
                 type="tel"
+                inputMode="tel"
                 autoComplete="tel"
                 aria-describedby="mystery-phone-hint"
                 value={customPhone}
-                onChange={(e) => setCustomPhone(e.target.value)}
+                onChange={(e) => setCustomPhone(formatBelarusPhone(e.target.value))}
                 placeholder="+375 (29) 650-12-34"
                 className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
               />

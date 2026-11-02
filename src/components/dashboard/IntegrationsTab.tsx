@@ -16,6 +16,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { SipSettings, TelegramSettings, WebhookSettings } from '../../types';
 import { FieldLabel, FieldHint } from './FieldHelp';
+import { formatBelarusPhone } from './InteractiveAgentFields';
 
 interface IntegrationsTabProps {
   sipSettings: SipSettings;
@@ -416,10 +417,11 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
               id="sip-caller-id"
               name="callerId"
               type="tel"
+              inputMode="tel"
               autoComplete="tel"
               aria-describedby="sip-caller-id-hint"
               value={localSip.callerId}
-              onChange={(e) => setLocalSip({ ...localSip, callerId: e.target.value })}
+              onChange={(e) => setLocalSip({ ...localSip, callerId: formatBelarusPhone(e.target.value) })}
               placeholder="+375 (29) 600-10-20"
               className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
             />
@@ -593,10 +595,11 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
               id="fallback-phone"
               name="fallbackPhone"
               type="tel"
+              inputMode="tel"
               autoComplete="tel"
               aria-describedby="fallback-phone-hint"
               value={localSip.fallbackPhone}
-              onChange={(e) => setLocalSip({ ...localSip, fallbackPhone: e.target.value })}
+              onChange={(e) => setLocalSip({ ...localSip, fallbackPhone: formatBelarusPhone(e.target.value) })}
               placeholder="+375 (29) 700-11-22"
               className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
             />
