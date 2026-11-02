@@ -97,6 +97,25 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
           res.end('TTS error');
         }
       });
+
+      server.middlewares.use('/api/chat', async (req: any, res: any) => {
+        try {
+          let rawBody = '';
+          for await (const chunk of req) {
+            rawBody += chunk;
+          }
+          req.body = rawBody ? JSON.parse(rawBody) : {};
+          for (const [k, v] of Object.entries(env)) {
+            if (v && !process.env[k]) process.env[k] = v;
+          }
+          const { default: chatHandler } = await import('./api/chat');
+          await chatHandler(req, res);
+        } catch {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({ error: 'Dev chat handler error' }));
+        }
+      });
     },
   };
 }

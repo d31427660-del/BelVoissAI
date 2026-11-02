@@ -13,7 +13,7 @@ import {
 import { AgentConfig } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { useSpeechRecognition } from '../../lib/useSpeechRecognition';
-import { generateBotReply } from '../../lib/botDialogueEngine';
+import { requestBotReply } from '../../lib/botDialogueEngine';
 import { playRingingTone, playHangupSound } from '../../lib/telephonyAudio';
 
 interface LiveBotTesterProps {
@@ -27,10 +27,14 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   const [messages, setMessages] = useState<Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>>([]);
   const [inputText, setInputText] = useState('');
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
+  const [isBotThinking, setIsBotThinking] = useState(false);
+  const [aiProvider, setAiProvider] = useState<'yandexgpt-lite' | 'local-fallback' | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [waveBars, setWaveBars] = useState<number[]>([15, 30, 45, 60, 35, 20, 50, 75, 40, 25]);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const ringtoneStopRef = useRef<(() => void) | null>(null);
   const lastBotMessageRef = useRef('');
   const callStatusRef = useRef<CallStatus>('idle');
@@ -41,8 +45,12 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   }, [callStatus]);
 
   useEffect(() => {
-    isBotSpeakingRef.current = isBotSpeaking;
-  }, [isBotSpeaking]);
+    isBotSpeakingRef.current = isBotSpeaking || isBotThinking;
+  }, [isBotSpeaking, isBotThinking]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const formatCallTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -71,7 +79,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   }, [agent.voice]);
 
   // Handle incoming user query (voice or text)
-  const handleSendMessage = useCallback((customQuery?: string) => {
+  const handleSendMessage = useCallback(async (customQuery?: string) => {
     const query = (customQuery || inputText).trim();
     if (!query || callStatusRef.current !== 'connected' || isBotSpeakingRef.current) return;
 
@@ -81,20 +89,35 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
     }
 
     // Immediately stop mic capture to avoid feedback
-    setIsBotSpeaking(true);
+    setIsBotThinking(true);
+    isBotSpeakingRef.current = true;
     speechRecognition.setBotSpeaking(true);
 
+    const priorHistory = messagesRef.current.map(({ speaker, text }) => ({ speaker, text }));
     const userTime = formatCallTime(callDuration);
     setMessages(prev => [...prev, { speaker: 'user', text: query, time: userTime }]);
     setInputText('');
 
-    setTimeout(() => {
-      const reply = generateBotReply(query, agent);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const { reply, provider } = await requestBotReply(query, agent, priorHistory, controller.signal);
+      if (callStatusRef.current !== 'connected') return;
+
+      setAiProvider(provider);
+      setIsBotThinking(false);
       const aiTime = formatCallTime(callDuration + 1);
 
       setMessages(prev => [...prev, { speaker: 'assistant', text: reply, time: aiTime }]);
       speakBotMessage(reply);
-    }, 350);
+    } catch {
+      setIsBotThinking(false);
+      if (callStatusRef.current === 'connected') {
+        speechRecognition.setBotSpeaking(false);
+      }
+    }
   }, [agent, callDuration, formatCallTime, inputText, speakBotMessage]);
 
   // Speech Recognition Hook (1.8s calm silence delay)
@@ -174,6 +197,10 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   };
 
   const handleEndCall = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     if (ringtoneStopRef.current) {
       ringtoneStopRef.current();
       ringtoneStopRef.current = null;
@@ -182,6 +209,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
     stopListening();
     VoiceSimulator.stop();
     setIsBotSpeaking(false);
+    setIsBotThinking(false);
     setCallStatus('idle');
   };
 
@@ -214,6 +242,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 0.5 сек отклик
               </span>
+              {aiProvider === 'yandexgpt-lite' && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 whitespace-nowrap">
+                  YandexGPT Lite
+                </span>
+              )}
             </h4>
             <p className="text-[11px] text-slate-400 truncate">
               Реальный звонок: говорите в микрофон, робот мгновенно отвечает голосом
@@ -339,7 +372,15 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
                     {agent.companyName} ({agent.voice === 'dmitry' ? 'Дмитрий' : 'Анна'})
                   </div>
                   <div className="text-[11px] flex items-center gap-1.5 truncate">
-                    {isBotSpeaking ? (
+                    {isBotThinking ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-indigo-300 font-medium">ИИ формирует ответ...</span>
+                        <progress
+                          aria-label="Генерация ответа ассистента"
+                          className="w-28 h-1 rounded-full overflow-hidden accent-indigo-500"
+                        />
+                      </div>
+                    ) : isBotSpeaking ? (
                       <span className="text-blue-300 font-medium">🔊 Бот отвечает в динамик...</span>
                     ) : isMicMuted ? (
                       <span className="text-slate-400">🔇 Микрофон отключен</span>

@@ -10,7 +10,13 @@ export interface DialogueContext {
   workingHours?: string;
   pricingAndServices?: string;
   knowledgeBase?: string;
+  systemPrompt?: string;
   voice?: string;
+}
+
+export interface DialogueTurn {
+  speaker: 'assistant' | 'user';
+  text: string;
 }
 
 /**
@@ -201,4 +207,78 @@ export function generateBotReply(query: string, context: DialogueContext): strin
 
   // 10. Default contextual helpful reply
   return `Спасибо за вопрос! Компания «${company}» с радостью поможет. Уточните, пожалуйста: вас интересует расчет точной стоимости, адрес филиала или свободное время для записи?`;
+}
+
+/**
+ * Requests a live neural reply from YandexGPT Lite via /api/chat,
+ * with automatic zero-downtime fallback to generateBotReply().
+ */
+export async function requestBotReply(
+  query: string,
+  context: DialogueContext,
+  history: DialogueTurn[] = [],
+  signal?: AbortSignal
+): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback' }> {
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'dialogue',
+        query,
+        history: history.slice(-8),
+        context,
+      }),
+      signal,
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.reply && typeof data.reply === 'string') {
+        return {
+          reply: data.reply.trim(),
+          provider: 'yandexgpt-lite',
+        };
+      }
+    }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw err;
+    }
+  }
+
+  return {
+    reply: generateBotReply(query, context),
+    provider: 'local-fallback',
+  };
+}
+
+/**
+ * Generates or improves a phone receptionist system prompt via YandexGPT Lite (/api/chat).
+ */
+export async function requestAiPromptImprovement(
+  context: DialogueContext
+): Promise<{ systemPrompt: string; provider: 'yandexgpt-lite' } | null> {
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'generate_prompt',
+        context,
+      }),
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data?.systemPrompt && typeof data.systemPrompt === 'string') {
+      return {
+        systemPrompt: data.systemPrompt.trim(),
+        provider: 'yandexgpt-lite',
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

@@ -15,7 +15,7 @@ import { NICHE_TEMPLATES } from '../lib/mockData';
 import { BusinessNiche, VoiceId } from '../types';
 import { VoiceSimulator } from '../lib/speechSynth';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
-import { generateBotReply } from '../lib/botDialogueEngine';
+import { requestBotReply } from '../lib/botDialogueEngine';
 import { playRingingTone, playHangupSound } from '../lib/telephonyAudio';
 
 interface VoiceTestModalProps {
@@ -36,6 +36,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const [callState, setCallState] = useState<CallState>('ready');
   const [callDuration, setCallDuration] = useState(0);
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
+  const [isBotThinking, setIsBotThinking] = useState(false);
+  const [aiProvider, setAiProvider] = useState<'yandexgpt-lite' | 'local-fallback' | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [customText, setCustomText] = useState('');
@@ -43,6 +45,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const [waveBars, setWaveBars] = useState<number[]>([25, 45, 75, 90, 60, 40, 70, 85, 55, 30]);
 
   const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
+  const transcriptRef = useRef<Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const ringtoneStopRef = useRef<(() => void) | null>(null);
   const lastBotMessageRef = useRef('');
   const callStateRef = useRef<CallState>('ready');
@@ -53,8 +57,12 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   }, [callState]);
 
   useEffect(() => {
-    isBotSpeakingRef.current = isBotSpeaking;
-  }, [isBotSpeaking]);
+    isBotSpeakingRef.current = isBotSpeaking || isBotThinking;
+  }, [isBotSpeaking, isBotThinking]);
+
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
 
   const currentTemplate = NICHE_TEMPLATES[selectedNiche];
 
@@ -88,7 +96,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   }, [selectedVoice]);
 
   // Handle incoming message from user
-  const handleUserMessage = useCallback((userQuery: string) => {
+  const handleUserMessage = useCallback(async (userQuery: string) => {
     const clean = userQuery.trim();
     if (!clean || callStateRef.current !== 'connected' || isBotSpeakingRef.current) return;
 
@@ -97,31 +105,52 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       return;
     }
 
-    // Immediately flag bot speaking so recognition ignores audio
-    setIsBotSpeaking(true);
+    // Immediately flag bot busy so recognition ignores room echo
+    setIsBotThinking(true);
+    isBotSpeakingRef.current = true;
     speechRecognition.setBotSpeaking(true);
 
+    const priorHistory = transcriptRef.current.map(({ speaker, text }) => ({ speaker, text }));
     const timeStr = formatTime(callDuration);
     setTranscript(prev => [...prev, { speaker: 'user', text: clean, time: timeStr }]);
     setCustomText('');
 
-    setTimeout(() => {
-      const reply = generateBotReply(clean, {
-        niche: selectedNiche,
-        companyName: currentTemplate.companyName,
-        city: currentTemplate.city,
-        address: currentTemplate.address,
-        workingHours: currentTemplate.workingHours,
-        pricingAndServices: currentTemplate.pricingAndServices,
-        knowledgeBase: currentTemplate.knowledgeBase,
-        voice: selectedVoice
-      });
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
+    try {
+      const { reply, provider } = await requestBotReply(
+        clean,
+        {
+          niche: selectedNiche,
+          companyName: currentTemplate.companyName,
+          city: currentTemplate.city,
+          address: currentTemplate.address,
+          phone: currentTemplate.phone,
+          workingHours: currentTemplate.workingHours,
+          pricingAndServices: currentTemplate.pricingAndServices,
+          knowledgeBase: currentTemplate.knowledgeBase,
+          voice: selectedVoice,
+        },
+        priorHistory,
+        controller.signal
+      );
+
+      if (callStateRef.current !== 'connected') return;
+
+      setAiProvider(provider);
+      setIsBotThinking(false);
       const aiTimeStr = formatTime(callDuration + 1);
       setTranscript(prev => [...prev, { speaker: 'assistant', text: reply, time: aiTimeStr }]);
 
       speakBotMessage(reply);
-    }, 350);
+    } catch {
+      setIsBotThinking(false);
+      if (callStateRef.current === 'connected') {
+        speechRecognition.setBotSpeaking(false);
+      }
+    }
   }, [callDuration, currentTemplate, selectedNiche, selectedVoice, speakBotMessage]);
 
   // Speech Recognition Hook (1.8s silence delay for calm conversation)
@@ -205,16 +234,22 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     }, 1200);
   };
 
-  // Reset state on open/close
+    // Reset state on open/close
   useEffect(() => {
     if (isOpen) {
       setCallState('ready');
       setTranscript([]);
       setCallDuration(0);
       setIsBotSpeaking(false);
+      setIsBotThinking(false);
+      setAiProvider(null);
       setIsMuted(false);
       setShowTextInput(false);
     } else {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       if (ringtoneStopRef.current) {
         ringtoneStopRef.current();
         ringtoneStopRef.current = null;
@@ -225,6 +260,10 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   }, [isOpen]);
 
   const handleHangup = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     if (ringtoneStopRef.current) {
       ringtoneStopRef.current();
       ringtoneStopRef.current = null;
@@ -233,6 +272,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     VoiceSimulator.stop();
     stopListening();
     setIsBotSpeaking(false);
+    setIsBotThinking(false);
     setCallState('ended');
   };
 
@@ -243,7 +283,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   };
 
   const handleCenterOrbClick = () => {
-    if (callState !== 'connected' || isBotSpeaking) return;
+    if (callState !== 'connected' || isBotSpeaking || isBotThinking) return;
 
     if (interimTranscript.trim()) {
       submitNow();
@@ -266,8 +306,13 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${callState === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'}`} />
             <span className="font-mono text-[11px] text-slate-300">
-              МТС • А1 SIP Trunk (0.5 сек)
+              МТС • А1 SIP Trunk
             </span>
+            {aiProvider === 'yandexgpt-lite' && (
+              <span className="px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 text-[10px] font-semibold">
+                YandexGPT Lite
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -379,6 +424,16 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
                       Гудки вызова... Соединение со шлюзом РБ...
                     </span>
+                  ) : isBotThinking ? (
+                    <div className="inline-flex flex-col items-center gap-1">
+                      <span className="text-xs text-indigo-300 font-medium">
+                        ИИ формирует ответ по прайсу...
+                      </span>
+                      <progress
+                        aria-label="Генерация ответа ассистента"
+                        className="w-36 h-1 rounded-full overflow-hidden accent-indigo-500"
+                      />
+                    </div>
                   ) : isBotSpeaking ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-blue-300 font-medium">
                       <Volume2 className="w-4 h-4 text-blue-400 animate-pulse" />

@@ -19,6 +19,7 @@ import {
 import { AgentConfig, BusinessNiche, VoiceId } from '../../types';
 import { NICHE_TEMPLATES } from '../../lib/mockData';
 import { generateSystemPrompt } from '../../lib/vapiService';
+import { requestAiPromptImprovement } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
 
@@ -35,6 +36,8 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [promptGenStatus, setPromptGenStatus] = useState<string | null>(null);
 
   const niches: Array<{ id: BusinessNiche; label: string; desc: string; icon: string }> = [
     { id: 'auto_service', label: 'Автосервис (СТО)', desc: 'Запись на подъемник, диагностика, шиномонтаж', icon: '🚗' },
@@ -80,10 +83,36 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     );
   };
 
+  const handleGenerateAiPrompt = async () => {
+    setIsGeneratingPrompt(true);
+    setPromptGenStatus(null);
+    setShowAdvanced(true);
+
+    const result = await requestAiPromptImprovement(formData);
+    setIsGeneratingPrompt(false);
+
+    if (result?.systemPrompt) {
+      setFormData((prev) => ({
+        ...prev,
+        systemPrompt: result.systemPrompt,
+      }));
+      setPromptGenStatus('Системный скрипт успешно сгенерирован через YandexGPT Lite.');
+    } else {
+      const localPrompt = generateSystemPrompt(formData);
+      setFormData((prev) => ({
+        ...prev,
+        systemPrompt: localPrompt,
+      }));
+      setPromptGenStatus('Сформирован базовый шаблон скрипта (добавьте YANDEX_FOLDER_ID для генерации через YandexGPT).');
+    }
+  };
+
   const handleSave = () => {
     const finalized = {
       ...formData,
-      systemPrompt: generateSystemPrompt(formData),
+      systemPrompt: formData.systemPrompt?.trim()
+        ? formData.systemPrompt
+        : generateSystemPrompt(formData),
       updatedAt: new Date().toISOString()
     };
     onSaveAgent(finalized);
@@ -284,6 +313,24 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               onChange={(e) => setFormData({ ...formData, pricingAndServices: e.target.value })}
               className="w-full p-3 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-800 leading-relaxed focus:outline-none focus:border-blue-600"
             />
+
+            <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateAiPrompt}
+                disabled={isGeneratingPrompt}
+                className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span>Сгенерировать скрипт с YandexGPT</span>
+              </button>
+              {isGeneratingPrompt && (
+                <progress
+                  aria-label="Генерация скрипта через YandexGPT"
+                  className="w-28 h-1.5 rounded-full overflow-hidden accent-indigo-600"
+                />
+              )}
+            </div>
           </div>
 
           {/* Card 5: Скрытые расширенные настройки (для инженеров) */}
@@ -295,19 +342,29 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             >
               <div className="flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-slate-400" />
-                <span>⚙️ Дополнительные настройки (для IT-специалистов)</span>
+                <span>⚙️ Дополнительные настройки (системный промпт ИИ)</span>
               </div>
               {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
 
             {showAdvanced && (
               <div className="p-4 pt-0 border-t border-slate-100 space-y-3 text-xs bg-slate-50/50">
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                    Сгенерированный системный промпт:
+                {promptGenStatus && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="mt-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-[11px] font-medium"
+                  >
+                    {promptGenStatus}
+                  </div>
+                )}
+                <div className="pt-2">
+                  <label htmlFor="agent-system-prompt" className="block text-[11px] font-medium text-slate-600 mb-1">
+                    Системный промпт ИИ-администратора:
                   </label>
                   <textarea
-                    rows={5}
+                    id="agent-system-prompt"
+                    rows={6}
                     value={formData.systemPrompt}
                     onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
                     className="w-full p-2.5 rounded-lg bg-white border border-slate-300 font-mono text-[11px] text-slate-800"
