@@ -53,8 +53,20 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const parseCallDate = (ts: string): Date | null => {
     if (!ts) return null;
-    const clean = ts.trim().replace(' ', 'T');
-    const d = new Date(clean);
+    const clean = ts.trim();
+    // 1. Формат DD.MM.YYYY, HH:mm:ss или DD.MM.YYYY HH:mm
+    const ruMatch = clean.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[,\s]+(\d{1,2}):(\d{2}))?/);
+    if (ruMatch) {
+      const [, day, month, year, hours = '0', minutes = '0'] = ruMatch;
+      return new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes));
+    }
+    // 2. Формат YYYY-MM-DD HH:mm или YYYY-MM-DDTHH:mm
+    const isoMatch = clean.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2}))?/);
+    if (isoMatch) {
+      const [, year, month, day, hours = '0', minutes = '0'] = isoMatch;
+      return new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes));
+    }
+    const d = new Date(clean.replace(' ', 'T'));
     return isNaN(d.getTime()) ? null : d;
   };
 

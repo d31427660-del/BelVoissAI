@@ -73,6 +73,9 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   const [isTestingTg, setIsTestingTg] = useState(false);
   const [showTgPreview, setShowTgPreview] = useState(false);
 
+  const [isTestingWh, setIsTestingWh] = useState(false);
+  const [whTestResult, setWhTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   const [isTestingFallback, setIsTestingFallback] = useState(false);
   const [fallbackResult, setFallbackResult] = useState(null as string | null);
 
@@ -128,6 +131,61 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
       setIsTestingTg(false);
       setShowTgPreview(true);
     }, 450);
+  };
+
+  const handleTestWebhook = async () => {
+    if (!localWh.webhookUrl || !/^https?:\/\//i.test(localWh.webhookUrl)) {
+      setWhTestResult({
+        ok: false,
+        message: 'Пожалуйста, введите корректный адрес обработчика (начинается с https:// или http://)'
+      });
+      return;
+    }
+
+    setIsTestingWh(true);
+    setWhTestResult(null);
+
+    try {
+      const res = await fetch('/api/dispatch-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webhookUrl: localWh.webhookUrl.trim(),
+          secretKey: localWh.secretKey?.trim(),
+          sendFormat: localWh.sendFormat,
+          isTest: true,
+          lead: {
+            clientName: 'Алексей (Тест Voxi)',
+            phone: '+375 (29) 682-14-99',
+            service: 'Тестовая заявка со звонка',
+            preferredDate: 'Сегодня в 18:30',
+            summary: 'Проверка передачи данных из личного кабинета Voxi.by',
+            dealValueByn: 120
+          }
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (data?.ok) {
+        setWhTestResult({
+          ok: true,
+          message: `✓ Успешно доставлено! Сервер вернул HTTP ${data.status || 200} OK`
+        });
+      } else {
+        setWhTestResult({
+          ok: false,
+          message: `✕ Ошибка: ${data?.error || `Сервер ответил со статусом ${data?.status || '500'}`}`
+        });
+      }
+    } catch (err: any) {
+      setWhTestResult({
+        ok: false,
+        message: `✕ Сетевая ошибка при отправке запроса: ${err?.message || 'не удалось связаться с сервером'}`
+      });
+    } finally {
+      setIsTestingWh(false);
+    }
   };
 
   const handleDownloadDpa = () => {
@@ -605,6 +663,37 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                 })}
               </div>
             </div>
+
+            <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleTestWebhook}
+                disabled={isTestingWh || !localWh.webhookUrl}
+                className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-indigo-50 text-indigo-700 border border-slate-200 hover:border-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                <Send className={`w-3.5 h-3.5 ${isTestingWh ? 'animate-pulse' : ''}`} />
+                <span>{isTestingWh ? 'Отправляем тестовый запрос...' : 'Отправить тестовый Webhook'}</span>
+              </button>
+              <span className="text-[11px] text-slate-500">Отправляет тестовый лид на ваш URL</span>
+            </div>
+
+            {whTestResult && (
+              <div
+                role="status"
+                className={`p-3 rounded-xl border text-xs font-medium flex items-start gap-2 ${
+                  whTestResult.ok
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                }`}
+              >
+                {whTestResult.ok ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <span>{whTestResult.message}</span>
+              </div>
+            )}
           </div>
         </details>
       </fieldset>

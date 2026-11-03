@@ -403,6 +403,14 @@ export function createCallLogFromDialogue(params: {
     .match(/(?:меня зовут|зовут|запишите)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)/i);
   const extractedName = nameMatch ? nameMatch[1] : 'Тестовый звонок (Вы)';
 
+  // Поиск белорусского телефонного номера (+375, 80 или локальный код оператора 17, 25, 29, 33, 44)
+  const phoneMatch = combinedUserText.match(
+    /(?:\+?375|8\s*0)?\s*\(?(17|25|29|33|44)\)?[\s-]?(\d{3})[\s-]?(\d{2})[\s-]?(\d{2})/
+  );
+  const extractedPhone = phoneMatch
+    ? `+375 (${phoneMatch[1]}) ${phoneMatch[2]}-${phoneMatch[3]}-${phoneMatch[4]}`
+    : '+375 (29) 000-00-00 (Тест)';
+
   const dealValueByn = isLeadCaptured ? tmpl.defaultAvgCheck : 0;
   const safeDuration = Math.max(durationSeconds, messages.length * 6);
   const mins = Math.floor(safeDuration / 60);
@@ -422,7 +430,7 @@ export function createCallLogFromDialogue(params: {
   return {
     id: `call-live-${Date.now()}`,
     niche,
-    callerNumber: '+375 (29) 000-00-00 (Тест)',
+    callerNumber: extractedPhone,
     callerName: extractedName,
     timestamp,
     durationSeconds: safeDuration,
@@ -433,7 +441,7 @@ export function createCallLogFromDialogue(params: {
     summary: `${serviceSummary}. Диалог из ${messages.length} реплик.`,
     capturedData: {
       clientName: extractedName,
-      phone: '+375 (29) 000-00-00',
+      phone: extractedPhone.replace(' (Тест)', ''),
       service: firstQuestion.slice(0, 70),
       preferredDate,
       preferredTime,

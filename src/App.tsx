@@ -372,6 +372,31 @@ export function App() {
           : prev
       );
     }
+
+    // Автоматическая отправка лида в CRM / 1C / Make по внешнему Webhook
+    if (webhookSettings?.isEnabled && webhookSettings?.webhookUrl?.trim()) {
+      fetch('/api/dispatch-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webhookUrl: webhookSettings.webhookUrl.trim(),
+          secretKey: webhookSettings.secretKey?.trim(),
+          sendFormat: webhookSettings.sendFormat || 'json_standard',
+          isTest: false,
+          lead: {
+            clientName: newLog.callerName,
+            phone: newLog.callerNumber,
+            service: newLog.capturedData?.service || newLog.summary,
+            preferredDate: newLog.capturedData?.preferredDate,
+            dealValueByn: newLog.dealValueByn,
+            summary: newLog.summary,
+            timestamp: newLog.timestamp,
+            transcript: newLog.transcript,
+            urgency: newLog.capturedData?.urgency
+          }
+        })
+      }).catch(() => {});
+    }
   };
 
   // Handle Niche Selection from Landing Page

@@ -6,11 +6,18 @@ import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 function timingSafeVerifyBasicAuth(authHeader: string | undefined, shopId: string, secretKey: string): boolean {
-  if (!authHeader || !authHeader.startsWith('Basic ')) return false;
-  const provided = Buffer.from(authHeader.slice(6).trim(), 'utf8');
-  const expected = Buffer.from(Buffer.from(`${shopId}:${secretKey}`).toString('base64'), 'utf8');
-  if (provided.length !== expected.length) return false;
-  return crypto.timingSafeEqual(provided, expected);
+  if (!authHeader || !/^basic\s+/i.test(authHeader)) return false;
+  try {
+    const b64 = authHeader.replace(/^basic\s+/i, '').trim();
+    const decoded = Buffer.from(b64, 'base64').toString('utf8');
+    const expected = `${shopId}:${secretKey}`;
+    const bufDecoded = Buffer.from(decoded, 'utf8');
+    const bufExpected = Buffer.from(expected, 'utf8');
+    if (bufDecoded.length !== bufExpected.length) return false;
+    return crypto.timingSafeEqual(bufDecoded, bufExpected);
+  } catch {
+    return false;
+  }
 }
 
 export default async function handler(req: any, res: any) {
