@@ -62,6 +62,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
     return agent.yclientsConfig.platform || 'yclients';
   });
   const [crmApiKey, setCrmApiKey] = useState<string>(() => agent.yclientsConfig?.partnerToken || '');
+  const [crmCompanyId, setCrmCompanyId] = useState<string>(() => agent.yclientsConfig?.companyId || '');
 
   const [showSipPassword, setShowSipPassword] = useState(false);
   const [showCrmKey, setShowCrmKey] = useState(false);
@@ -88,7 +89,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
       ...agent,
       yclientsConfig: {
         isEnabled: activeCrm !== 'none',
-        companyId: agent.yclientsConfig?.companyId || '',
+        companyId: activeCrm !== 'none' ? crmCompanyId.trim() : '',
         partnerToken: activeCrm !== 'none' ? crmApiKey.trim() : '',
         platform: activeCrm,
         autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? true,
@@ -476,46 +477,77 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
             </div>
 
             {activeCrm !== 'none' && (
-              <div>
-                <FieldLabel
-                  htmlFor="crm-api-key"
-                  label={`Ключ подключения к ${activeCrm.toUpperCase()}`}
-                  helpTriggerLabel="Где найти?"
-                  helpTitle={`Где взять ключ в ${activeCrm.toUpperCase()}`}
-                  helpText="Откройте раздел «Настройки → Интеграции / API» в личном кабинете вашей CRM-системы и скопируйте ключ доступа (токен) филиала."
-                  helpExample="partner_9f8a7b6c5d4e3f2a1b"
-                />
-                <div className="relative">
-                  <input
-                    id="crm-api-key"
-                    name="crmApiKey"
-                    type={showCrmKey ? 'text' : 'password'}
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    aria-describedby="crm-api-key-hint crm-key-visibility-warning"
-                    value={crmApiKey}
-                    onChange={(e) => setCrmApiKey(e.target.value)}
-                    placeholder="Вставьте ключ доступа из вашей CRM"
-                    className="w-full pl-3 pr-9 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCrmKey((v) => !v)}
-                    aria-pressed={showCrmKey}
-                    aria-label={showCrmKey ? 'Скрыть ключ CRM' : 'Показать ключ CRM'}
-                    aria-describedby="crm-key-visibility-warning"
-                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700"
-                  >
-                    {showCrmKey ? <EyeClosedIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                  </button>
-                  <span id="crm-key-visibility-warning" className="visually-hidden">
-                    Внимание: нажатие покажет скрытый ключ на экране.
-                  </span>
+              <div className="space-y-3 pt-1 border-t border-slate-200/60">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <FieldLabel
+                      htmlFor="crm-company-id"
+                      label={`ID филиала / компании`}
+                      helpTriggerLabel="Где найти?"
+                      helpTitle={`ID компании в ${activeCrm.toUpperCase()}`}
+                      helpText="Числовой номер вашего филиала или компании в адресной строке или настройках CRM (например, 849201)."
+                      helpExample="849201"
+                    />
+                    <input
+                      id="crm-company-id"
+                      name="crmCompanyId"
+                      type="text"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      aria-describedby="crm-company-id-hint"
+                      value={crmCompanyId}
+                      onChange={(e) => setCrmCompanyId(e.target.value)}
+                      placeholder="Например: 849201"
+                      className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+                    />
+                    <FieldHint id="crm-company-id-hint">
+                      Идентификатор филиала для запроса свободных слотов.
+                    </FieldHint>
+                  </div>
+
+                  <div>
+                    <FieldLabel
+                      htmlFor="crm-api-key"
+                      label={`Ключ API (токен доступа)`}
+                      helpTriggerLabel="Где найти?"
+                      helpTitle={`Где взять ключ в ${activeCrm.toUpperCase()}`}
+                      helpText="Откройте раздел «Настройки → Интеграции / API» в личном кабинете вашей CRM-системы и скопируйте ключ доступа (токен) филиала."
+                      helpExample="partner_9f8a7b6c5d4e3f2a1b"
+                    />
+                    <div className="relative">
+                      <input
+                        id="crm-api-key"
+                        name="crmApiKey"
+                        type={showCrmKey ? 'text' : 'password'}
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        aria-describedby="crm-api-key-hint crm-key-visibility-warning"
+                        value={crmApiKey}
+                        onChange={(e) => setCrmApiKey(e.target.value)}
+                        placeholder="Вставьте ключ доступа из вашей CRM"
+                        className="w-full pl-3 pr-9 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCrmKey((v) => !v)}
+                        aria-pressed={showCrmKey}
+                        aria-label={showCrmKey ? 'Скрыть ключ CRM' : 'Показать ключ CRM'}
+                        aria-describedby="crm-key-visibility-warning"
+                        className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700"
+                      >
+                        {showCrmKey ? <EyeClosedIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                      </button>
+                      <span id="crm-key-visibility-warning" className="visually-hidden">
+                        Внимание: нажатие покажет скрытый ключ на экране.
+                      </span>
+                    </div>
+                    <FieldHint id="crm-api-key-hint">
+                      Ключ для авторизации запросов к слотам расписания.
+                    </FieldHint>
+                  </div>
                 </div>
-                <FieldHint id="crm-api-key-hint">
-                  Нужен, чтобы бот видел свободное время ваших специалистов и создавал запись в календаре.
-                </FieldHint>
               </div>
             )}
           </div>

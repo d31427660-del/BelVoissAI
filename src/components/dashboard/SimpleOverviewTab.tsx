@@ -64,7 +64,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
     setPlayingCallId(call.id);
 
     const botVoice = agent.voice || 'anna';
-    const callerVoice = botVoice === 'dmitry' ? 'anna' : 'dmitry';
+    const callerVoice = botVoice === 'dmitry' || botVoice === 'maxim' ? 'anna' : 'dmitry';
     const turns =
       call.transcript.length > 0
         ? call.transcript

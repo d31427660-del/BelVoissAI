@@ -70,7 +70,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     setPlayingCallId(call.id);
 
     const botVoice = agent?.voice || 'anna';
-    const callerVoice = botVoice === 'dmitry' ? 'anna' : 'dmitry';
+    const callerVoice = botVoice === 'dmitry' || botVoice === 'maxim' ? 'anna' : 'dmitry';
     const turns =
       Array.isArray(call.transcript) && call.transcript.length > 0
         ? call.transcript
@@ -582,7 +582,15 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                           <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-0.5 px-1">
                             <span>
                               {isAi
-                                ? `Бот (${agent?.voice === 'dmitry' ? 'Дмитрий' : 'Анна'})`
+                                ? `Бот (${
+                                    agent?.voice === 'dmitry'
+                                      ? 'Дмитрий'
+                                      : agent?.voice === 'maxim'
+                                      ? 'Максим'
+                                      : agent?.voice === 'polina'
+                                      ? 'Полина'
+                                      : 'Анна'
+                                  })`
                                 : activeCallDetail.callerName || 'Клиент'}
                             </span>
                             <span>•</span>

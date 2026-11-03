@@ -124,7 +124,7 @@ export class YclientsService {
       date,
       time,
       service: serviceName,
-      message: `Запись успешно создана в календаре YCLIENTS (Код: ${bookingCode}). Клиенту ${clientName} отправлено SMS с подтверждением.`
+      message: `Запись успешно создана в календаре (Код: ${bookingCode}). Клиенту ${clientName} отправлено SMS с подтверждением.`
     };
   }
 
