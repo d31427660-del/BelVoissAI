@@ -39,11 +39,17 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
   }, []);
 
   const filteredLogs = callLogs.filter((log) => {
+    const query = (searchQuery || '').toLowerCase();
+    const callerNum = (log.callerNumber || '').toLowerCase();
+    const callerName = (log.callerName || '').toLowerCase();
+    const summary = (log.summary || '').toLowerCase();
+    const service = (log.capturedData?.service || '').toLowerCase();
+
     const matchesSearch =
-      log.callerNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.callerName && log.callerName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      log.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.capturedData?.service && log.capturedData.service.toLowerCase().includes(searchQuery.toLowerCase()));
+      callerNum.includes(query) ||
+      callerName.includes(query) ||
+      summary.includes(query) ||
+      service.includes(query);
 
     const matchesStatus = selectedStatus === 'all' || log.status === selectedStatus;
     return matchesSearch && matchesStatus;
@@ -66,9 +72,9 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     const botVoice = agent?.voice || 'anna';
     const callerVoice = botVoice === 'dmitry' ? 'anna' : 'dmitry';
     const turns =
-      call.transcript.length > 0
+      Array.isArray(call.transcript) && call.transcript.length > 0
         ? call.transcript
-        : [{ speaker: 'assistant' as const, text: call.summary, time: '0:01' }];
+        : [{ speaker: 'assistant' as const, text: call.summary || 'Запись разговора', time: '0:01' }];
 
     for (let idx = 0; idx < turns.length; idx++) {
       if (playbackRunRef.current !== runId) return;
@@ -100,11 +106,11 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
   const handleSyncToCrm = (call: CallLog) => {
     const leadLines = [
       `📞 Заявка со звонка (${agent?.companyName || 'Voxi.by'})`,
-      `👤 Клиент: ${call.callerName || 'Не указано'} (${call.callerNumber})`,
-      `🛠 Запрос: ${call.capturedData?.service || call.summary}`,
+      `👤 Клиент: ${call.callerName || 'Не указано'} (${call.callerNumber || 'Номер не определён'})`,
+      `🛠 Запрос: ${call.capturedData?.service || call.summary || 'Консультация'}`,
       call.capturedData?.preferredDate ? `🕒 Время: ${call.capturedData.preferredDate}` : null,
-      call.dealValueByn > 0 ? `💰 Оценка чека: ~${call.dealValueByn} BYN` : null,
-      `📝 Резюме: ${call.summary}`
+      (call.dealValueByn || 0) > 0 ? `💰 Оценка чека: ~${call.dealValueByn} BYN` : null,
+      `📝 Резюме: ${call.summary || 'Информация зафиксирована'}`
     ]
       .filter(Boolean)
       .join('\n');
@@ -123,7 +129,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     const headers = ['ID,Номер,Имя,Услуга,Дата,Длительность (сек),Статус,Сумма BYN,Суть'];
     const rows = filteredLogs.map(
       (l) =>
-        `"${l.id}","${l.callerNumber}","${(l.callerName || '').replace(/"/g, '""')}","${(l.capturedData?.service || '').replace(/"/g, '""')}","${l.timestamp}",${l.durationSeconds},"${l.status}",${l.dealValueByn},"${l.summary.replace(/"/g, '""')}"`
+        `"${l.id}","${l.callerNumber || ''}","${(l.callerName || '').replace(/"/g, '""')}","${(l.capturedData?.service || '').replace(/"/g, '""')}","${l.timestamp || ''}",${l.durationSeconds || 0},"${l.status || ''}",${l.dealValueByn || 0},"${(l.summary || '').replace(/"/g, '""')}"`
     );
     const csvContent = '\uFEFF' + [headers, ...rows].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

@@ -65,7 +65,12 @@ export function adaptGreetingForVoice(
   const voiceLabel =
     voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
 
-  result = result.replace(/меня зовут (Анна|Дмитрий|Полина|Максим)/gi, `меня зовут ${voiceLabel}`);
+  result = result
+    .replace(/меня зовут (Анна|Дмитрий|Полина|Максим)/gi, `меня зовут ${voiceLabel}`)
+    .replace(
+      /(мастер-приёмщик|мастер|администратор|голосовой помощник|специалист)\s+(?:Анна|Дмитрий|Полина|Максим)/gi,
+      `$1 ${voiceLabel}`
+    );
 
   if (companyName && templateCompanyName && companyName.trim() && companyName !== templateCompanyName) {
     result = result.replace(templateCompanyName, companyName.trim());

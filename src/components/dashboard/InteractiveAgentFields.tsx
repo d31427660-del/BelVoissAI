@@ -720,7 +720,9 @@ function buildGreetingTemplate(
   niche: BusinessNiche
 ): string {
   const cleanCompany = companyName.trim() || 'наша компания';
-  const speakerName = voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+  const speakerName =
+    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
+  const autoServiceRole = voice === 'dmitry' || voice === 'maxim' ? 'мастер-приёмщик' : 'мастер';
 
   if (style === 'friendly') {
     return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. Чем могу вам помочь?`;
@@ -733,7 +735,7 @@ function buildGreetingTemplate(
     case 'driving_school':
       return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. Подскажите, вас интересует обучение на категорию B или дополнительные уроки вождения?`;
     case 'auto_service':
-      return `Добрый день! ${cleanCompany}, мастер-приёмщик ${speakerName}. Подскажите, нужна диагностика или плановое обслуживание автомобиля?`;
+      return `Добрый день! ${cleanCompany}, ${autoServiceRole} ${speakerName}. Подскажите, нужна диагностика или плановое обслуживание автомобиля?`;
     case 'medical_clinic':
       return `Здравствуйте! ${cleanCompany}, администратор ${speakerName}. Желаете записаться на приём к врачу или вас беспокоит острая боль?`;
     case 'beauty_salon':
