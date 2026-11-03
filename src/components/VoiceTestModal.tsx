@@ -225,7 +225,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
           controller.signal
         );
 
-        if (callStateRef.current !== 'connected' || selectedNicheRef.current !== activeNiche) return;
+        if (callStateRef.current !== 'connected' || selectedNicheRef.current !== activeNiche || controller.signal.aborted) return;
 
         setAiProvider(provider);
         setIsBotThinking(false);
@@ -234,6 +234,10 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
         speakBotMessage(reply, activeVoice);
       } catch {
+        if (controller.signal.aborted) {
+          // Newer user speech already started; do not clobber active bot thinking/speaking flags
+          return;
+        }
         isBotSpeakingRef.current = false;
         setIsBotThinking(false);
         if (callStateRef.current === 'connected') {

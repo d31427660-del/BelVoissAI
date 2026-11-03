@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightIcon,
@@ -50,6 +50,12 @@ export const Hero: React.FC<HeroProps> = ({
   const [selectedVoice, setSelectedVoice] = useState<VoiceId>('anna');
   const [activeQuestionId, setActiveQuestionId] = useState<string>('price');
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      VoiceSimulator.stop();
+    };
+  }, []);
 
   const currentItem = QUICK_QUESTIONS.find((q) => q.id === activeQuestionId) || QUICK_QUESTIONS[0];
   const currentAnswerText = selectedVoice === 'dmitry' ? currentItem.answerDmitry : currentItem.answerAnna;

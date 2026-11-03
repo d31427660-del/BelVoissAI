@@ -185,7 +185,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
           priorHistory,
           controller.signal
         );
-        if (callStatusRef.current !== 'connected') return;
+        if (callStatusRef.current !== 'connected' || controller.signal.aborted) return;
 
         setAiProvider(provider);
         setIsBotThinking(false);
@@ -194,6 +194,10 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
         setMessages((prev) => [...prev, { speaker: 'assistant', text: reply, time: aiTime }]);
         speakBotMessage(reply, liveAgent.voice);
       } catch {
+        if (controller.signal.aborted) {
+          // Newer user speech already started; do not clobber active bot thinking/speaking flags
+          return;
+        }
         isBotSpeakingRef.current = false;
         setIsBotThinking(false);
         if (callStatusRef.current === 'connected') {

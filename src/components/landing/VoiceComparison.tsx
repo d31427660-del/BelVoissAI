@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VolumeLoudIcon, CheckCircleIcon } from '@solar-icons/react/bold-duotone';
 import { VoiceSimulator } from '../../lib/speechSynth';
 
 export const VoiceComparison: React.FC = () => {
   const [playingSide, setPlayingSide] = useState<'old' | 'ai' | null>(null);
+
+  useEffect(() => {
+    return () => {
+      VoiceSimulator.stop();
+    };
+  }, []);
 
   const handlePlayOld = () => {
     if (playingSide === 'old') {

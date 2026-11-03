@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   PhoneCallingRoundedIcon as PhoneCall,
@@ -33,6 +33,12 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
   const [customCity, setCustomCity] = useState('Минск');
   const [isSimulatingAudit, setIsSimulatingAudit] = useState(false);
   const [auditSuccessToast, setAuditSuccessToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      VoiceSimulator.stop();
+    };
+  }, []);
 
   const selectedLead = leads.find((l) => l.id === selectedLeadId) || leads[0];
 

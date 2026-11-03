@@ -761,6 +761,12 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
   const [activeStyle, setActiveStyle] = useState<'niche' | 'friendly' | 'booking' | 'custom'>('niche');
   const [isPlaying, setIsPlaying] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      VoiceSimulator.stop();
+    };
+  }, []);
+
   const handleChooseStyle = (style: 'niche' | 'friendly' | 'booking') => {
     setActiveStyle(style);
     onChange(buildGreetingTemplate(style, companyName, voice, niche));

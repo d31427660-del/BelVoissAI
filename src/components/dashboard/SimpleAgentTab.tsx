@@ -54,6 +54,12 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     setSyncVersion((v) => v + 1);
   }, [agent]);
 
+  useEffect(() => {
+    return () => {
+      VoiceSimulator.stop();
+    };
+  }, []);
+
   const niches: Array<{ id: BusinessNiche; label: string; desc: string; icon: string }> = [
     { id: 'auto_service', label: 'Автосервис (СТО)', desc: 'Ремонт, диагностика, ТО, шиномонтаж', icon: '🚗' },
     { id: 'beauty_salon', label: 'Салон красоты', desc: 'Маникюр, стрижки, окрашивание, уход', icon: '💇‍♀️' },

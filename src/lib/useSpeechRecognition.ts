@@ -282,12 +282,18 @@ export function useSpeechRecognition({
       consumedIndexRef.current = 0;
       lastResultsLenRef.current = 0;
 
-      if (isCallActiveRef.current && !isMutedRef.current) {
+      // DO NOT restart microphone if the bot is currently speaking or thinking (prevents acoustic room echo)
+      if (isCallActiveRef.current && !isMutedRef.current && !isBotSpeakingRef.current) {
         try {
           recognition.start();
         } catch {
           window.setTimeout(() => {
-            if (isCallActiveRef.current && !isMutedRef.current && recognitionRef.current === recognition) {
+            if (
+              isCallActiveRef.current &&
+              !isMutedRef.current &&
+              !isBotSpeakingRef.current &&
+              recognitionRef.current === recognition
+            ) {
               try {
                 recognition.start();
               } catch {

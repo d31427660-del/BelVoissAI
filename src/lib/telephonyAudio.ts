@@ -14,27 +14,35 @@ export function playRingingTone(): () => void {
     osc.type = 'sine';
     // 425Hz is the standard European / Belarusian telephone dial tone frequency
     osc.frequency.setValueAtTime(425, ctx.currentTime);
-
-    const now = ctx.currentTime;
-    gain.gain.setValueAtTime(0, now);
-
-    // Tone 1: 0.8s beep, then quiet
-    gain.gain.linearRampToValueAtTime(0.12, now + 0.04);
-    gain.gain.setValueAtTime(0.12, now + 0.8);
-    gain.gain.linearRampToValueAtTime(0, now + 0.85);
-
-    // Tone 2 (after 2s if still ringing)
-    gain.gain.setValueAtTime(0, now + 2.5);
-    gain.gain.linearRampToValueAtTime(0.12, now + 2.54);
-    gain.gain.setValueAtTime(0.12, now + 3.3);
-    gain.gain.linearRampToValueAtTime(0, now + 3.35);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
 
+    let stopped = false;
+    let timerId: any = null;
+
+    const scheduleBeep = () => {
+      if (stopped || ctx.state === 'closed') return;
+      const t = ctx.currentTime;
+      gain.gain.cancelScheduledValues(t);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.12, t + 0.04);
+      gain.gain.setValueAtTime(0.12, t + 0.8);
+      gain.gain.linearRampToValueAtTime(0, t + 0.85);
+    };
+
+    // First beep immediately
+    scheduleBeep();
+    // Subsequent beeps every 2.8s
+    timerId = setInterval(scheduleBeep, 2800);
+
     return () => {
+      stopped = true;
+      if (timerId) clearInterval(timerId);
       try {
+        gain.gain.cancelScheduledValues(ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
         setTimeout(() => {
           try {

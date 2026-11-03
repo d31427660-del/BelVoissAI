@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   WheelAngleIcon, 
   GarageIcon, 
@@ -19,6 +19,12 @@ interface WhoIsItForProps {
 export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
   const [activeTab, setActiveTab] = useState<BusinessNiche>('driving_school');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      VoiceSimulator.stop();
+    };
+  }, []);
 
   const tabs: Array<{ id: BusinessNiche; label: string; icon: React.ReactNode }> = [
     {
