@@ -252,19 +252,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               {secondaryNavItems.map(renderNavButton)}
             </div>
           </nav>
-
-          {/* Test Call Quick Button */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={onOpenVoiceTest}
-              className="w-full py-2.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
-              title="Поговорить с ботом через микрофон прямо в браузере"
-            >
-              <Radio className="w-4 h-4 text-blue-600" />
-              <span>Поговорить с ботом (тест)</span>
-            </button>
-          </div>
         </div>
 
         {/* Bottom Sidebar: Minute Balance & Actions */}

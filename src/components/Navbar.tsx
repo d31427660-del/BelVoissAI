@@ -85,16 +85,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2.5">
-          {currentView === 'landing' && (
-            <button
-              onClick={onOpenVoiceTest}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-xs font-semibold text-[#2563eb] transition-colors whitespace-nowrap"
-            >
-              <SoundwaveCircleIcon size={15} />
-              <span>Тест голоса</span>
-            </button>
-          )}
-
           {user ? (
             <div className="flex items-center gap-2">
               {currentView === 'landing' ? (
@@ -124,20 +114,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onOpenAuth}
-                className="hidden sm:inline-flex px-3.5 py-1.5 rounded-full hover:bg-slate-100 text-xs font-medium text-[#1d1d1f]/80 hover:text-[#2563eb] transition-colors whitespace-nowrap"
-              >
-                Войти
-              </button>
-              <button
-                onClick={onOpenAuth}
-                className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap"
-              >
-                Подключить
-              </button>
-            </div>
+            <button
+              onClick={onOpenAuth}
+              className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap"
+            >
+              Войти
+            </button>
           )}
 
           {/* Mobile Menu Toggle */}
@@ -178,15 +160,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           <div className="pt-2 flex flex-col gap-2">
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onOpenVoiceTest();
-              }}
-              className="w-full py-3 rounded-full bg-[#f5f5f7] text-[#1d1d1f] font-medium text-xs"
-            >
-              Протестировать голос
-            </button>
             {!user && (
               <button
                 onClick={() => {
