@@ -181,6 +181,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
       }));
       setPromptGenStatus('Правила разговора пересобраны по вашему прайс-листу и графику.');
     }
+    setTimeout(() => setPromptGenStatus(null), 5000);
   };
 
   const handleSave = (e?: React.FormEvent) => {

@@ -385,6 +385,13 @@ const TIME_SLOTS = [
   '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '23:00'
 ];
 
+function getTimeSlotOptions(currentVal?: string): string[] {
+  if (currentVal && !TIME_SLOTS.includes(currentVal)) {
+    return Array.from(new Set([...TIME_SLOTS, currentVal])).sort();
+  }
+  return TIME_SLOTS;
+}
+
 interface ScheduleState {
   is24x7: boolean;
   activeDays: number[];
@@ -411,12 +418,13 @@ function parseSchedule(raw: string): ScheduleState {
     };
   }
 
-  const times = raw.match(/\d{2}:\d{2}/g) || [];
-  const openTime = times[0] && TIME_SLOTS.includes(times[0]) ? times[0] : '09:00';
-  const closeTime = times[1] && TIME_SLOTS.includes(times[1]) ? times[1] : '20:00';
+  const rawMatches = raw.match(/\b\d{1,2}:\d{2}\b/g) || [];
+  const times = rawMatches.map((t) => t.padStart(5, '0'));
+  const openTime = times[0] || '09:00';
+  const closeTime = times[1] || '20:00';
   const hasSecondRange = times.length >= 4;
-  const weekendOpen = hasSecondRange && TIME_SLOTS.includes(times[2]) ? times[2] : '10:00';
-  const weekendClose = hasSecondRange && TIME_SLOTS.includes(times[3]) ? times[3] : '16:00';
+  const weekendOpen = hasSecondRange ? times[2] : '10:00';
+  const weekendClose = hasSecondRange ? times[3] : '16:00';
 
   let activeDays = [0, 1, 2, 3, 4, 5];
   if (lower.includes('ежедневн') || (lower.includes('пн-сб') && lower.includes('вс:') && !lower.includes('вс: выходн'))) {
@@ -610,7 +618,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
               onChange={(e) => update({ openTime: e.target.value })}
               className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
             >
-              {TIME_SLOTS.map((t) => (
+              {getTimeSlotOptions(sched.openTime).map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -625,7 +633,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
               onChange={(e) => update({ closeTime: e.target.value })}
               className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
             >
-              {TIME_SLOTS.map((t) => (
+              {getTimeSlotOptions(sched.closeTime).map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -671,7 +679,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
                     onChange={(e) => update({ weekendOpen: e.target.value })}
                     className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
                   >
-                    {TIME_SLOTS.map((t) => (
+                    {getTimeSlotOptions(sched.weekendOpen).map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
@@ -686,7 +694,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
                     onChange={(e) => update({ weekendClose: e.target.value })}
                     className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
                   >
-                    {TIME_SLOTS.map((t) => (
+                    {getTimeSlotOptions(sched.weekendClose).map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
