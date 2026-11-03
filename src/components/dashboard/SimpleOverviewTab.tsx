@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   PhoneCallingRoundedIcon as PhoneCall,
   WalletMoneyIcon as Wallet,
@@ -38,26 +38,47 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
   onOpenTopUp
 }) => {
   const [playingCallId, setPlayingCallId] = useState<string | null>(null);
+  const playbackRunRef = useRef(0);
 
-  const totalCalls = callLogs.length || 142;
-  const savedRevenueByn = 3850;
+  useEffect(() => {
+    return () => {
+      playbackRunRef.current += 1;
+      VoiceSimulator.stop();
+    };
+  }, []);
+
+  const totalCalls = callLogs.length;
+  const savedRevenueByn = callLogs.reduce((sum, c) => sum + (c.dealValueByn || 0), 0);
   const recentCalls = callLogs.slice(0, 3);
 
-  const handlePlayAudio = (call: CallLog) => {
+  const handlePlayAudio = async (call: CallLog) => {
     if (playingCallId === call.id) {
+      playbackRunRef.current += 1;
       VoiceSimulator.stop();
       setPlayingCallId(null);
       return;
     }
 
+    const runId = ++playbackRunRef.current;
+    VoiceSimulator.stop();
     setPlayingCallId(call.id);
-    const textToSpeak = call.transcript[0]?.text || call.summary;
-    VoiceSimulator.speak(
-      textToSpeak,
-      agent.voice,
-      () => {},
-      () => setPlayingCallId(null)
-    );
+
+    const botVoice = agent.voice || 'anna';
+    const callerVoice = botVoice === 'dmitry' ? 'anna' : 'dmitry';
+    const turns =
+      call.transcript.length > 0
+        ? call.transcript
+        : [{ speaker: 'assistant' as const, text: call.summary, time: '0:01' }];
+
+    for (const turn of turns) {
+      if (playbackRunRef.current !== runId) return;
+      const voiceForTurn = turn.speaker === 'assistant' ? botVoice : callerVoice;
+      await VoiceSimulator.speak(turn.text, voiceForTurn);
+    }
+
+    if (playbackRunRef.current === runId) {
+      setPlayingCallId(null);
+    }
   };
 
   return (
@@ -209,7 +230,11 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           </div>
           <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Все клиенты получили ответ с первого гудка</span>
+            <span>
+              {totalCalls > 0
+                ? 'Все клиенты получили ответ с первого гудка'
+                : 'Готов принять первый тестовый или рабочий звонок'}
+            </span>
           </p>
         </div>
 
@@ -288,7 +313,22 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
         </div>
 
         <div className="divide-y divide-slate-100">
-          {recentCalls.map((call) => (
+          {recentCalls.length === 0 ? (
+            <div className="py-8 text-center space-y-2.5">
+              <p className="text-xs text-slate-500">
+                В журнале пока нет звонков. Проверьте бота голосом — тестовый диалог сразу появится здесь!
+              </p>
+              <button
+                type="button"
+                onClick={onOpenVoiceTest}
+                className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>Сделать пробный звонок</span>
+              </button>
+            </div>
+          ) : (
+            recentCalls.map((call) => (
             <div
               key={call.id}
               className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
@@ -331,11 +371,12 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
                   +{call.dealValueByn} BYN
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  {call.timestamp.split(' ')[1]}
+                  {call.timestamp.split(' ')[1] || call.timestamp}
                 </span>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

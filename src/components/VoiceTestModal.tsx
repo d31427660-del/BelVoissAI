@@ -13,21 +13,24 @@ import {
   MapPointIcon as MapPin,
 } from '@solar-icons/react/bold-duotone';
 import { NICHE_TEMPLATES } from '../lib/mockData';
-import { BusinessNiche, VoiceId } from '../types';
+import { BusinessNiche, VoiceId, CallLog } from '../types';
 import { VoiceSimulator } from '../lib/speechSynth';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 import {
   requestBotReply,
   NICHE_QUICK_QUESTIONS,
   adaptGreetingForVoice,
+  createCallLogFromDialogue,
 } from '../lib/botDialogueEngine';
 import { playRingingTone, playHangupSound } from '../lib/telephonyAudio';
 
 interface VoiceTestModalProps {
   isOpen: boolean;
   initialNiche?: BusinessNiche;
+  initialVoice?: VoiceId;
   onClose: () => void;
-  onProceedToDashboard: () => void;
+  onCallCompleted?: (log: CallLog) => void;
+  onProceedToDashboard: (niche: BusinessNiche, voice: VoiceId) => void;
 }
 
 type CallState = 'ready' | 'dialing' | 'connected' | 'ended';
@@ -42,14 +45,16 @@ const CATEGORY_TABS: Array<{ id: BusinessNiche; shortLabel: string; emoji: strin
 export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   isOpen,
   initialNiche = 'driving_school',
+  initialVoice = 'anna',
   onClose,
+  onCallCompleted,
   onProceedToDashboard,
 }) => {
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   const [selectedNiche, setSelectedNiche] = useState<BusinessNiche>(initialNiche);
-  const [selectedVoice, setSelectedVoice] = useState<VoiceId>('anna');
+  const [selectedVoice, setSelectedVoice] = useState<VoiceId>(initialVoice);
   const [callState, setCallState] = useState<CallState>('ready');
   const [callDuration, setCallDuration] = useState(0);
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
@@ -72,7 +77,35 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const callStateRef = useRef<CallState>('ready');
   const isBotSpeakingRef = useRef(false);
   const selectedNicheRef = useRef<BusinessNiche>(initialNiche);
-  const selectedVoiceRef = useRef<VoiceId>('anna');
+  const selectedVoiceRef = useRef<VoiceId>(initialVoice);
+  const callDurationRef = useRef(0);
+  const callLoggedRef = useRef(false);
+  const onCallCompletedRef = useRef(onCallCompleted);
+
+  useEffect(() => {
+    onCallCompletedRef.current = onCallCompleted;
+  }, [onCallCompleted]);
+
+  useEffect(() => {
+    callDurationRef.current = callDuration;
+  }, [callDuration]);
+
+  const flushCompletedCallLog = useCallback(() => {
+    if (callLoggedRef.current) return;
+    const niche = selectedNicheRef.current;
+    const tmpl = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
+    const log = createCallLogFromDialogue({
+      niche,
+      companyName: tmpl.companyName,
+      address: tmpl.address,
+      durationSeconds: callDurationRef.current,
+      messages: transcriptRef.current,
+    });
+    if (log) {
+      callLoggedRef.current = true;
+      onCallCompletedRef.current?.(log);
+    }
+  }, []);
 
   useEffect(() => {
     callStateRef.current = callState;
@@ -271,10 +304,12 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       const tmpl = NICHE_TEMPLATES[targetNiche];
 
       cleanupActiveCallAudio();
+      callLoggedRef.current = false;
 
       callStateRef.current = 'dialing';
       setCallState('dialing');
       setCallDuration(0);
+      callDurationRef.current = 0;
       setTranscript([]);
       transcriptRef.current = [];
       setIsBotSpeaking(false);
@@ -311,6 +346,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   );
 
   const handleSelectCategory = (nextNiche: BusinessNiche) => {
+    flushCompletedCallLog();
     selectedNicheRef.current = nextNiche;
     setSelectedNiche(nextNiche);
     setCustomText('');
@@ -325,10 +361,12 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       setTranscript([]);
       transcriptRef.current = [];
       setCallDuration(0);
+      callDurationRef.current = 0;
     }
   };
 
   const handleSelectVoice = (nextVoice: VoiceId) => {
+    flushCompletedCallLog();
     selectedVoiceRef.current = nextVoice;
     setSelectedVoice(nextVoice);
     if (callStateRef.current === 'connected' || callStateRef.current === 'dialing') {
@@ -337,6 +375,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   };
 
   const handleHangup = useCallback(() => {
+    flushCompletedCallLog();
     cleanupActiveCallAudio();
     playHangupSound();
     stopListening();
@@ -345,7 +384,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     setIsBotThinking(false);
     callStateRef.current = 'ended';
     setCallState('ended');
-  }, [cleanupActiveCallAudio, stopListening]);
+  }, [cleanupActiveCallAudio, flushCompletedCallLog, stopListening]);
 
   // Native <dialog> lifecycle + Safari light-dismiss fallback (Modern Web Guidance)
   useEffect(() => {
@@ -355,11 +394,15 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     if (isOpen) {
       selectedNicheRef.current = initialNiche;
       setSelectedNiche(initialNiche);
+      selectedVoiceRef.current = initialVoice;
+      setSelectedVoice(initialVoice);
+      callLoggedRef.current = false;
       callStateRef.current = 'ready';
       setCallState('ready');
       setTranscript([]);
       transcriptRef.current = [];
       setCallDuration(0);
+      callDurationRef.current = 0;
       setIsBotSpeaking(false);
       setIsBotThinking(false);
       setAiProvider(null);
@@ -380,13 +423,14 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         dialog.close();
       }
     }
-  }, [isOpen, initialNiche, cleanupActiveCallAudio, stopListening]);
+  }, [isOpen, initialNiche, initialVoice, cleanupActiveCallAudio, stopListening]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
     const handleNativeClose = () => {
+      flushCompletedCallLog();
       cleanupActiveCallAudio();
       stopListening();
       isBotSpeakingRef.current = false;
@@ -420,7 +464,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         dialog.removeEventListener('click', handleBackdropClick);
       }
     };
-  }, [cleanupActiveCallAudio, onClose, stopListening]);
+  }, [cleanupActiveCallAudio, flushCompletedCallLog, onClose, stopListening]);
 
   const toggleMute = () => {
     const next = !isMuted;
@@ -780,6 +824,11 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                     type="text"
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder="Напишите вопрос, если неудобно говорить вслух..."
                     className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
                   />
@@ -837,8 +886,9 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    flushCompletedCallLog();
                     dialogRef.current?.close();
-                    onProceedToDashboard();
+                    onProceedToDashboard(selectedNiche, selectedVoice);
                   }}
                   className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-semibold text-xs transition-colors"
                 >

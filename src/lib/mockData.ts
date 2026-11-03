@@ -483,6 +483,123 @@ export const INITIAL_CALL_LOGS: CallLog[] = [
     ]
   },
   {
+    id: 'call-bel-103b',
+    niche: 'medical_clinic',
+    callerNumber: '+375 (29) 764-19-08',
+    callerName: 'Екатерина Леонидовна',
+    timestamp: '2026-10-24 14:10',
+    durationSeconds: 74,
+    audioDuration: '1:14',
+    status: 'lead_captured',
+    dealValueByn: 160,
+    summary: 'Запись на комплексную гигиену полости рта Air-Flow по полису Белгосстрах на завтра в 18:30.',
+    capturedData: {
+      clientName: 'Екатерина Леонидовна',
+      phone: '+375 (29) 764-19-08',
+      service: 'Профессиональная гигиена полости рта (Air-Flow)',
+      preferredDate: 'Завтра, 18:30',
+      preferredTime: '18:30',
+      cityOrBranch: 'пр-т Победителей, 89',
+      estimatedPriceByn: 160,
+      urgency: 'medium'
+    },
+    transcript: [
+      { speaker: 'assistant', text: 'Здравствуйте! Стоматология "Дент-Престиж", меня зовут Анна. Слушаю вас!', time: '0:02' },
+      { speaker: 'caller', text: 'Добрый день! Подскажите, сколько стоит ультразвуковая чистка зубов и принимаете ли вы по страховке Белгосстрах?', time: '0:12' },
+      { speaker: 'assistant', text: 'Комплексная гигиена обеих челюстей с Air-Flow и фторированием стоит 160 белорусских рублей. С полисами Белгосстрах мы работаем напрямую! Записать вас на завтра вечером в 18:30?', time: '0:27' },
+      { speaker: 'caller', text: 'Отлично, запишите на 18:30. Екатерина Леонидовна.', time: '0:46' },
+      { speaker: 'assistant', text: 'Записала вас, Екатерина Леонидовна! Не забудьте взять паспорт и карточку застрахованного. Ждём вас завтра в 18:30 на Победителей, 89!', time: '1:04' }
+    ]
+  },
+  {
+    id: 'call-bel-102b',
+    niche: 'auto_service',
+    callerNumber: '+375 (29) 188-40-52',
+    callerName: 'Игорь Станкевич',
+    timestamp: '2026-10-24 19:42',
+    durationSeconds: 82,
+    audioDuration: '1:22',
+    status: 'lead_captured',
+    dealValueByn: 145,
+    summary: 'Вечерняя запись на замену масла и передних колодок Volkswagen Passat B8. Оплата картой Халва.',
+    capturedData: {
+      clientName: 'Игорь Станкевич',
+      phone: '+375 (29) 188-40-52',
+      service: 'Замена моторного масла + передних колодок',
+      preferredDate: 'Завтра в 09:30',
+      preferredTime: '09:30',
+      cityOrBranch: 'ул. Тимирязева, 121',
+      vehicleOrDetails: 'VW Passat B8 2.0 TDI',
+      estimatedPriceByn: 145,
+      urgency: 'high'
+    },
+    transcript: [
+      { speaker: 'assistant', text: 'Добрый вечер! СТО "Минск-Моторс". Чем могу помочь вашему автомобилю?', time: '0:02' },
+      { speaker: 'caller', text: 'Здравствуйте, нужно поменять масло и передние колодки на Пассат Б8. Сколько по работе и есть ли Халва?', time: '0:14' },
+      { speaker: 'assistant', text: 'Замена масла с фильтром стоит 30 белорусских рублей, замена передних тормозных колодок — 45 рублей. Карту Халва принимаем с рассрочкой до 3 месяцев! Могу записать вас на завтра в 09:30 утра.', time: '0:31' },
+      { speaker: 'caller', text: 'Да, давайте на 9:30. Зовут Игорь.', time: '0:52' },
+      { speaker: 'assistant', text: 'Готово, Игорь! Бокс забронирован на завтра в 09:30 на Тимирязева, 121. Хорошего вечера!', time: '1:08' }
+    ]
+  },
+  {
+    id: 'call-bel-106',
+    niche: 'beauty_salon',
+    callerNumber: '+375 (29) 614-77-33',
+    callerName: 'Дарья Мельникова',
+    timestamp: '2026-10-24 20:15',
+    durationSeconds: 88,
+    audioDuration: '1:28',
+    status: 'lead_captured',
+    dealValueByn: 290,
+    summary: 'Запись на сложное окрашивание Airtouch к топ-стилисту на пятницу в 17:30.',
+    capturedData: {
+      clientName: 'Дарья Мельникова',
+      phone: '+375 (29) 614-77-33',
+      service: 'Сложное окрашивание Airtouch + уход',
+      preferredDate: 'Пятница, 17:30',
+      preferredTime: '17:30',
+      cityOrBranch: 'ул. Октябрьская, 19Б',
+      estimatedPriceByn: 290,
+      urgency: 'high'
+    },
+    transcript: [
+      { speaker: 'assistant', text: 'Приветствуем в "Лофт Бьюти"! Меня зовут Анна. Какую услугу для вас забронировать: стрижку, окрашивание или уход?', time: '0:02' },
+      { speaker: 'caller', text: 'Добрый вечер! Хочу записаться на сложное окрашивание Аиртач на среднюю длину в эту пятницу вечером.', time: '0:14' },
+      { speaker: 'assistant', text: 'Сложное окрашивание Airtouch на среднюю длину у топ-мастера стоит около 290 белорусских рублей, включая тонирование и уход. В пятницу свободно окошко на 17:30 на Октябрьской, 19Б. Подойдёт это время?', time: '0:32' },
+      { speaker: 'caller', text: 'Да, отлично! Запишите Дарью Мельникову.', time: '0:51' },
+      { speaker: 'assistant', text: 'Записала вас, Дарья! В пятницу в 17:30 ждём вас в "Лофт Бьюти" с ароматным капучино. Напоминание придёт в Telegram за 3 часа до визита!', time: '1:12' }
+    ]
+  },
+  {
+    id: 'call-bel-106b',
+    niche: 'beauty_salon',
+    callerNumber: '+375 (44) 502-88-19',
+    callerName: 'Артём Савицкий',
+    timestamp: '2026-10-24 13:25',
+    durationSeconds: 64,
+    audioDuration: '1:04',
+    status: 'lead_captured',
+    dealValueByn: 85,
+    summary: 'Запись на комплекс «Мужская стрижка + моделирование бороды» на сегодня в 19:00.',
+    capturedData: {
+      clientName: 'Артём Савицкий',
+      phone: '+375 (44) 502-88-19',
+      service: 'Мужская стрижка + моделирование бороды',
+      preferredDate: 'Сегодня в 19:00',
+      preferredTime: '19:00',
+      cityOrBranch: 'ул. Октябрьская, 19Б',
+      estimatedPriceByn: 85,
+      urgency: 'medium'
+    },
+    transcript: [
+      { speaker: 'assistant', text: 'Приветствуем в "Лофт Бьюти"! Меня зовут Анна. Какую услугу для вас забронировать?', time: '0:02' },
+      { speaker: 'caller', text: 'Привет! Есть окно сегодня вечером на мужскую стрижку и бороду?', time: '0:10' },
+      { speaker: 'assistant', text: 'Да! Комплекс «Стрижка плюс моделирование бороды горячим полотенцем» стоит 85 белорусских рублей. У старшего барбера свободно окно сегодня в 19:00. Забронировать?', time: '0:24' },
+      { speaker: 'caller', text: 'Супер, пишите на 19:00, Артём.', time: '0:38' },
+      { speaker: 'assistant', text: 'Записала вас, Артём! Сегодня в 19:00, улица Октябрьская, 19Б. До встречи!', time: '0:52' }
+    ]
+  },
+  {
     id: 'call-bel-104',
     niche: 'driving_school',
     callerNumber: '+375 (25) 902-61-14',

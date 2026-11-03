@@ -1,4 +1,4 @@
-import { BusinessNiche, AgentConfig } from '../types';
+import { BusinessNiche, CallLog } from '../types';
 import { NICHE_TEMPLATES } from './mockData';
 
 export interface DialogueContext {
@@ -103,7 +103,7 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     return `Здравствуйте! Компания ${company}, меня отлично слышно. Чем могу вам помочь? Подсказать по ценам или записать на свободное время?`;
   }
 
-  // 2. Pricing & Cost questions
+  // 2. Pricing & Cost questions (dynamically reads user's configured pricingAndServices!)
   if (
     q.includes('цен') ||
     q.includes('стоим') ||
@@ -115,21 +115,45 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('byn') ||
     q.includes('оплат')
   ) {
+    const cleanLines = pricing
+      .split('\n')
+      .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+      .filter((line) => line.length > 4 && !line.startsWith('Внесите перечень') && !line.startsWith('Способы оплаты:'));
+
+    if (cleanLines.length > 0) {
+      const queryWords = q
+        .replace(/[^а-яёa-z0-9\s]/gi, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length >= 4 && !['сколько', 'стоит', 'стоят', 'цена', 'цены', 'прайс', 'подскажите', 'услуга', 'услуги'].includes(w));
+
+      const matchedLines =
+        queryWords.length > 0
+          ? cleanLines.filter((line) => {
+              const lowerLine = line.toLowerCase();
+              return queryWords.some((stem) => lowerLine.includes(stem.slice(0, 4)));
+            })
+          : [];
+
+      const picked = (matchedLines.length > 0 ? matchedLines.slice(0, 2) : cleanLines.slice(0, 2))
+        .map((line) => line.replace(/\bBYN\b/gi, 'белорусских рублей').replace(/\.$/, ''))
+        .join('. ');
+
+      return `Сориентирую по стоимости в «${company}»: ${picked}. Записать вас на удобное время?`;
+    }
+
     if (niche === 'driving_school') {
-      return `Полный курс обучения на категорию B стоит 1050 белорусских рублей. Теория и 50 часов вождения. Также действует рассрочка на 4 платежа по 262 рубля. Записать вас на вводное собрание?`;
+      return `Полный курс обучения на категорию B стоит 1050 белорусских рублей. Теория и 50 часов вождения. Также действует рассрочка на 4 платежа. Записать вас на вводное собрание?`;
     }
     if (niche === 'auto_service') {
-      return `Диагностика подвески стоит 35 рублей, но при ремонте у нас она абсолютно бесплатная! Замена моторного масла — 30 рублей. Какая услуга вас интересует?`;
+      return `Диагностика подвески стоит 35 рублей, но при ремонте у нас она бесплатная! Замена моторного масла — 30 рублей. Какая услуга вас интересует?`;
     }
     if (niche === 'medical_clinic') {
-      return `Первичная консультация врача стоит 45 белорусских рублей, комплексная ультразвуковая чистка зубов Air-Flow — 160 рублей. Подсказать по другим процедурам?`;
+      return `Первичная консультация врача стоит 35 белорусских рублей, комплексная гигиена Air-Flow — 160 рублей. Подсказать по другим процедурам?`;
     }
     if (niche === 'beauty_salon') {
-      return `Стрижка и укладка от 45 рублей, маникюр с покрытием гель-лак — 55 рублей, окрашивание волос от 110 рублей. На какую услугу вас записать?`;
+      return `Мужская стрижка — 55 рублей, женская модельная стрижка — от 70 рублей, маникюр с покрытием — 65 рублей. На какую услугу вас записать?`;
     }
-    // Generic fallback with custom pricing snippet
-    const shortPricing = pricing.split('\n').filter(Boolean).slice(0, 2).join(' ') || 'Уточняйте у администратора';
-    return `По стоимости в ${company}: ${shortPricing}. Какая именно услуга вас интересует?`;
+    return `Уточните, пожалуйста, какая именно услуга в «${company}» вас интересует, и я сразу назову точную стоимость!`;
   }
 
   // 3. Location, address, how to get there
@@ -174,19 +198,20 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('прийти') ||
     q.includes('подъехать')
   ) {
+    const shortAddr = address.split('(')[0].trim();
     if (niche === 'auto_service') {
-      return `На завтра у мастера свободно окно в 11:30 и 18:30 (Бокс номер 2). Какое время вам удобнее забронировать?`;
+      return `На завтра у мастера свободно окно в 11:30 и 18:30 (${shortAddr}). Какое время вам удобнее забронировать?`;
     }
     if (niche === 'beauty_salon') {
-      return `На завтра свободно окно к топ-мастеру на 14:00 и 18:30. На какое время вас зафиксировать?`;
+      return `На завтра свободно окно к топ-мастеру на 14:00 и 18:30 (${shortAddr}). На какое время вас зафиксировать?`;
     }
     if (niche === 'driving_school') {
-      return `Ближайшая группа стартует в понедельник в 18:30 на Сурганова, 24. Подскажите ваше имя, и я отправлю вам бронь места в SMS!`;
+      return `Ближайшая группа стартует в понедельник в 18:30 по адресу ${shortAddr}. Подскажите ваше имя, и я отправлю вам бронь места в SMS!`;
     }
     if (niche === 'medical_clinic') {
-      return `Доктор принимает сегодня в 17:00, а также есть окно завтра в 10:30. На какое время вас записать?`;
+      return `Доктор принимает сегодня в 17:00, а также есть окно завтра в 10:30 (${shortAddr}). На какое время вас записать?`;
     }
-    return `На завтра свободно окно в 11:30 и 16:30. Назовите ваше имя и удобное время, я сразу внесу вас в график!`;
+    return `На завтра свободно окно в 11:30 и 16:30 по адресу ${shortAddr}. Назовите ваше имя и удобное время, я сразу внесу вас в график!`;
   }
 
   // 6. Agreement & confirmation ("да", "запишите", "18:30", "подходит", "хорошо")
@@ -335,4 +360,91 @@ export async function requestAiPromptImprovement(
   } catch {
     return null;
   }
+}
+
+/**
+ * Converts a completed live voice/text test call into a structured CallLog entry
+ * so the user immediately sees their test call in «Журнал звонков» and analytics.
+ */
+export function createCallLogFromDialogue(params: {
+  niche: BusinessNiche;
+  companyName?: string;
+  address?: string;
+  durationSeconds: number;
+  messages: Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>;
+}): CallLog | null {
+  const { niche, companyName, address, durationSeconds, messages } = params;
+  const userMessages = messages.filter((m) => m.speaker === 'user');
+  if (userMessages.length === 0) return null;
+
+  const tmpl = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
+  const combinedUserText = userMessages.map((m) => m.text).join(' ').toLowerCase();
+
+  const isLeadCaptured =
+    /запиш|запис|бронир|забронир|18:30|11:30|14:00|16:30|17:00|09:30|10:00|завтра|сегодня|пятниц|суббот|вечерн|согласен|подходит|давай/.test(
+      combinedUserText
+    );
+
+  const timeMatch = combinedUserText.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/);
+  const preferredTime = timeMatch ? timeMatch[0] : isLeadCaptured ? '18:30' : undefined;
+  const preferredDate = combinedUserText.includes('сегодня')
+    ? `Сегодня${preferredTime ? `, ${preferredTime}` : ''}`
+    : combinedUserText.includes('пятниц')
+    ? `Пятница${preferredTime ? `, ${preferredTime}` : ''}`
+    : combinedUserText.includes('суббот')
+    ? `Суббота${preferredTime ? `, ${preferredTime}` : ''}`
+    : isLeadCaptured
+    ? `Ближайшее окно${preferredTime ? ` (${preferredTime})` : ''}`
+    : undefined;
+
+  const nameMatch = userMessages
+    .map((m) => m.text)
+    .join(' ')
+    .match(/(?:меня зовут|зовут|запишите)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)/i);
+  const extractedName = nameMatch ? nameMatch[1] : 'Тестовый звонок (Вы)';
+
+  const dealValueByn = isLeadCaptured ? tmpl.defaultAvgCheck : 0;
+  const safeDuration = Math.max(durationSeconds, messages.length * 6);
+  const mins = Math.floor(safeDuration / 60);
+  const secs = String(safeDuration % 60).padStart(2, '0');
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
+    now.getHours()
+  )}:${pad(now.getMinutes())}`;
+
+  const firstQuestion = userMessages[0].text;
+  const serviceSummary = isLeadCaptured
+    ? `Запись через тест бота (${companyName || tmpl.companyName})`
+    : `Консультация: «${firstQuestion.slice(0, 55)}${firstQuestion.length > 55 ? '…' : ''}»`;
+
+  return {
+    id: `call-live-${Date.now()}`,
+    niche,
+    callerNumber: '+375 (29) 000-00-00 (Тест)',
+    callerName: extractedName,
+    timestamp,
+    durationSeconds: safeDuration,
+    audioDuration: `${mins}:${secs}`,
+    costByn: Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100),
+    status: isLeadCaptured ? 'lead_captured' : 'consultation',
+    dealValueByn,
+    summary: `${serviceSummary}. Диалог из ${messages.length} реплик.`,
+    capturedData: {
+      clientName: extractedName,
+      phone: '+375 (29) 000-00-00',
+      service: firstQuestion.slice(0, 70),
+      preferredDate,
+      preferredTime,
+      cityOrBranch: address || tmpl.address,
+      estimatedPriceByn: dealValueByn || undefined,
+      urgency: isLeadCaptured ? 'high' : 'normal',
+    },
+    transcript: messages.map((m) => ({
+      speaker: m.speaker === 'user' ? 'caller' : 'assistant',
+      text: m.text,
+      time: m.time,
+    })),
+  };
 }

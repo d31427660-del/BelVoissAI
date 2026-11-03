@@ -37,6 +37,7 @@ interface DashboardLayoutProps {
   vapiApiKey: string;
   onSaveVapiApiKey: (key: string) => void;
   callLogs: CallLog[];
+  onCallCompleted?: (log: CallLog) => void;
   onOpenVoiceTest: () => void;
   onOpenTopUp: () => void;
   onExitToLanding?: () => void;
@@ -56,6 +57,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   vapiApiKey,
   onSaveVapiApiKey,
   callLogs,
+  onCallCompleted,
   onOpenVoiceTest,
   onOpenTopUp,
   onExitToLanding,
@@ -66,11 +68,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
 
-  const nicheCallLogs = callLogs.filter(c => !c.niche || c.niche === agent.niche);
-  const displayCallLogs = nicheCallLogs.length > 0 ? nicheCallLogs : callLogs;
+  const displayCallLogs = user.isMock
+    ? callLogs.filter((c) => !c.niche || c.niche === agent.niche)
+    : callLogs;
 
   const handleGlobalSave = () => {
-    onSaveAgent(agent);
+    const activeForm = document.getElementById('active-workspace-form') as HTMLFormElement | null;
+    if (activeForm) {
+      activeForm.requestSubmit();
+    } else {
+      onSaveAgent(agent);
+    }
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2600);
   };
@@ -407,7 +415,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <SimpleOverviewTab
               user={user}
               agent={agent}
-              callLogs={callLogs}
+              callLogs={displayCallLogs}
               sipSettings={sipSettings}
               onNavigateTab={(t) => setActiveTab(t)}
               onOpenVoiceTest={onOpenVoiceTest}
@@ -420,6 +428,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <SimpleAgentTab
               agent={agent}
               onSaveAgent={onSaveAgent}
+              onCallCompleted={onCallCompleted}
             />
           )}
 
@@ -434,7 +443,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <OverviewTab
               user={user}
               agent={agent}
-              callLogs={callLogs}
+              callLogs={displayCallLogs}
               sipSettings={sipSettings}
               telegramSettings={telegramSettings}
               onNavigateTab={(t) => setActiveTab(t as any)}
@@ -444,6 +453,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
           {activeTab === 'integrations' && (
             <IntegrationsTab
+              agent={agent}
+              onSaveAgent={onSaveAgent}
               sipSettings={sipSettings}
               onSaveSip={onSaveSip}
               telegramSettings={telegramSettings}

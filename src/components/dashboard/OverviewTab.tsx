@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   PhoneCallingRoundedIcon as PhoneCall, 
   UsersGroupRoundedIcon as Users, 
@@ -13,6 +13,7 @@ import {
   CheckCircleIcon as CheckCircle2
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, CallLog, SipSettings, TelegramSettings, UserSession } from '../../types';
+import { NICHE_TEMPLATES } from '../../lib/mockData';
 
 interface OverviewTabProps {
   user: UserSession;
@@ -36,35 +37,86 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const [period, setPeriod] = useState<'7d' | '30d'>('7d');
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
-  const totalCalls = callLogs.length || 142;
-  const leadsCount = 89;
-  const spentByn = Math.round(user.spentMinutes * user.ratePerMinute);
-  const fotSavingsByn = 1800 - spentByn;
-  const potentialRevenueByn = 18950;
+  const totalCalls = callLogs.length;
+  const leadsCount = callLogs.filter((c) => c.status === 'lead_captured').length;
+  const conversionPercent = totalCalls > 0 ? ((leadsCount / totalCalls) * 100).toFixed(1) : '0.0';
+  const loggedDurationMinutes = Math.ceil(
+    callLogs.reduce((sum, c) => sum + (c.durationSeconds || 0), 0) / 60
+  );
+  const effectiveMinutes = user.spentMinutes > 0 ? user.spentMinutes : loggedDurationMinutes;
+  const spentByn = Math.round(effectiveMinutes * user.ratePerMinute);
+  const fotSavingsByn = totalCalls > 0 ? Math.max(0, 1800 - spentByn) : 0;
+  const potentialRevenueByn = callLogs.reduce((sum, c) => sum + (c.dealValueByn || 0), 0);
+  const avgCheckByn = NICHE_TEMPLATES[agent.niche]?.defaultAvgCheck || 280;
 
-  const nicheCalls = callLogs.filter(c => !c.niche || c.niche === agent.niche);
-  const recentCalls = (nicheCalls.length > 0 ? nicheCalls : callLogs).slice(0, 3);
+  const recentCalls = callLogs.slice(0, 3);
 
-  // 7-day hourly and daily activity metrics
-  const chartData7d = [
-    { label: 'Пн', calls: 18, leads: 11, afterHours: 8 },
-    { label: 'Вт', calls: 24, leads: 16, afterHours: 12 },
-    { label: 'Ср', calls: 21, leads: 14, afterHours: 9 },
-    { label: 'Чт', calls: 29, leads: 19, afterHours: 14 },
-    { label: 'Пт', calls: 34, leads: 22, afterHours: 18 },
-    { label: 'Сб', calls: 22, leads: 15, afterHours: 20 },
-    { label: 'Вс', calls: 16, leads: 10, afterHours: 15 },
-  ];
+  const parseCallDate = (ts: string): Date | null => {
+    if (!ts) return null;
+    const clean = ts.trim().replace(' ', 'T');
+    const d = new Date(clean);
+    return isNaN(d.getTime()) ? null : d;
+  };
 
-  const chartData30d = [
-    { label: 'Нед 1', calls: 112, leads: 74, afterHours: 54 },
-    { label: 'Нед 2', calls: 138, leads: 88, afterHours: 66 },
-    { label: 'Нед 3', calls: 129, leads: 82, afterHours: 61 },
-    { label: 'Нед 4', calls: 154, leads: 98, afterHours: 79 },
-  ];
+  const isAfterHours = (date: Date): boolean => {
+    const day = date.getDay(); // 0 - Вс, 6 - Сб
+    const hour = date.getHours();
+    return day === 0 || day === 6 || hour < 9 || hour >= 18;
+  };
+
+  // Динамический расчёт 7 дней недели (Пн–Вс) по реальным звонкам
+  const chartData7d = useMemo(() => {
+    const days = [
+      { label: 'Пн', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Вт', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Ср', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Чт', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Пт', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Сб', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Вс', calls: 0, leads: 0, afterHours: 0 },
+    ];
+
+    callLogs.forEach((log) => {
+      const d = parseCallDate(log.timestamp);
+      if (!d) return;
+      const dayIdx = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      if (dayIdx >= 0 && dayIdx < 7) {
+        days[dayIdx].calls += 1;
+        if (log.status === 'lead_captured') days[dayIdx].leads += 1;
+        if (isAfterHours(d)) days[dayIdx].afterHours += 1;
+      }
+    });
+
+    return days;
+  }, [callLogs]);
+
+  // Динамический расчёт 30 дней (4 недели месяца) по реальным звонкам
+  const chartData30d = useMemo(() => {
+    const weeks = [
+      { label: 'Нед 1', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Нед 2', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Нед 3', calls: 0, leads: 0, afterHours: 0 },
+      { label: 'Нед 4', calls: 0, leads: 0, afterHours: 0 },
+    ];
+
+    callLogs.forEach((log) => {
+      const d = parseCallDate(log.timestamp);
+      if (!d) return;
+      const dayOfMonth = d.getDate();
+      const weekIdx = Math.min(3, Math.floor((dayOfMonth - 1) / 7));
+      weeks[weekIdx].calls += 1;
+      if (log.status === 'lead_captured') weeks[weekIdx].leads += 1;
+      if (isAfterHours(d)) weeks[weekIdx].afterHours += 1;
+    });
+
+    return weeks;
+  }, [callLogs]);
 
   const currentChart = period === '7d' ? chartData7d : chartData30d;
-  const maxCalls = Math.max(...currentChart.map(d => d.calls));
+  const maxCalls = Math.max(1, ...currentChart.map(d => d.calls));
+  const totalPeriodCalls = currentChart.reduce((sum, d) => sum + d.calls, 0);
+  const totalPeriodAfterHours = currentChart.reduce((sum, d) => sum + d.afterHours, 0);
+  const afterHoursShare = totalPeriodCalls > 0 ? Math.round((totalPeriodAfterHours / totalPeriodCalls) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -81,12 +133,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
           </div>
           <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-mono">
-            {totalCalls} <span className="text-xs font-normal text-slate-400">звонков ({user.spentMinutes || 55} мин)</span>
+            {totalCalls} <span className="text-xs font-normal text-slate-400">звонков ({effectiveMinutes} мин)</span>
           </div>
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-emerald-700 font-semibold flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
-              +24% за неделю
+              {totalCalls > 0 ? 'Вся статистика актуальна' : 'Ожидание звонков'}
             </span>
             <span className="text-slate-400">0 пропущенных</span>
           </div>
@@ -105,7 +157,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-emerald-700 font-semibold">
-              Конверсия 62.7%
+              Конверсия {conversionPercent}%
             </span>
             <span className="text-slate-400">В базу CRM</span>
           </div>
@@ -143,7 +195,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-emerald-700 font-semibold">
-              Ср. чек ~{agent.niche === 'driving_school' ? 1050 : 280} BYN
+              Ср. чек ~{avgCheckByn} BYN
             </span>
             <span className="text-slate-400">в воронке</span>
           </div>
@@ -193,8 +245,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="pt-2">
           <div className="h-44 flex items-end gap-3 sm:gap-6 border-b border-slate-100 pb-2">
             {currentChart.map((item, idx) => {
-              const heightPercent = Math.round((item.calls / maxCalls) * 100);
-              const afterHoursPercent = Math.round((item.afterHours / item.calls) * 100);
+              const heightPercent = item.calls > 0 ? Math.max(8, Math.round((item.calls / maxCalls) * 100)) : 0;
+              const afterHoursPercent = item.calls > 0 ? Math.round((item.afterHours / item.calls) * 100) : 0;
               const isHovered = hoveredBar === idx;
 
               return (
@@ -217,18 +269,20 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </span>
 
                   {/* Dual Bar */}
-                  <div className="w-full max-w-[48px] rounded-t-xl bg-blue-100 overflow-hidden relative flex flex-col justify-end" style={{ height: `${heightPercent}%` }}>
-                    <div 
-                      className="w-full bg-gradient-to-t from-blue-600 to-indigo-600 transition-all duration-300 group-hover:brightness-110" 
-                      style={{ height: '100%' }}
-                    >
-                      {/* After hours striped / highlight overlay */}
+                  <div className="w-full max-w-[48px] rounded-t-xl bg-blue-100/60 overflow-hidden relative flex flex-col justify-end" style={{ height: `${heightPercent}%` }}>
+                    {item.calls > 0 && (
                       <div 
-                        className="w-full bg-indigo-400/50" 
-                        style={{ height: `${afterHoursPercent}%` }}
-                        title={`${afterHoursPercent}% звонков после окончания рабочего дня`}
-                      />
-                    </div>
+                        className="w-full bg-gradient-to-t from-blue-600 to-indigo-600 transition-all duration-300 group-hover:brightness-110" 
+                        style={{ height: '100%' }}
+                      >
+                        {/* After hours striped / highlight overlay */}
+                        <div 
+                          className="w-full bg-indigo-400/60" 
+                          style={{ height: `${afterHoursPercent}%` }}
+                          title={`${afterHoursPercent}% звонков после окончания рабочего дня`}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <span className="text-xs font-semibold text-slate-700">
@@ -252,7 +306,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
 
             <div className="font-semibold text-slate-800">
-              ⚡ 51% звонков обработано вне рабочего времени
+              {totalPeriodCalls > 0
+                ? `⚡ ${afterHoursShare}% вызовов обработано вне рабочего времени (сохранённая выручка)`
+                : '⚡ Голосовой бот готов принимать 100% звонков 24/7 без выходных'}
             </div>
           </div>
         </div>

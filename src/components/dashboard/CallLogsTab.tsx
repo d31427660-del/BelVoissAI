@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlayIcon as Play,
@@ -25,9 +25,18 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [activeCallDetail, setActiveCallDetail] = useState<CallLog | null>(null);
   const [playingCallId, setPlayingCallId] = useState<string | null>(null);
+  const [activeTurnIdx, setActiveTurnIdx] = useState<number | null>(null);
   const [waveBars, setWaveBars] = useState<number[]>([25, 50, 75, 40, 60, 85, 35, 70, 45, 30]);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [crmSyncToast, setCrmSyncToast] = useState(false);
+  const playbackRunRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      playbackRunRef.current += 1;
+      VoiceSimulator.stop();
+    };
+  }, []);
 
   const filteredLogs = callLogs.filter((log) => {
     const matchesSearch =
@@ -40,24 +49,44 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     return matchesSearch && matchesStatus;
   });
 
-  const handlePlayAudio = (call: CallLog, e?: React.MouseEvent) => {
+  const handlePlayAudio = async (call: CallLog, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (playingCallId === call.id) {
+      playbackRunRef.current += 1;
       VoiceSimulator.stop();
       setPlayingCallId(null);
-    } else {
-      VoiceSimulator.stop();
-      setPlayingCallId(call.id);
+      setActiveTurnIdx(null);
+      return;
+    }
 
-      const firstAssistantLine =
-        call.transcript.find((t) => t.speaker === 'assistant')?.text || call.summary;
-      VoiceSimulator.speak(
-        firstAssistantLine,
-        agent?.voice || 'anna',
-        () => setPlayingCallId(call.id),
-        () => setPlayingCallId(null),
+    const runId = ++playbackRunRef.current;
+    VoiceSimulator.stop();
+    setPlayingCallId(call.id);
+
+    const botVoice = agent?.voice || 'anna';
+    const callerVoice = botVoice === 'dmitry' ? 'anna' : 'dmitry';
+    const turns =
+      call.transcript.length > 0
+        ? call.transcript
+        : [{ speaker: 'assistant' as const, text: call.summary, time: '0:01' }];
+
+    for (let idx = 0; idx < turns.length; idx++) {
+      if (playbackRunRef.current !== runId) return;
+      setActiveTurnIdx(idx);
+      const turn = turns[idx];
+      const turnVoice = turn.speaker === 'assistant' ? botVoice : callerVoice;
+      await VoiceSimulator.speak(
+        turn.text,
+        turnVoice,
+        undefined,
+        undefined,
         (bars: number[]) => setWaveBars(bars.slice(0, 10))
       );
+    }
+
+    if (playbackRunRef.current === runId) {
+      setPlayingCallId(null);
+      setActiveTurnIdx(null);
     }
   };
 
@@ -68,25 +97,44 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     setTimeout(() => setCopiedPhone(false), 2000);
   };
 
-  const handleSyncToCrm = () => {
+  const handleSyncToCrm = (call: CallLog) => {
+    const leadLines = [
+      `📞 Заявка со звонка (${agent?.companyName || 'Voxi.by'})`,
+      `👤 Клиент: ${call.callerName || 'Не указано'} (${call.callerNumber})`,
+      `🛠 Запрос: ${call.capturedData?.service || call.summary}`,
+      call.capturedData?.preferredDate ? `🕒 Время: ${call.capturedData.preferredDate}` : null,
+      call.dealValueByn > 0 ? `💰 Оценка чека: ~${call.dealValueByn} BYN` : null,
+      `📝 Резюме: ${call.summary}`
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    navigator.clipboard?.writeText(leadLines).catch(() => {});
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent('https://voxi.by')}&text=${encodeURIComponent(
+      leadLines
+    )}`;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+
     setCrmSyncToast(true);
-    setTimeout(() => setCrmSyncToast(false), 2500);
+    setTimeout(() => setCrmSyncToast(false), 3200);
   };
 
   const exportToCsv = () => {
     const headers = ['ID,Номер,Имя,Услуга,Дата,Длительность (сек),Статус,Сумма BYN,Суть'];
     const rows = filteredLogs.map(
       (l) =>
-        `"${l.id}","${l.callerNumber}","${l.callerName || ''}","${l.capturedData?.service || ''}","${l.timestamp}",${l.durationSeconds},"${l.status}",${l.dealValueByn},"${l.summary.replace(/"/g, '""')}"`
+        `"${l.id}","${l.callerNumber}","${(l.callerName || '').replace(/"/g, '""')}","${(l.capturedData?.service || '').replace(/"/g, '""')}","${l.timestamp}",${l.durationSeconds},"${l.status}",${l.dealValueByn},"${l.summary.replace(/"/g, '""')}"`
     );
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers, ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers, ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.href = url;
     link.setAttribute('download', `voxi_zayavki_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
 
   const getStatusBadge = (status: CallLog['status']) => {
@@ -455,7 +503,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   </div>
 
                   <p className="text-[11px] text-slate-600">
-                    Нажмите на кнопку воспроизведения, чтобы прослушать голос ассистента в этом вызове.
+                    Нажмите на кнопку воспроизведения, чтобы прослушать весь диалог по ролям от начала до конца.
                   </p>
                 </div>
 
@@ -519,6 +567,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   <div className="space-y-2.5">
                     {activeCallDetail.transcript.map((msg, i) => {
                       const isAi = msg.speaker === 'assistant';
+                      const isTurnActive = playingCallId === activeCallDetail.id && activeTurnIdx === i;
                       return (
                         <div
                           key={i}
@@ -534,11 +583,11 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                             <span className="font-mono">{msg.time}</span>
                           </div>
                           <div
-                            className={`p-3 rounded-2xl text-xs max-w-[88%] leading-relaxed ${
+                            className={`p-3 rounded-2xl text-xs max-w-[88%] leading-relaxed transition-all ${
                               isAi
                                 ? 'bg-slate-100 text-slate-900 border border-slate-200/80 rounded-tl-sm'
                                 : 'bg-blue-600 text-white rounded-tr-sm shadow-2xs'
-                            }`}
+                            } ${isTurnActive ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
                           >
                             {msg.text}
                           </div>
@@ -553,7 +602,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
               <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={handleSyncToCrm}
+                  onClick={() => handleSyncToCrm(activeCallDetail)}
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   <Send className="w-3.5 h-3.5" />
@@ -576,7 +625,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   className="absolute bottom-16 left-4 right-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium flex items-center gap-2 shadow-lg"
                 >
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Карточка клиента отправлена в ваш Telegram-чат!</span>
+                  <span>Текст заявки скопирован и открыт для пересылки в Telegram!</span>
                 </div>
               )}
             </motion.div>

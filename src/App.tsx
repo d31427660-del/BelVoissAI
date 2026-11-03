@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { Hero } from './components/landing/Hero';
 import { IntegrationsStrip } from './components/landing/IntegrationsStrip';
 import { WhoIsItFor } from './components/landing/WhoIsItFor';
+import { VoiceComparison } from './components/landing/VoiceComparison';
 import { HowItWorks } from './components/landing/HowItWorks';
 import { RoiCalculator } from './components/landing/RoiCalculator';
 import { FeatureShowcase } from './components/landing/FeatureShowcase';
@@ -20,8 +21,9 @@ import {
   NICHE_TEMPLATES 
 } from './lib/mockData';
 import { generateSystemPrompt } from './lib/vapiService';
+import { adaptGreetingForVoice } from './lib/botDialogueEngine';
 import { supabase, isSupabaseConfigured, LOCAL_STORAGE_KEYS } from './lib/supabaseClient';
-import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession, BusinessNiche, MinutePackage } from './types';
+import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession, BusinessNiche, VoiceId, MinutePackage } from './types';
 
 // Code-split heavy workspace & modal chunks so landing LCP stays ultra-fast
 const DashboardLayout = lazy(() =>
@@ -60,6 +62,10 @@ export function App() {
   const [isVoiceTestModalOpen, setIsVoiceTestModalOpen] = useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [selectedPackageForTopUp, setSelectedPackageForTopUp] = useState<MinutePackage | null>(null);
+  const [pendingVoiceTestSelection, setPendingVoiceTestSelection] = useState<{
+    niche: BusinessNiche;
+    voice: VoiceId;
+  } | null>(null);
   const [externalLegalDoc, setExternalLegalDoc] = useState<LegalDocType | null>(getInitialLegalDocFromLocation);
   const [paymentToast, setPaymentToast] = useState<string | null>(null);
 
@@ -90,11 +96,18 @@ export function App() {
     return def;
   });
 
-  // Call logs: real users get empty / DB logs; demo users get showcase logs
+  // Call logs: real users get empty / DB logs; demo users get showcase logs + persisted live test calls
   const [callLogs, setCallLogs] = useState<CallLog[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.CALL_LOGS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const existingIds = new Set(parsed.map((c: CallLog) => c.id));
+          const missingDemo = INITIAL_CALL_LOGS.filter((c) => !existingIds.has(c.id));
+          return [...parsed, ...missingDemo];
+        }
+      }
     } catch {
       // fallback
     }
@@ -312,13 +325,22 @@ export function App() {
     } catch {}
   }, [webhookSettings]);
 
-  // Handle Niche Selection from Landing Page
-  const handleSelectNicheFromLanding = (niche: BusinessNiche) => {
-    const template = NICHE_TEMPLATES[niche];
-    const voiceName = agent.voice === 'dmitry' ? 'Дмитрий' : agent.voice === 'maxim' ? 'Максим' : agent.voice === 'polina' ? 'Полина' : 'Анна';
+  useEffect(() => {
+    if (user && !user.isMock) return;
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEYS.CALL_LOGS, JSON.stringify(callLogs));
+    } catch {}
+  }, [callLogs, user]);
+
+  const buildAgentForNicheAndVoice = (base: AgentConfig, niche: BusinessNiche, voiceOverride?: VoiceId): AgentConfig => {
+    const template = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
+    const nextVoice = voiceOverride || base.voice;
+    const voiceName =
+      nextVoice === 'dmitry' ? 'Дмитрий' : nextVoice === 'maxim' ? 'Максим' : nextVoice === 'polina' ? 'Полина' : 'Анна';
     const updatedAgent: AgentConfig = {
-      ...agent,
+      ...base,
       niche,
+      voice: nextVoice,
       name: `${voiceName} — ${template.companyName}`,
       companyName: template.companyName,
       city: template.city,
@@ -327,9 +349,35 @@ export function App() {
       workingHours: template.workingHours,
       pricingAndServices: template.pricingAndServices,
       knowledgeBase: template.knowledgeBase,
-      firstMessage: template.firstMessage,
+      firstMessage: adaptGreetingForVoice(template.firstMessage, nextVoice, template.companyName, template.companyName),
     };
     updatedAgent.systemPrompt = generateSystemPrompt(updatedAgent);
+    return updatedAgent;
+  };
+
+  const handleRecordCompletedCall = (newLog: CallLog) => {
+    setCallLogs((prev) => {
+      if (prev.some((c) => c.id === newLog.id)) return prev;
+      return [newLog, ...prev];
+    });
+    if (user?.isMock) {
+      const usedMins = Math.max(1, Math.round(newLog.durationSeconds / 60));
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              spentMinutes: prev.spentMinutes + usedMins,
+              balanceMinutes: Math.max(0, prev.balanceMinutes - usedMins),
+            }
+          : prev
+      );
+    }
+  };
+
+  // Handle Niche Selection from Landing Page
+  const handleSelectNicheFromLanding = (niche: BusinessNiche) => {
+    const template = NICHE_TEMPLATES[niche];
+    const updatedAgent = buildAgentForNicheAndVoice(agent, niche);
     setAgent(updatedAgent);
 
     if (user) {
@@ -338,7 +386,11 @@ export function App() {
         companyName: template.companyName
       });
     } else {
-      setCallLogs(INITIAL_CALL_LOGS);
+      setCallLogs((prev) => {
+        const liveLogs = prev.filter((c) => c.id.startsWith('call-live-'));
+        const liveIds = new Set(liveLogs.map((c) => c.id));
+        return [...liveLogs, ...INITIAL_CALL_LOGS.filter((c) => !liveIds.has(c.id))];
+      });
       setUser({
         id: 'usr_bel_demo_1',
         email: 'owner@drive-minsk.by',
@@ -437,6 +489,8 @@ export function App() {
 
             <WhoIsItFor onSelectNiche={handleSelectNicheFromLanding} />
 
+            <VoiceComparison />
+
             <HowItWorks onOpenAuth={() => {
               if (user) setCurrentView('dashboard');
               else setIsAuthModalOpen(true);
@@ -501,6 +555,7 @@ export function App() {
                 vapiApiKey={vapiApiKey}
                 onSaveVapiApiKey={() => {}}
                 callLogs={callLogs}
+                onCallCompleted={handleRecordCompletedCall}
                 onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
                 onOpenTopUp={() => setIsTopUpModalOpen(true)}
                 onExitToLanding={() => {
@@ -539,48 +594,50 @@ export function App() {
             onClose={() => setIsAuthModalOpen(false)}
             onOpenLegalDoc={(doc) => setExternalLegalDoc(doc)}
             onLoginSuccess={(loggedInUser) => {
-              setUser(loggedInUser);
+              const liveTestLogs = callLogs.filter((c) => c.id.startsWith('call-live-'));
               if (loggedInUser.isMock) {
-                setCallLogs(INITIAL_CALL_LOGS);
+                const liveIds = new Set(liveTestLogs.map((c) => c.id));
+                setCallLogs([...liveTestLogs, ...INITIAL_CALL_LOGS.filter((c) => !liveIds.has(c.id))]);
               } else {
-                setCallLogs([]);
+                setCallLogs(liveTestLogs);
               }
 
               if (selectedPackageForTopUp) {
                 setIsTopUpModalOpen(true);
               }
 
-              if (loggedInUser.companyName.includes('СТО')) {
-                const tpl = NICHE_TEMPLATES.auto_service;
-                const updated: AgentConfig = {
-                  ...agent,
-                  niche: 'auto_service',
-                  voice: 'dmitry',
-                  name: `Дмитрий — ${tpl.companyName}`,
-                  companyName: tpl.companyName,
-                  city: tpl.city,
-                  address: tpl.address,
-                  phone: tpl.phone,
-                  workingHours: tpl.workingHours,
-                  pricingAndServices: tpl.pricingAndServices,
-                  knowledgeBase: tpl.knowledgeBase,
-                  firstMessage: tpl.firstMessage,
-                };
-                updated.systemPrompt = generateSystemPrompt(updated);
+              if (pendingVoiceTestSelection) {
+                const updated = buildAgentForNicheAndVoice(
+                  agent,
+                  pendingVoiceTestSelection.niche,
+                  pendingVoiceTestSelection.voice
+                );
                 setAgent(updated);
-              } else if (loggedInUser.companyName && loggedInUser.companyName !== agent.companyName) {
-                const voiceLabel = agent.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
-                const prevCompany = agent.companyName;
-                const updated: AgentConfig = {
-                  ...agent,
-                  companyName: loggedInUser.companyName,
-                  name: `${voiceLabel} — ${loggedInUser.companyName}`,
-                  firstMessage: prevCompany
-                    ? agent.firstMessage.replace(prevCompany, loggedInUser.companyName)
-                    : agent.firstMessage,
-                };
-                updated.systemPrompt = generateSystemPrompt(updated);
+                setUser({
+                  ...loggedInUser,
+                  companyName: loggedInUser.isMock ? updated.companyName : loggedInUser.companyName || updated.companyName,
+                });
+                setPendingVoiceTestSelection(null);
+              } else if (loggedInUser.companyName.includes('СТО')) {
+                const updated = buildAgentForNicheAndVoice(agent, 'auto_service', 'dmitry');
                 setAgent(updated);
+                setUser(loggedInUser);
+              } else {
+                setUser(loggedInUser);
+                if (loggedInUser.companyName && loggedInUser.companyName !== agent.companyName) {
+                  const voiceLabel = agent.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+                  const prevCompany = agent.companyName;
+                  const updated: AgentConfig = {
+                    ...agent,
+                    companyName: loggedInUser.companyName,
+                    name: `${voiceLabel} — ${loggedInUser.companyName}`,
+                    firstMessage: prevCompany
+                      ? agent.firstMessage.replace(prevCompany, loggedInUser.companyName)
+                      : agent.firstMessage,
+                  };
+                  updated.systemPrompt = generateSystemPrompt(updated);
+                  setAgent(updated);
+                }
               }
 
               setCurrentView('dashboard');
@@ -595,10 +652,20 @@ export function App() {
           <VoiceTestModal
             isOpen={isVoiceTestModalOpen}
             initialNiche={agent.niche}
+            initialVoice={agent.voice}
             onClose={() => setIsVoiceTestModalOpen(false)}
-            onProceedToDashboard={() => {
-              if (!user) setIsAuthModalOpen(true);
-              else {
+            onCallCompleted={handleRecordCompletedCall}
+            onProceedToDashboard={(selectedNiche, selectedVoice) => {
+              const updated = buildAgentForNicheAndVoice(agent, selectedNiche, selectedVoice);
+              setAgent(updated);
+
+              if (!user) {
+                setPendingVoiceTestSelection({ niche: selectedNiche, voice: selectedVoice });
+                setIsAuthModalOpen(true);
+              } else {
+                if (user.isMock) {
+                  setUser({ ...user, companyName: updated.companyName });
+                }
                 setCurrentView('dashboard');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }

@@ -9,7 +9,7 @@ import {
   AltArrowDownIcon as ChevronDown,
   MagicWand3Icon as Sparkles
 } from '@solar-icons/react/bold-duotone';
-import { AgentConfig, BusinessNiche, VoiceId } from '../../types';
+import { AgentConfig, BusinessNiche, VoiceId, CallLog } from '../../types';
 import { NICHE_TEMPLATES } from '../../lib/mockData';
 import { generateSystemPrompt } from '../../lib/vapiService';
 import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
@@ -27,13 +27,19 @@ import {
 interface SimpleAgentTabProps {
   agent: AgentConfig;
   onSaveAgent: (agent: AgentConfig) => void;
+  onCallCompleted?: (log: CallLog) => void;
 }
 
 export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   agent,
-  onSaveAgent
+  onSaveAgent,
+  onCallCompleted
 }) => {
   const [formData, setFormData] = useState<AgentConfig>(agent);
+  const [isCustomPrompt, setIsCustomPrompt] = useState<boolean>(() => {
+    if (!agent.systemPrompt?.trim()) return false;
+    return agent.systemPrompt.trim() !== generateSystemPrompt(agent).trim();
+  });
   const [syncVersion, setSyncVersion] = useState(0);
   const [playingVoiceId, setPlayingVoiceId] = useState<VoiceId | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -42,6 +48,9 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
   useEffect(() => {
     setFormData(agent);
+    setIsCustomPrompt(
+      Boolean(agent.systemPrompt?.trim() && agent.systemPrompt.trim() !== generateSystemPrompt(agent).trim())
+    );
     setSyncVersion((v) => v + 1);
   }, [agent]);
 
@@ -70,6 +79,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
       updatedAt: new Date().toISOString()
     };
     updated.systemPrompt = generateSystemPrompt(updated);
+    setIsCustomPrompt(false);
     setFormData(updated);
     setSyncVersion((v) => v + 1);
     onSaveAgent(updated);
@@ -139,26 +149,33 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     setIsGeneratingPrompt(false);
 
     if (result?.systemPrompt) {
+      setIsCustomPrompt(true);
       setFormData((prev) => ({
         ...prev,
         systemPrompt: result.systemPrompt
       }));
-      setPromptGenStatus('Правила разговора обновлены нейросетью по вашим услугам и ценам.');
+      setPromptGenStatus('Правила разговора улучшены нейросетью по вашим услугам и сохранятся без перезаписи.');
     } else {
       const localPrompt = generateSystemPrompt(formData);
+      setIsCustomPrompt(false);
       setFormData((prev) => ({
         ...prev,
         systemPrompt: localPrompt
       }));
-      setPromptGenStatus('Правила разговора обновлены по вашему прайс-листу и графику.');
+      setPromptGenStatus('Правила разговора пересобраны по вашему прайс-листу и графику.');
     }
   };
 
   const handleSave = (e?: React.FormEvent) => {
     e?.preventDefault();
+    const nextSystemPrompt =
+      isCustomPrompt && formData.systemPrompt?.trim()
+        ? formData.systemPrompt.trim()
+        : generateSystemPrompt(formData);
+
     const finalized: AgentConfig = {
       ...formData,
-      systemPrompt: generateSystemPrompt(formData),
+      systemPrompt: nextSystemPrompt,
       updatedAt: new Date().toISOString()
     };
     setFormData(finalized);
@@ -170,7 +187,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   const syncKey = `${formData.niche}-${syncVersion}`;
 
   return (
-    <form onSubmit={handleSave} className="space-y-6 max-w-5xl mx-auto">
+    <form id="active-workspace-form" onSubmit={handleSave} className="space-y-6 max-w-5xl mx-auto">
       {/* Top Header with Save button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
@@ -483,25 +500,45 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
             <div className="p-5 pt-3 border-t border-slate-100 space-y-3 bg-slate-50/40">
               <div>
-                <FieldLabel
-                  htmlFor="agent-system-prompt"
-                  label="Подробная инструкция поведения бота"
-                  optionalText="собирается сама при сохранении"
-                  helpTitle="Что можно дописать в инструкцию"
-                  helpText="При нажатии «Сохранить настройки» эта инструкция автоматически пересобирается по вашим карточкам услуг, адресу и графику. При желании нажмите «Обновить правила разговора», чтобы улучшить формулировки через YandexGPT."
-                  helpExample="Обязательно спроси у клиента имя, удобное время и коробку передач (МКПП или АКПП)."
-                />
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <FieldLabel
+                    htmlFor="agent-system-prompt"
+                    label="Подробная инструкция поведения бота"
+                    optionalText={isCustomPrompt ? 'своя / ИИ-редакция активна' : 'собирается автоматически'}
+                    helpTitle="Что можно дописать в инструкцию"
+                    helpText="Если вы редактируете этот текст вручную или нажимаете «Обновить правила разговора», ваши формулировки бережно сохранятся при нажатии «Сохранить настройки». Чтобы вернуться к стандартному шаблону, нажмите «Сбросить по шаблону»."
+                    helpExample="Обязательно спроси у клиента имя, удобное время и коробку передач (МКПП или АКПП)."
+                  />
+                  {isCustomPrompt && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomPrompt(false);
+                        setFormData((prev) => ({
+                          ...prev,
+                          systemPrompt: generateSystemPrompt(prev)
+                        }));
+                      }}
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 underline mb-1"
+                    >
+                      Сбросить по шаблону
+                    </button>
+                  )}
+                </div>
                 <textarea
                   id="agent-system-prompt"
                   name="systemPrompt"
                   rows={6}
                   aria-describedby="agent-system-prompt-hint"
                   value={formData.systemPrompt}
-                  onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
+                  onChange={(e) => {
+                    setIsCustomPrompt(true);
+                    setFormData({ ...formData, systemPrompt: e.target.value });
+                  }}
                   className="w-full p-3 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-600"
                 />
                 <FieldHint id="agent-system-prompt-hint">
-                  Особые пожелания к диалогу: какие вопросы уточнить у клиента и чего обещать нельзя.
+                  Особые пожелания к диалогу: ваши правки и улучшения нейросети не перезапишутся при сохранении.
                 </FieldHint>
               </div>
             </div>
@@ -510,7 +547,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
         {/* Right Column: Live Testing Phone */}
         <div className="lg:col-span-5 sticky top-20">
-          <LiveBotTester agent={formData} />
+          <LiveBotTester agent={formData} onCallCompleted={onCallCompleted} />
         </div>
       </div>
     </form>

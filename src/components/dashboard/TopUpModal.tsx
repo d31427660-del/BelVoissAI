@@ -6,10 +6,143 @@ import {
   FlameIcon,
   Card2Icon as CreditCardIcon,
   BillCheckIcon as ReceiptIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  PrinterIcon,
+  DownloadMinimalisticIcon as DownloadIcon,
+  CopyIcon,
+  AltArrowLeftIcon as ArrowLeftIcon
 } from '@solar-icons/react/bold-duotone';
 import { MINUTE_PACKAGES } from '../../lib/mockData';
 import { MinutePackage, UserSession } from '../../types';
+
+function generateInvoiceHtml(params: {
+  invoiceNo: string;
+  invoiceDate: string;
+  companyName: string;
+  unp?: string;
+  userEmail: string;
+  minutes: number;
+  ratePerMinute: number;
+  totalByn: number;
+}): string {
+  const { invoiceNo, invoiceDate, companyName, unp, userEmail, minutes, ratePerMinute, totalByn } = params;
+
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Счёт на оплату № ${invoiceNo}</title>
+<style>
+  body { font-family: Arial, "Helvetica Neue", sans-serif; font-size: 10pt; line-height: 1.35; color: #111; margin: 30px; }
+  .header-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 9.5pt; }
+  .header-table td { border: 1px solid #444; padding: 5px 8px; vertical-align: top; }
+  h1 { font-size: 14pt; margin: 18px 0 8px 0; font-weight: bold; text-align: left; }
+  .meta-line { font-size: 10pt; margin-bottom: 5px; }
+  .goods-table { width: 100%; border-collapse: collapse; margin-top: 14px; margin-bottom: 14px; font-size: 9.5pt; }
+  .goods-table th, .goods-table td { border: 1px solid #333; padding: 6px 8px; }
+  .goods-table th { background: #f2f2f2; text-align: center; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .total-block { margin-top: 12px; font-size: 10.5pt; }
+  .notice { font-size: 8.5pt; color: #444; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 8px; }
+  .sign-table { width: 100%; margin-top: 35px; }
+  .sign-table td { width: 50%; vertical-align: top; font-size: 9.5pt; }
+  @media print {
+    body { margin: 10mm; }
+  }
+</style>
+</head>
+<body>
+<table class="header-table">
+  <tr>
+    <td colspan="2" rowspan="2">
+      ЗАО «Альфа-Банк», г. Минск, ул. Сурганова, 43<br>
+      <small style="color: #666;">Банк получателя</small>
+    </td>
+    <td style="width: 15%;">БИК</td>
+    <td style="width: 30%;"><strong>ALFABY2X</strong></td>
+  </tr>
+  <tr>
+    <td>Сч. №</td>
+    <td>30132G19399184600000</td>
+  </tr>
+  <tr>
+    <td style="width: 25%;">УНП <strong>193991846</strong></td>
+    <td style="width: 30%;">ОКПО —</td>
+    <td rowspan="2">Сч. №</td>
+    <td rowspan="2"><strong>BY88ALFA30132G19399184600000</strong></td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <strong>ИП Беляков Кирилл Олегович</strong><br>
+      <small style="color: #666;">Получатель</small>
+    </td>
+  </tr>
+</table>
+
+<h1>СЧЁТ НА ОПЛАТУ № ${invoiceNo} от ${invoiceDate} г.</h1>
+<hr style="border: 0; border-top: 2px solid #2563eb; margin-bottom: 12px;">
+
+<div class="meta-line"><strong>Поставщик (Исполнитель):</strong> ИП Беляков Кирилл Олегович, УНП 193991846, 220045, Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58</div>
+<div class="meta-line"><strong>Покупатель (Заказчик):</strong> ${companyName}${unp ? `, УНП: ${unp}` : ''}${userEmail ? `, email: ${userEmail}` : ''}</div>
+<div class="meta-line"><strong>Основание:</strong> Публичный договор (оферта) возмездного оказания услуг Voxi.by (ОКЭД 62010)</div>
+
+<table class="goods-table">
+  <thead>
+    <tr>
+      <th style="width: 5%;">№</th>
+      <th>Товары (работы, услуги)</th>
+      <th style="width: 10%;">Кол-во</th>
+      <th style="width: 8%;">Ед.</th>
+      <th style="width: 15%;">Цена (BYN)</th>
+      <th style="width: 15%;">Сумма (BYN)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="text-center">1</td>
+      <td>Предоставление доступа к облачной платформе голосовых ИИ-ассистентов Voxi.by (пакет ${minutes} минут диалогов)</td>
+      <td class="text-center">${minutes}</td>
+      <td class="text-center">мин.</td>
+      <td class="text-right">${ratePerMinute.toFixed(2)}</td>
+      <td class="text-right"><strong>${totalByn.toFixed(2)}</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="total-block text-right">
+  <div><strong>Итого без НДС:</strong> ${totalByn.toFixed(2)} BYN</div>
+  <div><strong>Ставка НДС:</strong> Без НДС (гл. 32 НК РБ, упрощённая система налогообложения)</div>
+  <div style="font-size: 12pt; margin-top: 6px;"><strong>Всего к оплате: ${totalByn.toFixed(2)} белорусских рублей</strong></div>
+</div>
+
+<div style="margin-top: 14px; font-size: 10pt;">
+  Всего наименований 1, на сумму <strong>${totalByn.toFixed(2)} BYN</strong> (Без НДС).
+</div>
+
+<div class="notice">
+  <strong>Условия оплаты и поставки:</strong><br>
+  1. Оплата данного счёта означает согласие с условиями Публичного договора (оферты), размещённого на сайте https://voxi.by/offer.<br>
+  2. Срок оплаты — в течение 5 (пяти) банковских дней с даты выставления.<br>
+  3. Назначение платежа: <em>«Оплата по счёту № ${invoiceNo} от ${invoiceDate} за пакет минут Voxi.by без НДС»</em>.<br>
+  4. По факту оказания услуг первичный учётный документ (акт) составляется единолично Исполнителем (постановление Минфина РБ № 13) и направляется через сервис электронного документооборота ЭДиН либо на email Заказчика.
+</div>
+
+<table class="sign-table">
+  <tr>
+    <td>
+      <strong>Исполнитель:</strong><br><br><br>
+      _______________________ / К.О. Беляков /
+    </td>
+    <td>
+      <strong>Заказчик:</strong><br><br><br>
+      _______________________ / ________________ /
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
 
 interface TopUpModalProps {
   isOpen: boolean;
@@ -27,21 +160,30 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
   onSuccessTopUp
 }) => {
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
-    initialPackage ? initialPackage.id : 'pack_300'
+    initialPackage && initialPackage.id !== 'custom' ? initialPackage.id : 'pack_300'
   );
-  const [isCustomMode, setIsCustomMode] = useState(false);
-  const [customMinutes, setCustomMinutes] = useState<number>(200);
+  const [isCustomMode, setIsCustomMode] = useState<boolean>(initialPackage?.id === 'custom');
+  const [customMinutes, setCustomMinutes] = useState<number>(
+    initialPackage?.id === 'custom' ? initialPackage.minutes : 200
+  );
   const [paymentMethod, setPaymentMethod] = useState<'erip' | 'card' | 'bank_invoice'>('erip');
   const [unpInput, setUnpInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [invoiceReady, setInvoiceReady] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [copiedRequisites, setCopiedRequisites] = useState(false);
+  const [invoiceDocNotice, setInvoiceDocNotice] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    if (initialPackage) {
+    if (!initialPackage) return;
+    if (initialPackage.id === 'custom') {
+      setIsCustomMode(true);
+      setCustomMinutes(initialPackage.minutes);
+    } else {
       setSelectedPackageId(initialPackage.id);
       setIsCustomMode(false);
     }
@@ -104,10 +246,76 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
     }
   };
 
+  const getInvoiceParams = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const invoiceDate = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
+    return {
+      invoiceNo: invoiceNumber || `VX-${Date.now().toString().slice(-6)}`,
+      invoiceDate,
+      companyName: user.companyName || 'ООО / ИП',
+      unp: unpInput.trim() || undefined,
+      userEmail: user.email || '',
+      minutes: finalMinutes,
+      ratePerMinute: finalRate,
+      totalByn: finalAmountByn
+    };
+  };
+
+  const handlePrintInvoice = () => {
+    const params = getInvoiceParams();
+    const html = generateInvoiceHtml(params);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 350);
+    }
+  };
+
+  const handleDownloadInvoiceDoc = () => {
+    const params = getInvoiceParams();
+    const html = generateInvoiceHtml(params);
+    const blob = new Blob(['\uFEFF' + html], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Schet_${params.invoiceNo}_Voxi.doc`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setInvoiceDocNotice(true);
+    setTimeout(() => setInvoiceDocNotice(false), 3500);
+  };
+
+  const handleCopyRequisites = () => {
+    const params = getInvoiceParams();
+    const text = [
+      `Счёт на оплату: № ${params.invoiceNo} от ${params.invoiceDate} г.`,
+      `Получатель: ИП Беляков Кирилл Олегович`,
+      `УНП получателя: 193991846`,
+      `Расчётный счёт (IBAN): BY88ALFA30132G19399184600000`,
+      `Банк: ЗАО «Альфа-Банк», г. Минск, БИК ALFABY2X`,
+      `Сумма к оплате: ${finalAmountByn}.00 BYN (без НДС)`,
+      `Плательщик: ${user.companyName}${unpInput ? ` (УНП ${unpInput})` : ''}`,
+      `Назначение платежа: Оплата по счёту № ${params.invoiceNo} от ${params.invoiceDate} за пакет ${finalMinutes} минут Voxi.by (без НДС)`
+    ].join('\n');
+
+    navigator.clipboard?.writeText(text);
+    setCopiedRequisites(true);
+    setTimeout(() => setCopiedRequisites(false), 2500);
+  };
+
   const handlePay = async () => {
     setErrorMsg(null);
 
     if (paymentMethod === 'bank_invoice') {
+      const num = `VX-${Date.now().toString().slice(-6)}`;
+      setInvoiceNumber(num);
       setInvoiceReady(true);
       return;
     }
@@ -230,24 +438,106 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               </p>
             </div>
           ) : invoiceReady ? (
-            <div className="p-5 rounded-3xl bg-blue-50/70 border border-blue-200 space-y-3 text-xs text-slate-800">
-              <div className="flex items-center gap-2 font-bold text-sm text-[#1d4ed8]">
-                <CheckCircleIcon size={18} />
-                <span>Заявка на счёт-фактуру сформирована</span>
+            <div className="space-y-4">
+              <div className="p-5 rounded-3xl bg-blue-50/70 border border-blue-200/90 space-y-3.5 text-xs text-slate-800">
+                <div className="flex items-center justify-between gap-2 border-b border-blue-200/60 pb-3">
+                  <div className="flex items-center gap-2 font-bold text-sm text-[#1d4ed8]">
+                    <CheckCircleIcon size={18} />
+                    <span>Счёт на оплату № {invoiceNumber || 'VX-001'}</span>
+                  </div>
+                  <span className="text-[11px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">
+                    от {new Date().toLocaleDateString('ru-RU')} г.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 block">Плательщик (Заказчик):</span>
+                    <strong className="text-slate-900 font-semibold">{user.companyName || 'Организация'}</strong>
+                    {unpInput && <span className="block text-slate-600 font-mono">УНП: {unpInput}</span>}
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Получатель (Исполнитель):</span>
+                    <strong className="text-slate-900 font-semibold">ИП Беляков К.О.</strong>
+                    <span className="block text-slate-600 font-mono">УНП: 193991846</span>
+                  </div>
+                </div>
+
+                {/* Банковские реквизиты */}
+                <div className="p-3 rounded-2xl bg-white border border-blue-200/70 space-y-1 font-mono text-[11px] text-slate-800 select-all">
+                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-sans mb-1 border-b border-slate-100 pb-1">
+                    <span>Реквизиты для перечисления в Клиент-Банке:</span>
+                    <span className="text-blue-600 font-semibold">без НДС</span>
+                  </div>
+                  <div><strong>IBAN:</strong> BY88ALFA30132G19399184600000</div>
+                  <div><strong>Банк:</strong> ЗАО «Альфа-Банк», г. Минск, БИК: ALFABY2X</div>
+                  <div><strong>Назначение:</strong> Оплата по счёту № {invoiceNumber} за пакет {finalMinutes} мин Voxi.by</div>
+                </div>
+
+                <div className="flex items-baseline justify-between pt-1">
+                  <span className="text-slate-600">Сумма к оплате:</span>
+                  <span className="text-xl font-black text-[#2563eb]">
+                    {finalAmountByn}.00 BYN
+                  </span>
+                </div>
               </div>
-              <p className="leading-relaxed">
-                Реквизиты Исполнителя для договора и счёта: <strong>ИП Беляков Кирилл Олегович, УНП 193991846</strong> (г. Минск, ул. Наполеона Орды, 11-58, без НДС).
-              </p>
-              <p className="leading-relaxed">
-                Сумма к оплате: <strong>{finalAmountByn} BYN</strong> за пакет <strong>{finalMinutes} минут</strong>{unpInput ? ` (УНП Заказчика: ${unpInput})` : ''}. Отправьте карточку реквизитов на <a href="mailto:info@voxi.by" className="text-[#2563eb] underline font-semibold">info@voxi.by</a> или в Telegram <a href="https://t.me/voxi_support" target="_blank" rel="noopener noreferrer" className="text-[#2563eb] underline font-semibold">@voxi_support</a> для мгновенного выставления счёта и акта в ЭДиН.
-              </p>
-              <button
-                type="button"
-                onClick={() => setInvoiceReady(false)}
-                className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-[#2563eb] font-semibold hover:bg-blue-50 transition-colors"
-              >
-                Вернуться к способам оплаты
-              </button>
+
+              {/* Status notifications */}
+              {copiedRequisites && (
+                <div role="status" className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-center gap-2">
+                  <CheckCircleIcon size={14} className="text-emerald-600 shrink-0" />
+                  <span>Реквизиты счёта и назначение платежа скопированы в буфер обмена!</span>
+                </div>
+              )}
+
+              {invoiceDocNotice && (
+                <div role="status" className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-center gap-2">
+                  <CheckCircleIcon size={14} className="text-emerald-600 shrink-0" />
+                  <span>Счёт на оплату (.doc) успешно скачан для отправки в бухгалтерию.</span>
+                </div>
+              )}
+
+              {/* Action Buttons: Print, Download .doc, Copy */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={handlePrintInvoice}
+                  className="w-full py-2.5 px-3 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <PrinterIcon size={16} />
+                  <span>Печать / PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadInvoiceDoc}
+                  className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <DownloadIcon size={16} />
+                  <span>Скачать .doc</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyRequisites}
+                  className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <CopyIcon size={16} />
+                  <span>{copiedRequisites ? 'Скопировано!' : 'Реквизиты'}</span>
+                </button>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => setInvoiceReady(false)}
+                  className="text-slate-500 hover:text-slate-800 font-medium inline-flex items-center gap-1 underline"
+                >
+                  <ArrowLeftIcon size={14} />
+                  <span>Изменить пакет или способ оплаты</span>
+                </button>
+                <span className="text-[11px] text-slate-600">Электронный акт через ЭДиН</span>
+              </div>
             </div>
           ) : (
             <>
@@ -331,7 +621,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                       id="custom-minutes-range"
                       type="range"
                       min="50"
-                      max="1500"
+                      max="2000"
                       step="25"
                       value={customMinutes}
                       onChange={(e) => setCustomMinutes(Number(e.target.value))}
@@ -340,7 +630,8 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                     <div className="flex justify-between text-[11px] text-slate-500 font-mono">
                       <span>50 мин</span>
                       <span>500 мин</span>
-                      <span>1 500 мин</span>
+                      <span>1 000 мин</span>
+                      <span>2 000 мин</span>
                     </div>
                   </div>
                 )}

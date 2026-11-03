@@ -21,7 +21,7 @@ interface MysteryCallerTabProps {
   currentVoice?: VoiceId;
 }
 
-export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
+export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice }) => {
   const [leads, setLeads] = useState<MysteryAuditItem[]>(INITIAL_MYSTERY_LEADS);
   const [selectedLeadId, setSelectedLeadId] = useState<string>(INITIAL_MYSTERY_LEADS[0].id);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -36,6 +36,12 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
 
   const selectedLead = leads.find((l) => l.id === selectedLeadId) || leads[0];
 
+  const resolveLeadVoice = (lead: MysteryAuditItem): VoiceId => {
+    if (lead.aiDemoAudioText.includes('Дмитрий')) return 'dmitry';
+    if (lead.aiDemoAudioText.includes('Анна') || lead.aiDemoAudioText.includes('Полина')) return 'anna';
+    return currentVoice || (lead.niche === 'auto_service' ? 'dmitry' : 'anna');
+  };
+
   const handlePlayDemo = (lead: typeof selectedLead) => {
     if (isPlayingAudio) {
       VoiceSimulator.stop();
@@ -43,7 +49,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
       return;
     }
 
-    const voice: VoiceId = lead.niche === 'auto_service' ? 'dmitry' : 'anna';
+    const voice = resolveLeadVoice(lead);
     VoiceSimulator.speak(
       lead.aiDemoAudioText,
       voice,
@@ -67,6 +73,8 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
     setTimeout(() => {
       const avgLoss =
         customNiche === 'driving_school' ? 1050 : customNiche === 'auto_service' ? 280 : 150;
+      const chosenVoice: VoiceId = currentVoice || (customNiche === 'auto_service' ? 'dmitry' : 'anna');
+      const speakerLabel = chosenVoice === 'dmitry' ? 'Дмитрий' : 'Анна';
       const newLead: MysteryAuditItem = {
         id: `myst-${Date.now()}`,
         companyName: customName,
@@ -77,7 +85,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
         callStatus: 'no_answer',
         ringsCount: 6,
         lostEstimatedByn: avgLoss,
-        aiDemoAudioText: `Добрый вечер! Компания ${customName}, голосовой помощник Анна. Администратор уже завершил смену, но я с радостью подскажу стоимость и запишу вас на завтра. Какая услуга вас интересует?`,
+        aiDemoAudioText: `Добрый вечер! Компания ${customName}, голосовой помощник ${speakerLabel}. Администратор уже завершил смену, но я с радостью подскажу стоимость и запишу вас на завтра. Какая услуга вас интересует?`,
         pitchMessage: `Здравствуйте! Вечером мы позвонили в «${customName}» — после 6 гудков никто не ответил (обычно это минус заказ на ~${avgLoss} BYN). Послушайте короткий пример, как на такие звонки может за полсекунды отвечать ваш голосовой помощник Voxi.`
       };
 
@@ -319,7 +327,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = () => {
                 </span>
               </div>
               <span className="text-[11px] font-medium text-blue-700 bg-white px-2.5 py-0.5 rounded-full border border-blue-100">
-                Голос: {selectedLead.niche === 'auto_service' ? 'Дмитрий' : 'Анна'}
+                Голос: {resolveLeadVoice(selectedLead) === 'dmitry' ? 'Дмитрий' : 'Анна'}
               </span>
             </div>
 

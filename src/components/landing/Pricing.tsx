@@ -193,12 +193,15 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPackage, onOpenAuth })
 
               <div className="pt-4 space-y-3">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-medium text-slate-700">Желаемый объем минут:</span>
+                  <label htmlFor="pricing-custom-minutes" className="font-medium text-slate-700">
+                    Желаемый объем минут:
+                  </label>
                   <span className="text-sm font-bold text-[#2563eb] bg-blue-50 border border-blue-200/80 px-3 py-1 rounded-full font-mono">
                     {customMinutes} минут (~{approxCalls} звонков)
                   </span>
                 </div>
                 <input
+                  id="pricing-custom-minutes"
                   type="range"
                   min="50"
                   max="2000"
@@ -242,10 +245,20 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPackage, onOpenAuth })
               </div>
 
               <button
-                onClick={onOpenAuth}
+                type="button"
+                onClick={() =>
+                  handleAction({
+                    id: 'custom',
+                    name: 'Индивидуальный объём',
+                    minutes: customMinutes,
+                    priceByn: customCostByn,
+                    ratePerMinute: currentRate,
+                    description: `Индивидуальный пакет на ${customMinutes} минут диалогов`
+                  })
+                }
                 className="w-full py-3.5 rounded-full bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
               >
-                <span>Начать с 15 бесплатных минут</span>
+                <span>Выбрать {customMinutes} минут ({customCostByn} BYN)</span>
                 <ArrowRightIcon size={16} />
               </button>
             </div>

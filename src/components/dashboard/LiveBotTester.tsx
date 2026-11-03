@@ -9,7 +9,7 @@ import {
   MicrophoneIcon as Mic,
   Microphone2Icon as MicOff,
 } from '@solar-icons/react/bold-duotone';
-import { AgentConfig } from '../../types';
+import { AgentConfig, CallLog } from '../../types';
 import { NICHE_TEMPLATES } from '../../lib/mockData';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { useSpeechRecognition } from '../../lib/useSpeechRecognition';
@@ -17,16 +17,18 @@ import {
   requestBotReply,
   NICHE_QUICK_QUESTIONS,
   adaptGreetingForVoice,
+  createCallLogFromDialogue,
 } from '../../lib/botDialogueEngine';
 import { playRingingTone, playHangupSound } from '../../lib/telephonyAudio';
 
 interface LiveBotTesterProps {
   agent: AgentConfig;
+  onCallCompleted?: (log: CallLog) => void;
 }
 
 type CallStatus = 'idle' | 'dialing' | 'connected';
 
-export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
+export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompleted }) => {
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const [messages, setMessages] = useState<
     Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>
@@ -49,6 +51,33 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   const isBotSpeakingRef = useRef(false);
   const agentRef = useRef<AgentConfig>(agent);
   const prevNicheRef = useRef(agent.niche);
+  const callDurationRef = useRef(0);
+  const callLoggedRef = useRef(false);
+  const onCallCompletedRef = useRef(onCallCompleted);
+
+  useEffect(() => {
+    onCallCompletedRef.current = onCallCompleted;
+  }, [onCallCompleted]);
+
+  useEffect(() => {
+    callDurationRef.current = callDuration;
+  }, [callDuration]);
+
+  const flushCompletedCallLog = useCallback(() => {
+    if (callLoggedRef.current) return;
+    const liveAgent = agentRef.current;
+    const log = createCallLogFromDialogue({
+      niche: liveAgent.niche,
+      companyName: liveAgent.companyName,
+      address: liveAgent.address,
+      durationSeconds: callDurationRef.current,
+      messages: messagesRef.current,
+    });
+    if (log) {
+      callLoggedRef.current = true;
+      onCallCompletedRef.current?.(log);
+    }
+  }, []);
 
   useEffect(() => {
     agentRef.current = agent;
@@ -200,6 +229,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   // Reset stale call session automatically when user switches business category on the left
   useEffect(() => {
     if (prevNicheRef.current !== agent.niche) {
+      flushCompletedCallLog();
       prevNicheRef.current = agent.niche;
       cleanupCallAudio();
       stopListening();
@@ -209,10 +239,18 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
       setMessages([]);
       messagesRef.current = [];
       setCallDuration(0);
+      callDurationRef.current = 0;
       callStatusRef.current = 'idle';
       setCallStatus('idle');
     }
-  }, [agent.niche, cleanupCallAudio, stopListening]);
+  }, [agent.niche, cleanupCallAudio, flushCompletedCallLog, stopListening]);
+
+  useEffect(() => {
+    return () => {
+      flushCompletedCallLog();
+      cleanupCallAudio();
+    };
+  }, [cleanupCallAudio, flushCompletedCallLog]);
 
   useEffect(() => {
     if (transcriptRef.current) {
@@ -240,9 +278,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
     const tmpl = NICHE_TEMPLATES[liveAgent.niche] || NICHE_TEMPLATES.driving_school;
 
     cleanupCallAudio();
+    callLoggedRef.current = false;
     callStatusRef.current = 'dialing';
     setCallStatus('dialing');
     setCallDuration(0);
+    callDurationRef.current = 0;
     setIsMicMuted(false);
     setMessages([]);
     messagesRef.current = [];
@@ -280,6 +320,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
   };
 
   const handleEndCall = () => {
+    flushCompletedCallLog();
     cleanupCallAudio();
     playHangupSound();
     stopListening();
@@ -615,6 +656,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent }) => {
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder={
                     isMicMuted
                       ? 'Микрофон выключен — напишите вопрос...'

@@ -11,3 +11,4 @@ dist-ssr/
 .cache/
 coverage/
 *.log
+motion_render/

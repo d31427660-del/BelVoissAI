@@ -6,6 +6,7 @@ interface RoiCalculatorProps {
 }
 
 export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
+  const [calcMode, setCalcMode] = useState<'backup' | 'replace_admin'>('backup');
   const [missedCalls, setMissedCalls] = useState<number>(45);
   const [avgCheck, setAvgCheck] = useState<number>(250);
 
@@ -14,15 +15,24 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
   const lostRevenueByn = Math.round(lostCustomers * avgCheck);
 
   const humanAdminSalaryByn = 1800;
-  // Средний диалог длится около 1.5 минут
-  const estimatedDialogueMinutes = Math.round(missedCalls * 1.5);
-  // Расчет по базовой ставке (0.45 BYN/мин)
-  const voxiCostByn = Math.max(15, Math.round(estimatedDialogueMinutes * 0.45));
+  // Средний диалог длится около 1.5 минут; при полной замене админа учитываем также дневной поток (+180 звонков)
+  const totalBotCalls = calcMode === 'replace_admin' ? missedCalls + 180 : missedCalls;
+  const estimatedDialogueMinutes = Math.round(totalBotCalls * 1.5);
+  const getRateForMinutes = (mins: number) => {
+    if (mins >= 1000) return 0.35;
+    if (mins >= 300) return 0.40;
+    return 0.45;
+  };
+  const effectiveRate = getRateForMinutes(estimatedDialogueMinutes);
+  const voxiCostByn = Math.max(15, Math.round(estimatedDialogueMinutes * effectiveRate));
 
-  const monthlySalarySavings = humanAdminSalaryByn - voxiCostByn;
-  const totalMonthlyGainByn = monthlySalarySavings + lostRevenueByn;
+  const monthlySalarySavings = calcMode === 'replace_admin' ? Math.max(0, humanAdminSalaryByn - voxiCostByn) : 0;
+  const totalMonthlyGainByn =
+    calcMode === 'replace_admin'
+      ? monthlySalarySavings + lostRevenueByn
+      : Math.max(0, lostRevenueByn - voxiCostByn);
   const yearlyGainByn = totalMonthlyGainByn * 12;
-  const timesCheaper = Math.round(humanAdminSalaryByn / voxiCostByn);
+  const timesCheaper = Math.max(2, Math.round(humanAdminSalaryByn / voxiCostByn));
 
   const triggerConfetti = async () => {
     try {
@@ -60,20 +70,78 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* Left Column: Sliders */}
+            {/* Left Column: Mode Radio + Sliders */}
             <div className="lg:col-span-6 space-y-5">
-              
+              {/* Scenario Radio Selector (< 6 mutually exclusive options -> visible radio buttons) */}
+              <fieldset className="p-4 rounded-[28px] bg-[#ffffff] border border-slate-200/70">
+                <legend className="text-xs font-semibold text-[#1d1d1f] px-1 mb-2">
+                  Режим работы ИИ-администратора:
+                </legend>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {[
+                    {
+                      id: 'backup' as const,
+                      title: 'Перехват пропущенных',
+                      desc: 'Вечер, выходные и когда занято'
+                    },
+                    {
+                      id: 'replace_admin' as const,
+                      title: 'Замена штатного админа',
+                      desc: 'Весь поток звонков 24/7 + экономия ФОТ'
+                    }
+                  ].map((opt) => {
+                    const isSelected = calcMode === opt.id;
+                    const radioId = `roi-mode-${opt.id}`;
+                    return (
+                      <label
+                        key={opt.id}
+                        htmlFor={radioId}
+                        className={`p-3 rounded-2xl border cursor-pointer transition-all block ${
+                          isSelected
+                            ? 'border-[#2563eb] bg-blue-50/70 shadow-2xs'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <input
+                          id={radioId}
+                          type="radio"
+                          name="roiCalcMode"
+                          value={opt.id}
+                          checked={isSelected}
+                          onChange={() => setCalcMode(opt.id)}
+                          className="visually-hidden"
+                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-xs font-bold ${isSelected ? 'text-[#2563eb]' : 'text-[#1d1d1f]'}`}>
+                            {opt.title}
+                          </span>
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                              isSelected ? 'border-[#2563eb] bg-[#2563eb]' : 'border-slate-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-[#86868b] mt-0.5">{opt.desc}</div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
               {/* Slider 1 */}
               <div className="space-y-3 p-6 rounded-[32px] bg-[#ffffff] border border-slate-200/70">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-medium text-[#1d1d1f]">
-                    Пропущенные звонки в месяц
+                  <label htmlFor="roi-missed-calls" className="text-xs font-medium text-[#1d1d1f]">
+                    Пропущенные (вечерние) звонки в месяц
                   </label>
                   <span className="text-sm font-bold text-[#2563eb] bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
                     {missedCalls} звонков
                   </span>
                 </div>
                 <input
+                  id="roi-missed-calls"
                   type="range"
                   min="5"
                   max="300"
@@ -92,7 +160,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
               {/* Slider 2 */}
               <div className="space-y-3 p-6 rounded-[32px] bg-[#ffffff] border border-slate-200/70">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-medium text-[#1d1d1f]">
+                  <label htmlFor="roi-avg-check" className="text-xs font-medium text-[#1d1d1f]">
                     Средний чек услуги
                   </label>
                   <span className="text-sm font-bold text-[#2563eb] bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
@@ -100,6 +168,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
                   </span>
                 </div>
                 <input
+                  id="roi-avg-check"
                   type="range"
                   min="30"
                   max="1500"
@@ -169,7 +238,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
                       ~{voxiCostByn} <span className="text-xs font-normal text-blue-100">BYN/мес</span>
                     </div>
                     <div className="text-[11px] text-blue-100 mt-0.5">
-                      Только за {estimatedDialogueMinutes} мин разговора (0.45 BYN/мин)
+                      Только за {estimatedDialogueMinutes} мин разговора ({effectiveRate.toFixed(2)} BYN/мин)
                     </div>
                   </div>
                   <ul className="text-xs text-[#ffffff] space-y-2 border-t border-white/15 pt-3.5">
@@ -228,9 +297,18 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
                 </div>
 
                 <div className="text-xs text-slate-600 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                  <span className="whitespace-nowrap">Экономия ФОТ: +{monthlySalarySavings}&nbsp;BYN</span>
-                  <span className="whitespace-nowrap">Возврат лидов: +{lostRevenueByn.toLocaleString('ru-RU')}&nbsp;BYN</span>
-                  <span className="font-semibold text-emerald-600 whitespace-nowrap">Окупаемость за 3 дня</span>
+                  {calcMode === 'replace_admin' ? (
+                    <>
+                      <span className="whitespace-nowrap">Экономия ФОТ: +{monthlySalarySavings.toLocaleString('ru-RU')}&nbsp;BYN</span>
+                      <span className="whitespace-nowrap">Возврат лидов: +{lostRevenueByn.toLocaleString('ru-RU')}&nbsp;BYN</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="whitespace-nowrap">Возврат лидов: +{lostRevenueByn.toLocaleString('ru-RU')}&nbsp;BYN</span>
+                      <span className="whitespace-nowrap">Расход Voxi: −{voxiCostByn}&nbsp;BYN</span>
+                    </>
+                  )}
+                  <span className="font-semibold text-emerald-600 whitespace-nowrap">Окупаемость с 1–2 заявок</span>
                 </div>
               </div>
 

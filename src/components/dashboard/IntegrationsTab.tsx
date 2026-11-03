@@ -14,11 +14,13 @@ import {
   EyeIcon,
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
-import { SipSettings, TelegramSettings, WebhookSettings } from '../../types';
+import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings } from '../../types';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';
 
 interface IntegrationsTabProps {
+  agent: AgentConfig;
+  onSaveAgent: (agent: AgentConfig) => void;
   sipSettings: SipSettings;
   onSaveSip: (settings: SipSettings) => void;
   telegramSettings: TelegramSettings;
@@ -30,6 +32,8 @@ interface IntegrationsTabProps {
 }
 
 export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
+  agent,
+  onSaveAgent,
   sipSettings,
   onSaveSip,
   telegramSettings,
@@ -51,13 +55,17 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   });
 
   const [localTg, setLocalTg] = useState<TelegramSettings>(telegramSettings);
-  const [localWh] = useState<WebhookSettings>(webhookSettings);
+  const [localWh, setLocalWh] = useState<WebhookSettings>(webhookSettings);
 
-  const [activeCrm, setActiveCrm] = useState<'none' | 'yclients' | 'dikidi' | 'altegio' | 'bitrix24'>('yclients');
-  const [crmApiKey, setCrmApiKey] = useState('');
+  const [activeCrm, setActiveCrm] = useState<'none' | 'yclients' | 'dikidi' | 'altegio' | 'bitrix24'>(() => {
+    if (!agent.yclientsConfig || !agent.yclientsConfig.isEnabled) return 'none';
+    return agent.yclientsConfig.platform || 'yclients';
+  });
+  const [crmApiKey, setCrmApiKey] = useState<string>(() => agent.yclientsConfig?.partnerToken || '');
 
   const [showSipPassword, setShowSipPassword] = useState(false);
   const [showCrmKey, setShowCrmKey] = useState(false);
+  const [showWhSecret, setShowWhSecret] = useState(false);
 
   const [isTestingSip, setIsTestingSip] = useState(false);
   const [sipTestResult, setSipTestResult] = useState<string | null>(null);
@@ -73,10 +81,22 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
 
   const handleSaveAll = (e?: React.FormEvent) => {
     e?.preventDefault();
+    onSaveAgent({
+      ...agent,
+      yclientsConfig: {
+        isEnabled: activeCrm !== 'none',
+        companyId: agent.yclientsConfig?.companyId || '',
+        partnerToken: activeCrm !== 'none' ? crmApiKey.trim() : '',
+        platform: activeCrm,
+        autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? true,
+        notifyClientSms: agent.yclientsConfig?.notifyClientSms ?? true,
+        selectedStaff: agent.yclientsConfig?.selectedStaff || 'all'
+      }
+    });
     onSaveSip(localSip);
     onSaveTelegram(localTg);
     onSaveWebhook(localWh);
-    setSavedNotice('Все настройки номера, переводов и уведомлений успешно сохранены!');
+    setSavedNotice('Все настройки номера, CRM, Webhook и уведомлений успешно сохранены!');
     setTimeout(() => setSavedNotice(null), 3000);
   };
 
@@ -111,8 +131,109 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   };
 
   const handleDownloadDpa = () => {
+    const company = agent?.companyName || 'Организация Заказчика';
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Соглашение об обработке персональных данных (Закон РБ № 99-З)</title>
+<style>
+  body { font-family: "Times New Roman", Times, serif; font-size: 13pt; line-height: 1.35; color: #000; margin: 40px; }
+  h1 { font-size: 15pt; text-align: center; text-transform: uppercase; margin-bottom: 4px; font-weight: bold; }
+  .subtitle { text-align: center; font-size: 11pt; margin-bottom: 24px; font-style: italic; }
+  .city-date { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 12pt; }
+  p { text-align: justify; text-indent: 1.25cm; margin: 6px 0; }
+  h2 { font-size: 13pt; margin-top: 18px; margin-bottom: 6px; font-weight: bold; text-indent: 0; }
+  ul { margin: 6px 0 6px 1.5cm; padding: 0; }
+  li { margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+  td { width: 50%; vertical-align: top; padding: 10px; font-size: 11pt; border: 1px solid #999; }
+</style>
+</head>
+<body>
+<h1>ТИПОВОЙ ДОГОВОР (СОГЛАШЕНИЕ)</h1>
+<div class="subtitle">о поручении обработки персональных данных<br>(в соответствии со ст. 7 и ст. 17 Закона Республики Беларусь от 07.05.2021 № 99-З «О защите персональных данных»)</div>
+
+<div class="city-date">
+  <span>г. Минск</span>
+  <span>«___» ____________ 202_ г.</span>
+</div>
+
+<p><strong>Индивидуальный предприниматель Беляков Кирилл Олегович</strong>, действующий на основании свидетельства о государственной регистрации № 193991846, выданного Минским горисполкомом, именуемый в дальнейшем <strong>«Уполномоченное лицо»</strong>, с одной стороны, и</p>
+
+<p><strong>${company}</strong>, именуемое в дальнейшем <strong>«Оператор»</strong>, с другой стороны, совместно именуемые «Стороны», заключили настоящее Соглашение о нижеследующем:</p>
+
+<h2>1. ПРЕДМЕТ СОГЛАШЕНИЯ</h2>
+<p>1.1. В рамках исполнения договора об оказании услуг доступа к программному комплексу голосовых ИИ-ассистентов Voxi.by Оператор поручает, а Уполномоченное лицо обязуется осуществлять обработку персональных данных субъектов от имени и в интересах Оператора.</p>
+<p>1.2. Уполномоченное лицо осуществляет обработку персональных данных в строгом соответствии с требованиями Закона Республики Беларусь от 07.05.2021 № 99-З «О защите персональных данных» (далее — Закон № 99-З), актами законодательства и указаниями Оператора.</p>
+
+<h2>2. ЦЕЛИ ОБРАБОТКИ И СОСТАВ ПЕРСОНАЛЬНЫХ ДАННЫХ</h2>
+<p>2.1. Обработка персональных данных осуществляется исключительно в целях:</p>
+<ul>
+  <li>автоматизированного приёма и обслуживания входящих телефонных вызовов клиентов Оператора;</li>
+  <li>голосового информирования и консультирования клиентов по услугам, расписанию и тарифам Оператора;</li>
+  <li>фиксации заявок на обслуживание, предварительной записи на приём и передачи информации в учётную систему (CRM / Telegram) Оператора.</li>
+</ul>
+<p>2.2. Категории субъектов персональных данных: физические лица (клиенты и потенциальные клиенты Оператора), обращающиеся по телефонным номерам Оператора.</p>
+<p>2.3. Перечень обрабатываемых персональных данных: номер входящего абонента, аудиозапись разговора, фамилия и имя абонента (при предоставлении), текстовая стенограмма диалога, запрошенная услуга, желаемая дата и время визита.</p>
+
+<h2>3. ПЕРЕЧЕНЬ ДЕЙСТВИЙ (ОПЕРАЦИЙ) С ДАННЫМИ</h2>
+<p>3.1. Уполномоченное лицо совершает следующие действия с использованием средств автоматизации: сбор (запись в процессе соединения), систематизация, накопление, хранение в защищённой базе данных, транскрибация (распознавание и синтез речи), передача Оператору по защищённым каналам связи (TLS 1.3), блокирование, удаление (уничтожение).</p>
+
+<h2>4. ОБЯЗАННОСТИ УПОЛНОМОЧЕННОГО ЛИЦА</h2>
+<p>4.1. Обрабатывать персональные данные исключительно в целях, определённых п. 2.1 настоящего Соглашения.</p>
+<p>4.2. Обеспечивать конфиденциальность полученных персональных данных и не передавать их третьим лицам без предварительного согласия Оператора, за исключением случаев, установленных законодательством РБ.</p>
+<p>4.3. Принимать комплекс правовых, организационных и технических мер по обеспечению защиты персональных данных в соответствии со статьёй 17 Закона № 99-З.</p>
+<p>4.4. Обеспечивать хранение персональных данных в соответствии с требованиями законодательства Республики Беларусь.</p>
+<p>4.5. Незамедлительно (в срок не позднее 24 часов) информировать Оператора о любых нарушениях систем защиты персональных данных (инцидентах безопасности).</p>
+<p>4.6. По прекращении оказания услуг либо по запросу Оператора незамедлительно прекратить обработку и безвозвратно уничтожить все хранящиеся персональные данные в срок до 10 календарных дней.</p>
+
+<h2>5. ОБЯЗАННОСТИ ОПЕРАТОРА</h2>
+<p>5.1. Обеспечить наличие правовых оснований для обработки персональных данных и поручения их обработки Уполномоченному лицу (ст. 4–6 Закона № 99-З).</p>
+<p>5.2. Уведомлять абонентов о ведении аудиозаписи телефонного разговора (в том числе посредством голосового предупреждения ассистента в начале вызова).</p>
+
+<h2>6. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН</h2>
+<table>
+  <tr>
+    <td>
+      <strong>УПОЛНОМОЧЕННОЕ ЛИЦО:</strong><br>
+      Индивидуальный предприниматель<br>
+      <strong>Беляков Кирилл Олегович</strong><br>
+      УНП: 193991846<br>
+      Адрес: 220045, г. Минск, ул. Наполеона Орды, д. 11, кв. 58<br>
+      Email: info@voxi.by<br>
+      Сервис: Voxi.by<br><br>
+      _________________ / К.О. Беляков /
+    </td>
+    <td>
+      <strong>ОПЕРАТОР:</strong><br>
+      <strong>${company}</strong><br>
+      Адрес: ____________________________________<br>
+      УНП: ______________________________________<br>
+      Email / Тел: _______________________________<br><br><br>
+      _________________ / ____________________ /
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+
+    const blob = new Blob(['\uFEFF' + htmlContent], {
+      type: 'application/msword;charset=utf-8'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const safeName = company.replace(/[^а-яА-Яa-zA-Z0-9_-]/g, '_');
+    link.setAttribute('download', `Soglashenie_PD_99-Z_${safeName}.doc`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
     setDownloadDpaNotice(true);
-    setTimeout(() => setDownloadDpaNotice(false), 3500);
+    setTimeout(() => setDownloadDpaNotice(false), 4500);
   };
 
   const providers = [
@@ -131,7 +252,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   ];
 
   return (
-    <form onSubmit={handleSaveAll} className="space-y-6 max-w-5xl mx-auto">
+    <form id="active-workspace-form" onSubmit={handleSaveAll} className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
@@ -341,6 +462,151 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
             )}
           </div>
         </div>
+
+        {/* Collapsible Webhook Configuration for 1C / amoCRM / Bitrix24 / Make */}
+        <details className="group border border-slate-200/80 rounded-xl bg-slate-50/50 overflow-hidden">
+          <summary className="list-none cursor-pointer p-3.5 flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100/70 transition-colors">
+            <div className="flex items-center gap-2">
+              <GridIcon className="w-4 h-4 text-indigo-600" />
+              <span>Дополнительно: передача заявок по Webhook (1С, amoCRM, Make, своя система)</span>
+              {localWh.isEnabled && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                  Включено
+                </span>
+              )}
+            </div>
+            <ChevronDown className="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" />
+          </summary>
+
+          <div className="p-4 pt-3 border-t border-slate-200/70 space-y-4 bg-white">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-slate-800">
+                Отправлять JSON-данные каждого звонка на внешний адрес (Webhook)
+              </span>
+              <label htmlFor="webhook-enabled-checkbox" className="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer shrink-0">
+                <input
+                  id="webhook-enabled-checkbox"
+                  name="webhookEnabled"
+                  type="checkbox"
+                  checked={localWh.isEnabled}
+                  onChange={(e) => setLocalWh({ ...localWh, isEnabled: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 accent-blue-600"
+                />
+                <span>Активно</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <FieldLabel
+                  htmlFor="webhook-url-input"
+                  label="URL-адрес вашего обработчика (HTTPS)"
+                  helpTitle="Куда отправляется запрос"
+                  helpText="Сразу после завершения разговора сервер Voxi отправит POST-запрос с именем клиента, номером телефона, кратким резюме и полной расшифровкой звонка."
+                  helpExample="https://crm.mycompany.by/api/voxi-lead"
+                />
+                <input
+                  id="webhook-url-input"
+                  name="webhookUrl"
+                  type="url"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  aria-describedby="webhook-url-hint"
+                  value={localWh.webhookUrl}
+                  onChange={(e) => setLocalWh({ ...localWh, webhookUrl: e.target.value })}
+                  placeholder="https://crm.company.by/webhook/voxi"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+                />
+                <FieldHint id="webhook-url-hint">
+                  Поддерживаются входящие вебхуки Битрикс24, amoCRM, Make и n8n.
+                </FieldHint>
+              </div>
+
+              <div>
+                <FieldLabel
+                  htmlFor="webhook-secret-input"
+                  label="Секретный ключ подписи (X-Voxi-Secret)"
+                  optionalText="по желанию"
+                  helpTitle="Зачем нужен секретный ключ"
+                  helpText="Передаётся в заголовке запроса, чтобы ваш сервер мог убедиться, что заявка пришла именно от платформы Voxi.by."
+                />
+                <div className="relative">
+                  <input
+                    id="webhook-secret-input"
+                    name="webhookSecret"
+                    type={showWhSecret ? 'text' : 'password'}
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    aria-describedby="webhook-secret-hint"
+                    value={localWh.secretKey}
+                    onChange={(e) => setLocalWh({ ...localWh, secretKey: e.target.value })}
+                    placeholder="Секретная строка для проверки подписи"
+                    className="w-full pl-3 pr-9 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowWhSecret((v) => !v)}
+                    aria-pressed={showWhSecret}
+                    aria-label={showWhSecret ? 'Скрыть секретный ключ' : 'Показать секретный ключ'}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700"
+                  >
+                    {showWhSecret ? <EyeClosedIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+                <FieldHint id="webhook-secret-hint">
+                  Оставьте пустым, если используете стандартный входящий вебхук Битрикс24.
+                </FieldHint>
+              </div>
+            </div>
+
+            <div>
+              <span className="block text-xs font-semibold text-slate-800 mb-2">
+                Формат пакета данных:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5" role="radiogroup" aria-label="Формат отправки данных по Webhook">
+                {[
+                  { id: 'bitrix24' as const, label: 'Битрикс24 (crm.lead.add)' },
+                  { id: 'amocrm' as const, label: 'amoCRM / Kommo' },
+                  { id: 'json_standard' as const, label: 'Стандартный JSON (1С / Make)' }
+                ].map((fmt) => {
+                  const isSelected = localWh.sendFormat === fmt.id;
+                  const radioId = `webhook-format-${fmt.id}`;
+                  return (
+                    <label
+                      key={fmt.id}
+                      htmlFor={radioId}
+                      className={`p-2.5 rounded-xl border cursor-pointer text-xs font-medium flex items-center justify-between transition-all ${
+                        isSelected
+                          ? 'border-blue-600 bg-blue-50/70 text-blue-900 font-semibold'
+                          : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                      }`}
+                    >
+                      <input
+                        id={radioId}
+                        type="radio"
+                        name="webhookSendFormat"
+                        value={fmt.id}
+                        checked={isSelected}
+                        onChange={() => setLocalWh({ ...localWh, sendFormat: fmt.id })}
+                        className="visually-hidden"
+                      />
+                      <span>{fmt.label}</span>
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                          isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </details>
       </fieldset>
 
       {/* STEP 2: Company Phone Number (Clean Light Theme, Plain Language) */}
@@ -729,7 +995,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
 
               {downloadDpaNotice && (
                 <span role="status" aria-live="polite" className="text-xs text-emerald-700 font-medium">
-                  Шаблон соглашения подготовлен для скачивания.
+                  Файл соглашения (.doc) успешно скачан.
                 </span>
               )}
             </div>

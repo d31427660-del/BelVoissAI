@@ -21,7 +21,7 @@ export interface YclientsSlotConfig {
   isEnabled: boolean;
   companyId: string;
   partnerToken: string;
-  platform: 'yclients' | 'altegio' | 'dikidi';
+  platform: 'none' | 'yclients' | 'altegio' | 'dikidi' | 'bitrix24';
   autoBookSlots: boolean;
   notifyClientSms: boolean;
   selectedStaff?: string;
