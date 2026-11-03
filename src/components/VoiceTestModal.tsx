@@ -129,7 +129,14 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
   const currentTemplate = NICHE_TEMPLATES[selectedNiche];
   const quickQuestions = NICHE_QUICK_QUESTIONS[selectedNiche] || NICHE_QUICK_QUESTIONS.driving_school;
-  const voiceDisplayName = selectedVoice === 'dmitry' ? 'Дмитрий' : 'Анна';
+  const voiceDisplayName =
+    selectedVoice === 'dmitry'
+      ? 'Дмитрий'
+      : selectedVoice === 'maxim'
+      ? 'Максим'
+      : selectedVoice === 'polina'
+      ? 'Полина'
+      : 'Анна';
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -539,28 +546,25 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-semibold text-slate-500">Выберите сферу бизнеса:</span>
             <div className="inline-flex items-center p-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-[11px]">
-              <button
-                type="button"
-                onClick={() => handleSelectVoice('anna')}
-                className={`px-2.5 py-1 rounded-full font-semibold transition-all ${
-                  selectedVoice === 'anna'
-                    ? 'bg-white text-blue-700 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Анна
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectVoice('dmitry')}
-                className={`px-2.5 py-1 rounded-full font-semibold transition-all ${
-                  selectedVoice === 'dmitry'
-                    ? 'bg-white text-blue-700 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Дмитрий
-              </button>
+              {[
+                { id: 'anna' as const, label: 'Анна' },
+                { id: 'dmitry' as const, label: 'Дмитрий' },
+                { id: 'polina' as const, label: 'Полина' },
+                { id: 'maxim' as const, label: 'Максим' },
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => handleSelectVoice(v.id)}
+                  className={`px-2.5 py-1 rounded-full font-semibold transition-all ${
+                    selectedVoice === v.id
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
             </div>
           </div>
 

@@ -408,7 +408,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-600">
-                Текущий баланс: <strong className="text-slate-900 font-semibold">{user.balanceMinutes} мин</strong> (~{(user.balanceMinutes * user.ratePerMinute).toFixed(1)} BYN)
+                Текущий баланс: <strong className="text-slate-900 font-semibold">{user.balanceMinutes || 0} мин</strong> (~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN)
               </p>
             </div>
           </div>

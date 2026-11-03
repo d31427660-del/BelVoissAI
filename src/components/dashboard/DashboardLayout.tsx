@@ -133,8 +133,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const allNavItems = [...primaryNavItems, ...secondaryNavItems];
   const currentNav = allNavItems.find(n => n.id === activeTab) || primaryNavItems[0];
-  const isLowBalance = user.balanceMinutes < 25;
-  const balanceByn = (user.balanceMinutes * user.ratePerMinute).toFixed(1);
+  const isLowBalance = (user.balanceMinutes || 0) < 25;
+  const balanceByn = ((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1);
 
   const renderNavButton = (item: typeof allNavItems[number]) => {
     const isActive = activeTab === item.id;

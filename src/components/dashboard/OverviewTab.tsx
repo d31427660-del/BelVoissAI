@@ -44,7 +44,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     callLogs.reduce((sum, c) => sum + (c.durationSeconds || 0), 0) / 60
   );
   const effectiveMinutes = user.spentMinutes > 0 ? user.spentMinutes : loggedDurationMinutes;
-  const spentByn = Math.round(effectiveMinutes * user.ratePerMinute);
+  const spentByn = Math.round(effectiveMinutes * (user.ratePerMinute || 0.45));
   const fotSavingsByn = totalCalls > 0 ? Math.max(0, 1800 - spentByn) : 0;
   const potentialRevenueByn = callLogs.reduce((sum, c) => sum + (c.dealValueByn || 0), 0);
   const avgCheckByn = NICHE_TEMPLATES[agent.niche]?.defaultAvgCheck || 280;

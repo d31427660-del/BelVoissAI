@@ -284,7 +284,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
             )}
           </div>
           <p className="text-[11px] text-slate-500 flex items-center justify-between">
-            <span>~{(user.balanceMinutes * user.ratePerMinute).toFixed(1)} BYN</span>
+            <span>~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN</span>
             <span className="text-emerald-700 font-medium">Не сгорают в конце месяца</span>
           </p>
         </div>
