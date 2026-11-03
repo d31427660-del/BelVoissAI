@@ -63,8 +63,23 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
 
   const resolveLeadVoice = (lead: MysteryAuditItem): VoiceId => {
     if (lead.aiDemoAudioText.includes('Дмитрий')) return 'dmitry';
-    if (lead.aiDemoAudioText.includes('Анна') || lead.aiDemoAudioText.includes('Полина')) return 'anna';
+    if (lead.aiDemoAudioText.includes('Максим')) return 'maxim';
+    if (lead.aiDemoAudioText.includes('Полина')) return 'polina';
+    if (lead.aiDemoAudioText.includes('Анна')) return 'anna';
     return currentVoice || (lead.niche === 'auto_service' ? 'dmitry' : 'anna');
+  };
+
+  const getVoiceName = (voice: VoiceId): string => {
+    switch (voice) {
+      case 'dmitry':
+        return 'Дмитрий';
+      case 'maxim':
+        return 'Максим';
+      case 'polina':
+        return 'Полина';
+      default:
+        return 'Анна';
+    }
   };
 
   const handlePlayDemo = (lead: typeof selectedLead) => {
@@ -99,7 +114,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
       const avgLoss =
         customNiche === 'driving_school' ? 1050 : customNiche === 'auto_service' ? 280 : 150;
       const chosenVoice: VoiceId = currentVoice || (customNiche === 'auto_service' ? 'dmitry' : 'anna');
-      const speakerLabel = chosenVoice === 'dmitry' ? 'Дмитрий' : 'Анна';
+      const speakerLabel = getVoiceName(chosenVoice);
       const newLead: MysteryAuditItem = {
         id: `myst-${Date.now()}`,
         companyName: customName,
@@ -352,7 +367,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
                 </span>
               </div>
               <span className="text-[11px] font-medium text-blue-700 bg-white px-2.5 py-0.5 rounded-full border border-blue-100">
-                Голос: {resolveLeadVoice(selectedLead) === 'dmitry' ? 'Дмитрий' : 'Анна'}
+                Голос: {getVoiceName(resolveLeadVoice(selectedLead))}
               </span>
             </div>
 

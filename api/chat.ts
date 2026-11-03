@@ -60,17 +60,21 @@ function buildDialogueSystemPrompt(ctx: Record<string, any>): string {
 
 function buildPromptGeneratorInstructions(ctx: Record<string, any>): string {
   const voice = String(ctx.voice || 'anna').toLowerCase();
-  const assistantName = voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+  const assistantName =
+    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
   const company = String(ctx.companyName || 'Компания').slice(0, 120);
-  const address = String(ctx.address || 'г. Минск').slice(0, 200);
+  const city = String(ctx.city || 'Минск').slice(0, 60);
+  const address = String(ctx.address || '').slice(0, 200);
+  const workingHours = String(ctx.workingHours || '').slice(0, 160);
   const phone = String(ctx.phone || '').slice(0, 60);
   const pricing = String(ctx.pricingAndServices || '').slice(0, 1500);
 
   return [
     'Составь готовый, четкий системный промпт на русском языке для телефонного голосового ИИ-администратора бизнеса в Беларуси.',
     `Имя администратора: ${assistantName}.`,
-    `Организация: ${company}.`,
-    `Адрес: ${address}.`,
+    `Организация: «${company}» (${city}).`,
+    address ? `Адрес: ${address}.` : '',
+    workingHours ? `График работы: ${workingHours}.` : '',
     phone ? `Телефон для перевода на живого специалиста: ${phone}.` : '',
     pricing ? `Прайс-лист и услуги (в BYN):\n${pricing}` : '',
     'Требования к промпту: укажи роль, тон общения по телефону (короткие фразы по 1–2 предложения без списков), правила называния цен строго в белорусских рублях (BYN), алгоритм записи клиента (узнать услугу, удобный день/время и имя) и условие перевода звонка на менеджера в сложных случаях. Объем — до 1200 символов.',

@@ -189,14 +189,17 @@ function parseAddressParts(rawAddress: string) {
   // Strip trailing parenthetical landmark block if we generated/parsed one
   street = street
     .replace(/\s*\([^)]*\)\s*$/, '')
-    .replace(/^г\.?\s*[А-Яа-яЁё-]+\s*,\s*/i, '')
+    .replace(/^(?:г\.?\s*)?[А-Яа-яЁё-]+\s*,\s*/i, '')
     .trim();
 
   return { street, metro, selectedTags };
 }
 
 function buildFullAddress(city: string, street: string, metro: string, tags: string[]): string {
-  const cleanStreet = street.trim();
+  let cleanStreet = street.trim();
+  if (city) {
+    cleanStreet = cleanStreet.replace(new RegExp(`^(?:г\\.?\\s*)?${city}[,\\s]*`, 'i'), '').trim();
+  }
   const extras: string[] = [];
   if (city === 'Минск' && metro) {
     extras.push(`ст.м. ${metro}`);
@@ -206,7 +209,7 @@ function buildFullAddress(city: string, street: string, metro: string, tags: str
       extras.push(t.toLowerCase());
     }
   }
-  const base = cleanStreet ? (cleanStreet.toLowerCase().startsWith('г.') ? cleanStreet : `г. ${city}, ${cleanStreet}`) : `г. ${city}`;
+  const base = cleanStreet ? `г. ${city}, ${cleanStreet}` : `г. ${city}`;
   return extras.length > 0 ? `${base} (${extras.join(', ')})` : base;
 }
 

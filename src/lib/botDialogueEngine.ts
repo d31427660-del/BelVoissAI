@@ -123,7 +123,7 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     const cleanLines = pricing
       .split('\n')
       .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
-      .filter((line) => line.length > 4 && !line.startsWith('Внесите перечень') && !line.startsWith('Способы оплаты:'));
+      .filter((line) => line.length > 4 && !line.startsWith('Внесите перечень') && !line.startsWith('Способы оплаты:') && !line.startsWith('Условия оплаты:'));
 
     if (cleanLines.length > 0) {
       const queryWords = q
@@ -234,7 +234,10 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('16:30') ||
     q.includes('17:00')
   ) {
-    return `Отлично! Время зафиксировано в системе. Я отправила вам подтверждение в SMS и уведомила дежурного специалиста. Будем рады видеть вас в ${company}!`;
+    const isMale = context.voice === 'dmitry' || context.voice === 'maxim';
+    const sentVerb = isMale ? 'отправил' : 'отправила';
+    const notifiedVerb = isMale ? 'уведомил' : 'уведомила';
+    return `Отлично! Время зафиксировано в системе. Я ${sentVerb} вам подтверждение в SMS и ${notifiedVerb} дежурного специалиста. Будем рады видеть вас в ${company}!`;
   }
 
   // 7. Installments & payment methods
@@ -289,7 +292,36 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     return `Спасибо за звонок! Если появятся вопросы — мы всегда на связи. Хорошего вам дня, до свидания!`;
   }
 
-  // 10. Default contextual helpful reply
+  // 10. Grounding in user's custom Knowledge Base (FAQ, warranties, documents, policies)
+  const kbRaw = context.knowledgeBase || template.knowledgeBase || '';
+  if (kbRaw.trim()) {
+    const kbLines = kbRaw
+      .split('\n')
+      .map((l) => l.replace(/^\s*(?:[-•*]|\d+[.)])\s*/, '').trim())
+      .filter((l) => l.length > 6 && !l.startsWith('Внесите ответы'));
+
+    const queryStems = q
+      .replace(/[^а-яёa-z0-9\s]/gi, ' ')
+      .split(/\s+/)
+      .filter(
+        (w) =>
+          w.length >= 4 &&
+          !['подскажите', 'скажите', 'можно', 'какой', 'какая', 'какие', 'каковы', 'сколько', 'стоят', 'стоит'].includes(w)
+      );
+
+    if (queryStems.length > 0) {
+      const matchedLine = kbLines.find((line) => {
+        const lower = line.toLowerCase();
+        return queryStems.some((stem) => lower.includes(stem.slice(0, 4)));
+      });
+
+      if (matchedLine) {
+        return `${matchedLine.replace(/[.]+$/, '')}. Подсказать вам что-то ещё или записать на удобное время?`;
+      }
+    }
+  }
+
+  // 11. Default contextual helpful reply
   return `Спасибо за вопрос! Компания «${company}» с радостью поможет. Уточните, пожалуйста: вас интересует расчет точной стоимости, адрес филиала или свободное время для записи?`;
 }
 
@@ -402,11 +434,38 @@ export function createCallLogFromDialogue(params: {
     ? `Ближайшее окно${preferredTime ? ` (${preferredTime})` : ''}`
     : undefined;
 
-  const nameMatch = userMessages
-    .map((m) => m.text)
-    .join(' ')
-    .match(/(?:меня зовут|зовут|запишите)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)/i);
-  const extractedName = nameMatch ? nameMatch[1] : 'Тестовый звонок (Вы)';
+  const fullText = userMessages.map((m) => m.text).join(' ');
+  const directNameMatch = fullText.match(
+    /(?:меня зовут|зовут меня|мое имя|моё имя|это)\s+([А-ЯЁа-яё]+(?:\s+[А-ЯЁа-яё]+)?)/i
+  );
+
+  const STOP_NAME_WORDS = new Set([
+    'на', 'меня', 'нас', 'пожалуйста', 'в', 'во', 'к', 'ко', 'сегодня', 'завтра', 'послезавтра',
+    'утром', 'вечером', 'днем', 'вечернюю', 'утреннюю', 'группу', 'прием', 'приём', 'тоже', 'также',
+    'только', 'сейчас', 'быстрее', 'дежурного', 'специалиста'
+  ]);
+
+  let extractedName: string | null = null;
+  if (directNameMatch) {
+    const candidate = directNameMatch[1].trim();
+    const firstWord = candidate.split(/\s+/)[0].toLowerCase();
+    if (!STOP_NAME_WORDS.has(firstWord) && candidate.length >= 2) {
+      extractedName = candidate;
+    }
+  }
+
+  if (!extractedName) {
+    const bookingNameMatch = fullText.match(/(?:запишите|записать)\s+([А-ЯЁа-яё]+(?:\s+[А-ЯЁа-яё]+)?)/i);
+    if (bookingNameMatch) {
+      const candidate = bookingNameMatch[1].trim();
+      const firstWord = candidate.split(/\s+/)[0].toLowerCase();
+      if (!STOP_NAME_WORDS.has(firstWord) && candidate.length >= 2) {
+        extractedName = candidate;
+      }
+    }
+  }
+
+  const finalCallerName = extractedName || 'Тестовый звонок (Вы)';
 
   // Поиск белорусского телефонного номера (+375, 80 или локальный код оператора 17, 25, 29, 33, 44)
   const phoneMatch = combinedUserText.match(
@@ -436,7 +495,7 @@ export function createCallLogFromDialogue(params: {
     id: `call-live-${Date.now()}`,
     niche,
     callerNumber: extractedPhone,
-    callerName: extractedName,
+    callerName: finalCallerName,
     timestamp,
     durationSeconds: safeDuration,
     audioDuration: `${mins}:${secs}`,
@@ -445,7 +504,7 @@ export function createCallLogFromDialogue(params: {
     dealValueByn,
     summary: `${serviceSummary}. Диалог из ${messages.length} реплик.`,
     capturedData: {
-      clientName: extractedName,
+      clientName: finalCallerName,
       phone: extractedPhone.replace(' (Тест)', ''),
       service: firstQuestion.slice(0, 70),
       preferredDate,
