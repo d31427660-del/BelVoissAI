@@ -135,7 +135,7 @@ export class YclientsService {
     if (!config.isEnabled) return '';
 
     const staff = this.getStaffList(niche).map((s) => `${s.name} (${s.specialization})`).join(', ');
-    const isMaleVoice = voice === 'dmitry' || voice === 'maxim';
+    const isMaleVoice = voice === 'maxim';
     const bookedVerb = isMaleVoice ? 'записал вас' : 'записала вас';
 
     return `\nИНТЕГРАЦИЯ СО СЛОТАМИ ОНЛАЙН-РАСПИСАНИЯ (${config.platform.toUpperCase()} API):

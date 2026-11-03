@@ -13,7 +13,7 @@ import {
   CpuBoltIcon as Bot,
   ShareCircleIcon as Network
 } from '@solar-icons/react/bold-duotone';
-import { AgentConfig, CallLog, SipSettings, UserSession } from '../../types';
+import { AgentConfig, CallLog, SipSettings, UserSession, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 
 interface SimpleOverviewTabProps {
@@ -63,8 +63,8 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
     VoiceSimulator.stop();
     setPlayingCallId(call.id);
 
-    const botVoice = agent.voice || 'anna';
-    const callerVoice = botVoice === 'dmitry' || botVoice === 'maxim' ? 'anna' : 'dmitry';
+    const botVoice: VoiceId = agent.voice === 'maxim' ? 'maxim' : 'anna';
+    const callerVoice: VoiceId = botVoice === 'maxim' ? 'anna' : 'maxim';
     const turns =
       call.transcript.length > 0
         ? call.transcript
@@ -118,7 +118,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
             </div>
 
             <p className="text-xs text-slate-500 leading-relaxed">
-              Голос бота: <strong>{agent.voice === 'dmitry' ? 'Дмитрий' : 'Анна'}</strong> • Номер компании:{' '}
+              Голос бота: <strong>{agent.voice === 'maxim' ? 'Максим' : 'Анна'}</strong> • Номер компании:{' '}
               <strong className="text-slate-700">{sipSettings.callerId}</strong>
             </p>
           </div>

@@ -5,7 +5,7 @@ export type BusinessNiche =
   | 'beauty_salon' 
   | 'custom';
 
-export type VoiceId = 'anna' | 'dmitry' | 'polina' | 'maxim';
+export type VoiceId = 'anna' | 'maxim';
 
 export interface PhoneticRule {
   id: string;

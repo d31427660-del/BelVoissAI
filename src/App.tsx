@@ -341,8 +341,7 @@ export function App() {
   const buildAgentForNicheAndVoice = (base: AgentConfig, niche: BusinessNiche, voiceOverride?: VoiceId): AgentConfig => {
     const template = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
     const nextVoice = voiceOverride || base.voice;
-    const voiceName =
-      nextVoice === 'dmitry' ? 'Дмитрий' : nextVoice === 'maxim' ? 'Максим' : nextVoice === 'polina' ? 'Полина' : 'Анна';
+    const voiceName = nextVoice === 'maxim' ? 'Максим' : 'Анна';
     const updatedAgent: AgentConfig = {
       ...base,
       niche,
@@ -650,13 +649,13 @@ export function App() {
                 });
                 setPendingVoiceTestSelection(null);
               } else if (loggedInUser.companyName.includes('СТО')) {
-                const updated = buildAgentForNicheAndVoice(agent, 'auto_service', 'dmitry');
+                const updated = buildAgentForNicheAndVoice(agent, 'auto_service', 'maxim');
                 setAgent(updated);
                 setUser(loggedInUser);
               } else {
                 setUser(loggedInUser);
                 if (loggedInUser.companyName && loggedInUser.companyName !== agent.companyName) {
-                  const voiceLabel = agent.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+                  const voiceLabel = agent.voice === 'maxim' ? 'Максим' : 'Анна';
                   const prevCompany = agent.companyName;
                   const updated: AgentConfig = {
                     ...agent,

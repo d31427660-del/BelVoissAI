@@ -62,8 +62,7 @@ export function adaptGreetingForVoice(
   templateCompanyName?: string
 ): string {
   let result = rawGreeting || 'Здравствуйте! Чем я могу вам помочь?';
-  const voiceLabel =
-    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
+  const voiceLabel = voice === 'maxim' ? 'Максим' : 'Анна';
 
   result = result
     .replace(/меня зовут (Анна|Дмитрий|Полина|Максим)/gi, `меня зовут ${voiceLabel}`)
@@ -234,7 +233,7 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('16:30') ||
     q.includes('17:00')
   ) {
-    const isMale = context.voice === 'dmitry' || context.voice === 'maxim';
+    const isMale = context.voice === 'maxim';
     const sentVerb = isMale ? 'отправил' : 'отправила';
     const notifiedVerb = isMale ? 'уведомил' : 'уведомила';
     return `Отлично! Время зафиксировано в системе. Я ${sentVerb} вам подтверждение в SMS и ${notifiedVerb} дежурного специалиста. Будем рады видеть вас в ${company}!`;

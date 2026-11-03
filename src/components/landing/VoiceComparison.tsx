@@ -20,7 +20,7 @@ export const VoiceComparison: React.FC = () => {
       setPlayingSide('old');
       VoiceSimulator.speak(
         'Здравствуйте... Если вы хотите записаться... нажмите один... Для соединения с оператором... ожидайте на линии...',
-        'dmitry',
+        'maxim',
         () => setPlayingSide('old'),
         () => setPlayingSide(null)
       );

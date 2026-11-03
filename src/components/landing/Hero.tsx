@@ -58,11 +58,11 @@ export const Hero: React.FC<HeroProps> = ({
   }, []);
 
   const currentItem = QUICK_QUESTIONS.find((q) => q.id === activeQuestionId) || QUICK_QUESTIONS[0];
-  const currentAnswerText = selectedVoice === 'dmitry' ? currentItem.answerDmitry : currentItem.answerAnna;
+  const currentAnswerText = selectedVoice === 'maxim' ? currentItem.answerDmitry : currentItem.answerAnna;
 
   const playQuestionAnswer = (questionObj: QuickQuestion, voiceOverride?: VoiceId) => {
     const targetVoice = voiceOverride || selectedVoice;
-    const textToSpeak = targetVoice === 'dmitry' ? questionObj.answerDmitry : questionObj.answerAnna;
+    const textToSpeak = targetVoice === 'maxim' ? questionObj.answerDmitry : questionObj.answerAnna;
 
     setActiveQuestionId(questionObj.id);
     VoiceSimulator.stop();
@@ -168,14 +168,14 @@ export const Hero: React.FC<HeroProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => handleVoiceChange('dmitry')}
+                onClick={() => handleVoiceChange('maxim')}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  selectedVoice === 'dmitry'
+                  selectedVoice === 'maxim'
                     ? 'bg-[#ffffff] text-[#2563eb] shadow-sm'
                     : 'text-slate-600 hover:text-[#1d1d1f]'
                 }`}
               >
-                Голос: Дмитрий (СТО)
+                Голос: Максим (СТО)
               </button>
             </div>
 
@@ -259,7 +259,7 @@ export const Hero: React.FC<HeroProps> = ({
                 className="mt-3 mb-5 max-w-md text-center px-5 py-3 rounded-[24px] bg-blue-50/70 border border-blue-100/80 text-xs sm:text-sm text-slate-700 leading-relaxed"
               >
                 <span className="font-semibold text-[#2563eb] mr-1.5">
-                  {selectedVoice === 'dmitry' ? 'Дмитрий:' : 'Анна:'}
+                  {selectedVoice === 'maxim' ? 'Максим:' : 'Анна:'}
                 </span>
                 «{currentAnswerText}»
               </motion.div>

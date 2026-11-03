@@ -68,10 +68,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   ];
 
   const getVoiceDisplayName = (voice: VoiceId): string => {
-    if (voice === 'dmitry') return 'Дмитрий';
-    if (voice === 'maxim') return 'Максим';
-    if (voice === 'polina') return 'Полина';
-    return 'Анна';
+    return voice === 'maxim' ? 'Максим' : 'Анна';
   };
 
   const handleSelectNiche = (niche: BusinessNiche) => {
@@ -142,12 +139,8 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
     VoiceSimulator.stop();
     const phrase =
-      voice === 'dmitry'
-        ? `Добрый день! ${formData.companyName || 'Автосервис Минск-Моторс'}, мастер Дмитрий. Чем могу помочь?`
-        : voice === 'maxim'
+      voice === 'maxim'
         ? `Добрый день! ${formData.companyName || 'Компания'}, специалист Максим. Подскажу по услугам и запишу вас.`
-        : voice === 'polina'
-        ? `Привет! ${formData.companyName || 'Студия красоты'}, меня зовут Полина. С радостью запишу вас на удобное время!`
         : `Здравствуйте! ${formData.companyName || 'Голосовой помощник'}, меня зовут Анна. С радостью подскажу цены и запишу вас!`;
 
     VoiceSimulator.speak(
@@ -315,7 +308,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-describedby="agent-voice-hint">
               {[
                 { id: 'anna' as const, name: 'Анна (женский)', desc: 'Доброжелательный, мягкий голос администратора' },
-                { id: 'dmitry' as const, name: 'Дмитрий (мужской)', desc: 'Спокойный, уверенный голос мастера-консультанта' }
+                { id: 'maxim' as const, name: 'Максим (мужской)', desc: 'Спокойный, уверенный голос мастера-консультанта' }
               ].map((v) => {
                 const isSelected = formData.voice === v.id;
                 const isPlayingThis = playingVoiceId === v.id;

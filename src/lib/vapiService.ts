@@ -2,14 +2,7 @@ import { AgentConfig, VoiceId } from '../types';
 import { YclientsService } from './yclientsService';
 
 export function generateSystemPrompt(config: Partial<AgentConfig>): string {
-  const voiceName =
-    config.voice === 'dmitry'
-      ? 'Дмитрий'
-      : config.voice === 'maxim'
-      ? 'Максим'
-      : config.voice === 'polina'
-      ? 'Полина'
-      : 'Анна';
+  const voiceName = config.voice === 'maxim' ? 'Максим' : 'Анна';
   const formalityNote = config.formality === 'formal' 
     ? 'Общайся строго вежливо, в уважительном деловом тоне, обращаясь на "Вы".' 
     : 'Общайся доброжелательно, приветливо, тепло и заботливо, обращаясь на уважительное "Вы".';
@@ -66,25 +59,13 @@ export const VOICE_PROFILES: Record<VoiceId, { name: string; gender: 'female' | 
   anna: {
     name: 'Анна',
     gender: 'female',
-    description: 'Теплый, заботливый и четкий женский голос. Идеально для автошкол и медцентров.',
-    vapiVoiceId: '21m00Tcm4TlvDq8ikWAM' // Rachel / ElevenLabs style or Azure
-  },
-  dmitry: {
-    name: 'Дмитрий',
-    gender: 'male',
-    description: 'Уверенный, экспертный мужской голос. Идеально для СТО, автосервисов и B2B.',
-    vapiVoiceId: 'pNInz6obpgDQGcFmaJgB' // Adam
-  },
-  polina: {
-    name: 'Полина',
-    gender: 'female',
-    description: 'Энергичный, дружелюбный и современный голос для салонов красоты и студий.',
-    vapiVoiceId: 'AZnzlk1XvdvUeBnXmlld' // Domi
+    description: 'Теплый, заботливый и четкий женский голос администратора. Идеально для автошкол, медцентров и салонов.',
+    vapiVoiceId: '21m00Tcm4TlvDq8ikWAM' // Rachel / ElevenLabs style
   },
   maxim: {
     name: 'Максим',
     gender: 'male',
-    description: 'Спокойный, солидный голос с мягкой подачей для премиальных клиник и услуг.',
+    description: 'Спокойный, уверенный мужской голос мастера-консультанта. Идеально для СТО, автосервисов и B2B.',
     vapiVoiceId: 'ErXwobaYiN019PkySvjV' // Antoni
   }
 };

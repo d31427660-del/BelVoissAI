@@ -95,14 +95,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
     messagesRef.current = messages;
   }, [messages]);
 
-  const voiceLabel =
-    agent.voice === 'dmitry'
-      ? 'Дмитрий'
-      : agent.voice === 'maxim'
-      ? 'Максим'
-      : agent.voice === 'polina'
-      ? 'Полина'
-      : 'Анна';
+  const voiceLabel = agent.voice === 'maxim' ? 'Максим' : 'Анна';
 
   const quickQuestions =
     NICHE_QUICK_QUESTIONS[agent.niche] || NICHE_QUICK_QUESTIONS.driving_school;

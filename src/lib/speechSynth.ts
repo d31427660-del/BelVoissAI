@@ -1,7 +1,7 @@
 // Neural TTS & audio wave controller for Voxi.by
 // Uses Yandex SpeechKit studio MP3 cache (cache-busted) + live-streamed Yandex SpeechKit API v1 (/api/tts)
 
-import { PhoneticRule } from '../types';
+import { PhoneticRule, VoiceId } from '../types';
 
 const VOICE_CACHE_VERSION = 'yc3';
 
@@ -101,7 +101,7 @@ export class VoiceSimulator {
 
   public static speak(
     text: string,
-    voiceName: 'anna' | 'dmitry' | 'polina' | 'maxim' = 'anna',
+    voiceName: VoiceId = 'anna',
     onStart?: () => void,
     onEnd?: () => void,
     onWaveformUpdate?: (waveLevels: number[]) => void
@@ -120,7 +120,7 @@ export class VoiceSimulator {
         const spokenText = this.applyPhonetics(text);
         const key = this.normalizeKey(voiceName, spokenText);
         const fallbackKey = this.normalizeKey(
-          voiceName === 'maxim' ? 'dmitry' : voiceName === 'polina' ? 'anna' : voiceName,
+          voiceName === 'maxim' ? 'maxim' : 'anna',
           spokenText
         );
         const rawKey = this.normalizeKey(voiceName, text);
@@ -256,7 +256,7 @@ export class VoiceSimulator {
 
   private static speakBrowserFallback(
     text: string,
-    voiceName: 'anna' | 'dmitry' | 'polina' | 'maxim',
+    voiceName: VoiceId,
     onStart?: () => void,
     onEnd?: () => void,
     onWaveformUpdate?: (waveLevels: number[]) => void,
@@ -270,7 +270,7 @@ export class VoiceSimulator {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ru-RU';
     const ruVoices = this.getVoices();
-    if (voiceName === 'dmitry' || voiceName === 'maxim') {
+    if (voiceName === 'maxim') {
       const male = ruVoices.find(
         (v) =>
           v.name.toLowerCase().includes('yuri') ||

@@ -11,7 +11,7 @@ import {
   SendSquareIcon as Send,
   VolumeLoudIcon as Volume2
 } from '@solar-icons/react/bold-duotone';
-import { CallLog, AgentConfig } from '../../types';
+import { CallLog, AgentConfig, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { FieldLabel, FieldHint } from './FieldHelp';
 
@@ -69,8 +69,8 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     VoiceSimulator.stop();
     setPlayingCallId(call.id);
 
-    const botVoice = agent?.voice || 'anna';
-    const callerVoice = botVoice === 'dmitry' || botVoice === 'maxim' ? 'anna' : 'dmitry';
+    const botVoice: VoiceId = agent?.voice === 'maxim' ? 'maxim' : 'anna';
+    const callerVoice: VoiceId = botVoice === 'maxim' ? 'anna' : 'maxim';
     const turns =
       Array.isArray(call.transcript) && call.transcript.length > 0
         ? call.transcript
@@ -582,15 +582,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                           <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-0.5 px-1">
                             <span>
                               {isAi
-                                ? `Бот (${
-                                    agent?.voice === 'dmitry'
-                                      ? 'Дмитрий'
-                                      : agent?.voice === 'maxim'
-                                      ? 'Максим'
-                                      : agent?.voice === 'polina'
-                                      ? 'Полина'
-                                      : 'Анна'
-                                  })`
+                                ? `Бот (${agent?.voice === 'maxim' ? 'Максим' : 'Анна'})`
                                 : activeCallDetail.callerName || 'Клиент'}
                             </span>
                             <span>•</span>

@@ -129,14 +129,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
   const currentTemplate = NICHE_TEMPLATES[selectedNiche];
   const quickQuestions = NICHE_QUICK_QUESTIONS[selectedNiche] || NICHE_QUICK_QUESTIONS.driving_school;
-  const voiceDisplayName =
-    selectedVoice === 'dmitry'
-      ? 'Дмитрий'
-      : selectedVoice === 'maxim'
-      ? 'Максим'
-      : selectedVoice === 'polina'
-      ? 'Полина'
-      : 'Анна';
+  const voiceDisplayName = selectedVoice === 'maxim' ? 'Максим' : 'Анна';
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -547,10 +540,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
             <span className="text-[11px] font-semibold text-slate-500">Выберите сферу бизнеса:</span>
             <div className="inline-flex items-center p-0.5 rounded-full bg-slate-100 border border-slate-200/80 text-[11px]">
               {[
-                { id: 'anna' as const, label: 'Анна' },
-                { id: 'dmitry' as const, label: 'Дмитрий' },
-                { id: 'polina' as const, label: 'Полина' },
-                { id: 'maxim' as const, label: 'Максим' },
+                { id: 'anna' as const, label: 'Анна (женский)' },
+                { id: 'maxim' as const, label: 'Максим (мужской)' },
               ].map((v) => (
                 <button
                   key={v.id}

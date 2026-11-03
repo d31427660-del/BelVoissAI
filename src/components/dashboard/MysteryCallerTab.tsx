@@ -62,24 +62,12 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
   const selectedLead = leads.find((l) => l.id === selectedLeadId) || leads[0];
 
   const resolveLeadVoice = (lead: MysteryAuditItem): VoiceId => {
-    if (lead.aiDemoAudioText.includes('Дмитрий')) return 'dmitry';
-    if (lead.aiDemoAudioText.includes('Максим')) return 'maxim';
-    if (lead.aiDemoAudioText.includes('Полина')) return 'polina';
-    if (lead.aiDemoAudioText.includes('Анна')) return 'anna';
-    return currentVoice || (lead.niche === 'auto_service' ? 'dmitry' : 'anna');
+    if (lead.aiDemoAudioText.includes('Максим') || lead.aiDemoAudioText.includes('Дмитрий')) return 'maxim';
+    return currentVoice || (lead.niche === 'auto_service' ? 'maxim' : 'anna');
   };
 
   const getVoiceName = (voice: VoiceId): string => {
-    switch (voice) {
-      case 'dmitry':
-        return 'Дмитрий';
-      case 'maxim':
-        return 'Максим';
-      case 'polina':
-        return 'Полина';
-      default:
-        return 'Анна';
-    }
+    return voice === 'maxim' ? 'Максим' : 'Анна';
   };
 
   const handlePlayDemo = (lead: typeof selectedLead) => {
@@ -113,7 +101,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
     setTimeout(() => {
       const avgLoss =
         customNiche === 'driving_school' ? 1050 : customNiche === 'auto_service' ? 280 : 150;
-      const chosenVoice: VoiceId = currentVoice || (customNiche === 'auto_service' ? 'dmitry' : 'anna');
+      const chosenVoice: VoiceId = currentVoice || (customNiche === 'auto_service' ? 'maxim' : 'anna');
       const speakerLabel = getVoiceName(chosenVoice);
       const newLead: MysteryAuditItem = {
         id: `myst-${Date.now()}`,

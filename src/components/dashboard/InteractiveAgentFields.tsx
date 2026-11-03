@@ -731,9 +731,8 @@ function buildGreetingTemplate(
   niche: BusinessNiche
 ): string {
   const cleanCompany = companyName.trim() || 'наша компания';
-  const speakerName =
-    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
-  const autoServiceRole = voice === 'dmitry' || voice === 'maxim' ? 'мастер-приёмщик' : 'мастер';
+  const speakerName = voice === 'maxim' ? 'Максим' : 'Анна';
+  const autoServiceRole = voice === 'maxim' ? 'мастер-приёмщик' : 'мастер';
 
   if (style === 'friendly') {
     return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. Чем могу вам помочь?`;

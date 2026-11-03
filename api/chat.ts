@@ -27,8 +27,7 @@ function sanitizeSpokenText(text: string): string {
 
 function buildDialogueSystemPrompt(ctx: Record<string, any>): string {
   const voice = String(ctx.voice || 'anna').toLowerCase();
-  const assistantName =
-    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
+  const assistantName = voice === 'maxim' ? 'Максим' : 'Анна';
   const company = String(ctx.companyName || 'компания').slice(0, 120);
   const city = String(ctx.city || 'Минск').slice(0, 60);
   const address = String(ctx.address || '').slice(0, 200);
@@ -60,8 +59,7 @@ function buildDialogueSystemPrompt(ctx: Record<string, any>): string {
 
 function buildPromptGeneratorInstructions(ctx: Record<string, any>): string {
   const voice = String(ctx.voice || 'anna').toLowerCase();
-  const assistantName =
-    voice === 'dmitry' ? 'Дмитрий' : voice === 'maxim' ? 'Максим' : voice === 'polina' ? 'Полина' : 'Анна';
+  const assistantName = voice === 'maxim' ? 'Максим' : 'Анна';
   const company = String(ctx.companyName || 'Компания').slice(0, 120);
   const city = String(ctx.city || 'Минск').slice(0, 60);
   const address = String(ctx.address || '').slice(0, 200);

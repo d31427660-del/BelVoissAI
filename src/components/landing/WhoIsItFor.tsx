@@ -58,7 +58,7 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
     } else {
       VoiceSimulator.speak(
         currentTemplate.firstMessage,
-        activeTab === 'auto_service' ? 'dmitry' : 'anna',
+        activeTab === 'auto_service' ? 'maxim' : 'anna',
         () => setIsPlayingAudio(true),
         () => setIsPlayingAudio(false)
       );
