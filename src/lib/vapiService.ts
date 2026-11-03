@@ -2,7 +2,14 @@ import { AgentConfig, VoiceId } from '../types';
 import { YclientsService } from './yclientsService';
 
 export function generateSystemPrompt(config: Partial<AgentConfig>): string {
-  const voiceName = config.voice === 'dmitry' ? 'Дмитрий' : config.voice === 'maxim' ? 'Максим' : 'Анна';
+  const voiceName =
+    config.voice === 'dmitry'
+      ? 'Дмитрий'
+      : config.voice === 'maxim'
+      ? 'Максим'
+      : config.voice === 'polina'
+      ? 'Полина'
+      : 'Анна';
   const formalityNote = config.formality === 'formal' 
     ? 'Общайся строго вежливо, в уважительном деловом тоне, обращаясь на "Вы".' 
     : 'Общайся доброжелательно, приветливо, тепло и заботливо, обращаясь на уважительное "Вы".';

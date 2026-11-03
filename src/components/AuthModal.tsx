@@ -21,6 +21,17 @@ interface AuthModalProps {
   onOpenLegalDoc?: (doc: LegalDocType) => void;
 }
 
+function localizeAuthError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes('invalid login credentials')) return 'Неверный адрес электронной почты или пароль';
+  if (lower.includes('user already registered')) return 'Пользователь с таким email уже зарегистрирован. Пожалуйста, выполните вход';
+  if (lower.includes('email not confirmed')) return 'Email не подтверждён. Проверьте почту для перехода по ссылке активации';
+  if (lower.includes('rate limit')) return 'Слишком много попыток. Пожалуйста, подождите минуту перед повтором';
+  if (lower.includes('password should be at least')) return 'Пароль должен содержать не менее 6 символов';
+  if (lower.includes('invalid email')) return 'Пожалуйста, введите корректный адрес электронной почты';
+  return msg;
+}
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
@@ -135,7 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setInfoMessage('Демо-режим: используйте кнопки быстрого демо-входа выше без пароля.');
         }
       } catch (err: unknown) {
-        setErrorMessage(err instanceof Error ? err.message : 'Не удалось отправить письмо');
+        setErrorMessage(localizeAuthError(err instanceof Error ? err.message : 'Не удалось отправить письмо'));
       } finally {
         setLoading(false);
       }
@@ -201,8 +212,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           }
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Ошибка авторизации';
-        setErrorMessage(msg);
+        const rawMsg = err instanceof Error ? err.message : 'Ошибка авторизации';
+        setErrorMessage(localizeAuthError(rawMsg));
       } finally {
         setLoading(false);
       }

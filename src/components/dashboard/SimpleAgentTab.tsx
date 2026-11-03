@@ -67,9 +67,16 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     { id: 'medical_clinic', label: 'Стоматология / Центр', desc: 'Приём врача, снимки, запись по острой боли', icon: '🦷' }
   ];
 
+  const getVoiceDisplayName = (voice: VoiceId): string => {
+    if (voice === 'dmitry') return 'Дмитрий';
+    if (voice === 'maxim') return 'Максим';
+    if (voice === 'polina') return 'Полина';
+    return 'Анна';
+  };
+
   const handleSelectNiche = (niche: BusinessNiche) => {
     const tmpl = NICHE_TEMPLATES[niche];
-    const voiceLabel = formData.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+    const voiceLabel = getVoiceDisplayName(formData.voice);
     const updated: AgentConfig = {
       ...formData,
       niche,
@@ -93,7 +100,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
   const handleSelectVoice = (voice: VoiceId) => {
     const tmpl = NICHE_TEMPLATES[formData.niche] || NICHE_TEMPLATES.driving_school;
-    const voiceLabel = voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+    const voiceLabel = getVoiceDisplayName(voice);
     const updated: AgentConfig = {
       ...formData,
       voice,
@@ -111,7 +118,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
   const handleCompanyNameChange = (nextCompany: string) => {
     const prevCompany = formData.companyName;
-    const voiceLabel = formData.voice === 'dmitry' ? 'Дмитрий' : 'Анна';
+    const voiceLabel = getVoiceDisplayName(formData.voice);
     const syncedGreeting = adaptGreetingForVoice(
       formData.firstMessage,
       formData.voice,
@@ -137,6 +144,10 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     const phrase =
       voice === 'dmitry'
         ? `Добрый день! ${formData.companyName || 'Автосервис Минск-Моторс'}, мастер Дмитрий. Чем могу помочь?`
+        : voice === 'maxim'
+        ? `Добрый день! ${formData.companyName || 'Компания'}, специалист Максим. Подскажу по услугам и запишу вас.`
+        : voice === 'polina'
+        ? `Привет! ${formData.companyName || 'Студия красоты'}, меня зовут Полина. С радостью запишу вас на удобное время!`
         : `Здравствуйте! ${formData.companyName || 'Голосовой помощник'}, меня зовут Анна. С радостью подскажу цены и запишу вас!`;
 
     VoiceSimulator.speak(

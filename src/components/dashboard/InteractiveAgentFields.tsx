@@ -917,13 +917,13 @@ function parseServicesAndPerks(raw: string): { rows: ServiceRowItem[]; perks: st
     const matchedPerk = PAYMENT_PERKS.find(
       (p) => lower.includes(p.toLowerCase()) || (lower.includes('рассрочк') && p.includes('рассрочка'))
     );
-    if (matchedPerk && !/\d+\s*byn/i.test(line)) {
+    if (matchedPerk && !/\d+\s*(?:byn|руб)/i.test(line)) {
       if (!perks.includes(matchedPerk)) perks.push(matchedPerk);
       return;
     }
 
-    // Extract price near BYN if present
-    const bynMatch = line.match(/^(.*?)[:—–-]\s*(от\s*)?(\d+(?:\s*[–-]\s*\d+)?)\s*BYN(.*)$/i);
+    // Extract price near BYN or руб./рублей if present
+    const bynMatch = line.match(/^(.*?)[:—–-]\s*(от\s*)?(\d+(?:\s*[–-]\s*\d+)?)\s*(?:BYN|руб(?:лей|\.|\b))(.*)$/i);
     if (bynMatch) {
       const cleanTitle = bynMatch[1].trim();
       const extraTail = bynMatch[4]?.replace(/^[.,;\s]+|[.]+$/g, '').trim();
@@ -934,9 +934,9 @@ function parseServicesAndPerks(raw: string): { rows: ServiceRowItem[]; perks: st
         isFrom: Boolean(bynMatch[2])
       });
     } else {
-      const anyPrice = line.match(/(от\s*)?(\d+)\s*BYN/i);
+      const anyPrice = line.match(/(от\s*)?(\d+)\s*(?:BYN|руб(?:лей|\.|\b))/i);
       const cleanedTitle = line
-        .replace(/(?:[:—–-]\s*)?(?:от\s*)?\d+\s*BYN\.?/gi, '')
+        .replace(/(?:[:—–-]\s*)?(?:от\s*)?\d+\s*(?:BYN|руб(?:лей|\.|\b))\.?/gi, '')
         .replace(/[.]+$/, '')
         .trim();
       rows.push({

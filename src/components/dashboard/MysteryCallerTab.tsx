@@ -22,8 +22,19 @@ interface MysteryCallerTabProps {
 }
 
 export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice }) => {
-  const [leads, setLeads] = useState<MysteryAuditItem[]>(INITIAL_MYSTERY_LEADS);
-  const [selectedLeadId, setSelectedLeadId] = useState<string>(INITIAL_MYSTERY_LEADS[0].id);
+  const [leads, setLeads] = useState<MysteryAuditItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxi_mystery_leads');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return INITIAL_MYSTERY_LEADS;
+  });
+  const [selectedLeadId, setSelectedLeadId] = useState<string>(() => leads[0]?.id || INITIAL_MYSTERY_LEADS[0].id);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -33,6 +44,14 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
   const [customCity, setCustomCity] = useState('Минск');
   const [isSimulatingAudit, setIsSimulatingAudit] = useState(false);
   const [auditSuccessToast, setAuditSuccessToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxi_mystery_leads', JSON.stringify(leads));
+    } catch {
+      // localStorage quota or private mode
+    }
+  }, [leads]);
 
   useEffect(() => {
     return () => {
