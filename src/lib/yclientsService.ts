@@ -131,16 +131,18 @@ export class YclientsService {
   /**
    * Сформировать директиву для системного промпта LLM
    */
-  static getPromptInstruction(config: YclientsSlotConfig, niche: BusinessNiche): string {
+  static getPromptInstruction(config: YclientsSlotConfig, niche: BusinessNiche, voice?: string): string {
     if (!config.isEnabled) return '';
 
     const staff = this.getStaffList(niche).map((s) => `${s.name} (${s.specialization})`).join(', ');
+    const isMaleVoice = voice === 'dmitry' || voice === 'maxim';
+    const bookedVerb = isMaleVoice ? 'записал вас' : 'записала вас';
 
     return `\nИНТЕГРАЦИЯ СО СЛОТАМИ ОНЛАЙН-РАСПИСАНИЯ (${config.platform.toUpperCase()} API):
 - Твоя система синхронизирована с базой слотов ${config.platform.toUpperCase()} (ID компании: ${config.companyId}).
 - Специалисты в графике: ${staff}.
 - Когда клиент хочет записаться, сначала уточни желаемую дату или половину дня (утро, день, вечер).
 - Предложи 2 конкретных свободных слота (например, 11:30 или 18:30) и спроси, какое время забронировать.
-- После выбора подтверди запись по шаблону: "Отлично, записала вас на [ДАТА] в [ВРЕМЯ] к [СПЕЦИАЛИСТ]. Детали брони отправлены вам по SMS."`;
+- После выбора подтверди запись по шаблону: "Отлично, ${bookedVerb} на [ДАТА] в [ВРЕМЯ] к [СПЕЦИАЛИСТ]. Детали брони отправлены вам по SMS."`;
   }
 }

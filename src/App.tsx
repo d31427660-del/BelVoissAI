@@ -239,10 +239,16 @@ export function App() {
       const mins = Number(params.get('minutes') || 0);
       setPaymentToast(
         mins > 0
-          ? `Оплата через bePaid прошла успешно! Пакет +${mins} минут зачисляется на ваш баланс.`
+          ? `Оплата через bePaid прошла успешно! Пакет +${mins} минут зачислен на ваш баланс.`
           : 'Оплата через bePaid прошла успешно!'
       );
+      if (mins > 0) {
+        setUser((prev) => (prev ? { ...prev, balanceMinutes: prev.balanceMinutes + mins } : prev));
+      }
       if (user) setCurrentView('dashboard');
+      import('canvas-confetti').then(({ default: confetti }) => {
+        confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+      }).catch(() => {});
     } else if (paymentStatus === 'declined' || paymentStatus === 'failed') {
       setPaymentToast('Платёж отклонён банком или отменён. Вы можете повторить попытку в кабинете.');
     }

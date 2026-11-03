@@ -25,7 +25,7 @@ export function generateSystemPrompt(config: Partial<AgentConfig>): string {
       : '';
 
   const yclientsBlock = config.yclientsConfig && config.yclientsConfig.isEnabled
-    ? YclientsService.getPromptInstruction(config.yclientsConfig, config.niche || 'driving_school')
+    ? YclientsService.getPromptInstruction(config.yclientsConfig, config.niche || 'driving_school', config.voice)
     : '';
 
   return `Ты — ${voiceName}, профессиональный, быстрый и тактичный голосовой телефонный ИИ-администратор компании "${config.companyName || 'Компания'}" в городе ${config.city || 'Минск'}, Беларусь.

@@ -292,9 +292,10 @@ export class VoiceSimulator {
       utterance.rate = 1.0;
     }
 
+    const token = this.activeToken;
     let finished = false;
     const finishOnce = () => {
-      if (finished) return;
+      if (finished || token !== this.activeToken) return;
       finished = true;
       this.isSpeaking = false;
       this.stopWaveformAnimation();
