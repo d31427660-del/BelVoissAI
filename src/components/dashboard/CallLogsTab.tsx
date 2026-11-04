@@ -9,9 +9,12 @@ import {
   CopyIcon as Copy,
   CheckCircleIcon as CheckCircle2,
   SendSquareIcon as Send,
-  VolumeLoudIcon as Volume2
+  VolumeLoudIcon as Volume2,
+  SmileCircleIcon,
+  DangerCircleIcon,
+  TagIcon,
 } from '@solar-icons/react/bold-duotone';
-import { CallLog, AgentConfig, VoiceId } from '../../types';
+import { CallLog, AgentConfig, VoiceId, CallSentiment } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { FieldLabel, FieldHint } from './FieldHelp';
 
@@ -23,6 +26,8 @@ interface CallLogsTabProps {
 export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedSentiment, setSelectedSentiment] = useState<string>('all');
+  const [selectedFollowUp, setSelectedFollowUp] = useState<string>('all');
   const [activeCallDetail, setActiveCallDetail] = useState<CallLog | null>(null);
   const [playingCallId, setPlayingCallId] = useState<string | null>(null);
   const [activeTurnIdx, setActiveTurnIdx] = useState<number | null>(null);
@@ -44,15 +49,24 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     const callerName = (log.callerName || '').toLowerCase();
     const summary = (log.summary || '').toLowerCase();
     const service = (log.capturedData?.service || '').toLowerCase();
+    const tagsString = (log.tags || []).join(' ').toLowerCase();
 
     const matchesSearch =
       callerNum.includes(query) ||
       callerName.includes(query) ||
       summary.includes(query) ||
-      service.includes(query);
+      service.includes(query) ||
+      tagsString.includes(query);
 
     const matchesStatus = selectedStatus === 'all' || log.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+    const matchesSentiment = selectedSentiment === 'all' || (log.sentiment || 'neutral') === selectedSentiment;
+    const matchesFollowUp =
+      selectedFollowUp === 'all' ||
+      (selectedFollowUp === 'sent' && Boolean(log.followUpSent)) ||
+      (selectedFollowUp === 'pending' && !log.followUpSent && log.status === 'lead_captured') ||
+      (selectedFollowUp === 'none' && !log.followUpSent && log.status !== 'lead_captured');
+
+    return matchesSearch && matchesStatus && matchesSentiment && matchesFollowUp;
   });
 
   const handlePlayAudio = async (call: CallLog, e?: React.MouseEvent) => {
@@ -126,10 +140,10 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
   };
 
   const exportToCsv = () => {
-    const headers = ['ID,Номер,Имя,Услуга,Дата,Длительность (сек),Статус,Сумма BYN,Суть'];
+    const headers = ['ID,Номер,Имя,Услуга,Дата,Длительность (сек),Статус,Настроение,Теги,Follow-up,Сумма BYN,Суть'];
     const rows = filteredLogs.map(
       (l) =>
-        `"${l.id}","${l.callerNumber || ''}","${(l.callerName || '').replace(/"/g, '""')}","${(l.capturedData?.service || '').replace(/"/g, '""')}","${l.timestamp || ''}",${l.durationSeconds || 0},"${l.status || ''}",${l.dealValueByn || 0},"${(l.summary || '').replace(/"/g, '""')}"`
+        `"${l.id}","${l.callerNumber || ''}","${(l.callerName || '').replace(/"/g, '""')}","${(l.capturedData?.service || '').replace(/"/g, '""')}","${l.timestamp || ''}",${l.durationSeconds || 0},"${l.status || ''}","${l.sentiment || 'neutral'}","${(l.tags || []).join('; ')}","${l.followUpSent ? 'Отправлен' : 'Нет'}",${l.dealValueByn || 0},"${(l.summary || '').replace(/"/g, '""')}"`
     );
     const csvContent = '\uFEFF' + [headers, ...rows].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -176,6 +190,60 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
     }
   };
 
+  const getSentimentBadge = (sentiment?: CallSentiment) => {
+    switch (sentiment) {
+      case 'positive':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs whitespace-nowrap">
+            <SmileCircleIcon className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Позитивный</span>
+          </span>
+        );
+      case 'negative':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs whitespace-nowrap">
+            <DangerCircleIcon className="w-3.5 h-3.5 text-rose-600" />
+            <span>Внимание</span>
+          </span>
+        );
+      case 'neutral':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <span>Нейтральный</span>
+          </span>
+        );
+    }
+  };
+
+  const getFollowUpBadge = (call: CallLog) => {
+    if (call.followUpSent) {
+      return (
+        <span
+          title={call.followUpText || 'Follow-up отправлен'}
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap"
+        >
+          <Send className="w-3 h-3 text-indigo-600" />
+          <span>{call.followUpChannel === 'telegram' ? 'Telegram' : 'SMS'} отправлен</span>
+        </span>
+      );
+    }
+    if (call.status === 'lead_captured') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          <span>Ожидает</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-slate-400 bg-slate-50 border border-slate-200/60 whitespace-nowrap">
+        Не требуется
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Main Table Card */}
@@ -192,7 +260,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Нажмите на любую строку, чтобы послушать запись беседы и прочитать текст диалога
+              Нажмите на любую строку, чтобы послушать запись беседы, оценить тон разговора и просмотреть отправленный follow-up
             </p>
           </div>
 
@@ -208,73 +276,128 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
         </div>
 
         {/* Filter and Search Bar with Explicit Labels & Hints */}
-        <div className="p-4 sm:px-5 border-b border-slate-100 grid grid-cols-1 lg:grid-cols-12 gap-4 bg-white items-start">
-          <div className="lg:col-span-6">
-            <FieldLabel
-              htmlFor="call-logs-search"
-              label="Поиск по звонкам"
-              helpTitle="Как быстро найти нужный звонок"
-              helpText="Введите часть номера телефона, имя клиента или название услуги — таблица сразу отфильтрует подходящие разговоры."
-              helpExample="682-14-99 или шиномонтаж"
-            />
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                id="call-logs-search"
-                name="search"
-                type="search"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                aria-describedby="call-logs-search-hint"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Имя клиента, номер телефона или услуга..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50/80 border border-slate-200 text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 transition-colors"
+        <div className="p-4 sm:px-5 border-b border-slate-100 space-y-3 bg-white">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            <div className="lg:col-span-6">
+              <FieldLabel
+                htmlFor="call-logs-search"
+                label="Поиск по звонкам"
+                helpTitle="Как быстро найти нужный звонок"
+                helpText="Введите часть номера телефона, имя клиента, название услуги, ключевой тег или фразу из диалога."
+                helpExample="682-14-99, шиномонтаж или Рассрочка"
               />
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  id="call-logs-search"
+                  name="search"
+                  type="search"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  aria-describedby="call-logs-search-hint"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Имя, телефон, резюме, услуга или тег..."
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50/80 border border-slate-200 text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <FieldHint id="call-logs-search-hint">
+                Можно искать по последним цифрам телефона, имени, тегу или резюме звонка.
+              </FieldHint>
             </div>
-            <FieldHint id="call-logs-search-hint">
-              Можно искать по последним цифрам телефона, имени или названию услуги.
-            </FieldHint>
+
+            <div className="lg:col-span-6">
+              <FieldLabel
+                htmlFor="call-logs-filter-all"
+                label="Результат разговора"
+                helpTitle="Что означают статусы звонков"
+                helpText="«Заявка получена» — клиент оставил контакты и время записи. «Вопрос клиента» — бот ответил по ценам или графику. «Переведён сотруднику» — звонок переключили на живого менеджера. «Реклама / спам» — бот вежливо завершил нецелевой звонок."
+              />
+              <div
+                className="flex flex-wrap items-center gap-1.5"
+                role="group"
+                aria-describedby="call-logs-filter-hint"
+              >
+                {[
+                  { id: 'all', label: 'Все звонки' },
+                  { id: 'lead_captured', label: 'Заявки' },
+                  { id: 'consultation', label: 'Вопросы' },
+                  { id: 'forwarded', label: 'Переведённые' },
+                  { id: 'spam', label: 'Спам' }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    id={f.id === 'all' ? 'call-logs-filter-all' : undefined}
+                    type="button"
+                    onClick={() => setSelectedStatus(f.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                      selectedStatus === f.id
+                        ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white border border-slate-200/80'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <FieldHint id="call-logs-filter-hint">
+                Выберите «Заявки», чтобы видеть только клиентов, готовых к записи.
+              </FieldHint>
+            </div>
           </div>
 
-          <div className="lg:col-span-6">
-            <FieldLabel
-              htmlFor="call-logs-filter-all"
-              label="Показать по результату разговора"
-              helpTitle="Что означают статусы звонков"
-              helpText="«Заявка получена» — клиент оставил контакты и время записи. «Вопрос клиента» — бот ответил по ценам или графику. «Переведён сотруднику» — звонок переключили на живого менеджера. «Реклама / спам» — бот вежливо завершил нецелевой звонок."
-            />
-            <div
-              className="flex flex-wrap items-center gap-1.5"
-              role="group"
-              aria-describedby="call-logs-filter-hint"
-            >
-              {[
-                { id: 'all', label: 'Все звонки' },
-                { id: 'lead_captured', label: 'Заявки' },
-                { id: 'consultation', label: 'Вопросы' },
-                { id: 'forwarded', label: 'Переведённые' },
-                { id: 'spam', label: 'Спам' }
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  id={f.id === 'all' ? 'call-logs-filter-all' : undefined}
-                  type="button"
-                  onClick={() => setSelectedStatus(f.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    selectedStatus === f.id
-                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white border border-slate-200/80'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
+          {/* Secondary Quick Filters: Sentiment & Follow-up */}
+          <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 font-semibold text-[11px]">Настроение (Sentiment):</span>
+              <div className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200/70">
+                {[
+                  { id: 'all', label: 'Все' },
+                  { id: 'positive', label: '🟢 Позитивные' },
+                  { id: 'neutral', label: '⚪ Нейтральные' },
+                  { id: 'negative', label: '🔴 Внимание' }
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSelectedSentiment(s.id)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                      selectedSentiment === s.id
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <FieldHint id="call-logs-filter-hint">
-              Выберите «Заявки», чтобы видеть только клиентов, готовых к записи.
-            </FieldHint>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 font-semibold text-[11px]">Follow-up:</span>
+              <div className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200/70">
+                {[
+                  { id: 'all', label: 'Все' },
+                  { id: 'sent', label: '📩 Отправлен' },
+                  { id: 'pending', label: '⏳ Ожидает' },
+                  { id: 'none', label: 'Не требуется' }
+                ].map((fu) => (
+                  <button
+                    key={fu.id}
+                    type="button"
+                    onClick={() => setSelectedFollowUp(fu.id)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                      selectedFollowUp === fu.id
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {fu.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -284,9 +407,9 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/60 text-slate-500 font-semibold">
                 <th className="py-3 px-4">Клиент и телефон</th>
-                <th className="py-3 px-4">Чем интересовался</th>
-                <th className="py-3 px-4">Когда звонил</th>
-                <th className="py-3 px-4">Длительность</th>
+                <th className="py-3 px-4">1-фразовое резюме и теги</th>
+                <th className="py-3 px-4">Настроение</th>
+                <th className="py-3 px-4">Follow-up</th>
                 <th className="py-3 px-4">Результат</th>
                 <th className="py-3 px-4 text-right">Сумма заказа</th>
                 <th className="py-3 px-4 text-center">Запись и текст</th>
@@ -303,7 +426,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                 filteredLogs.map((call) => {
                   const isPlaying = playingCallId === call.id;
                   const isSelected = activeCallDetail?.id === call.id;
-                  const serviceName = call.capturedData?.service || call.summary;
 
                   return (
                     <tr
@@ -313,6 +435,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                         isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50/80'
                       }`}
                     >
+                      {/* 1. Client & Phone */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-[11px] shrink-0 border border-blue-100">
@@ -322,44 +445,57 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                             <div className="font-semibold text-slate-900">
                               {call.callerName || 'Клиент не назвал имя'}
                             </div>
-                            <div className="font-mono text-[11px] text-slate-500">
-                              {call.callerNumber}
+                            <div className="font-mono text-[11px] text-slate-500 flex items-center gap-1.5">
+                              <span>{call.callerNumber}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyPhone(call.callerNumber, e)}
+                                className="text-slate-400 hover:text-blue-600 transition-colors"
+                                title="Скопировать номер"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 max-w-xs">
-                        <div className="truncate font-medium text-slate-900" title={serviceName}>
-                          {serviceName}
+                      {/* 2. 1-Sentence Summary & Tags */}
+                      <td className="py-3.5 px-4 max-w-sm">
+                        <div className="font-medium text-slate-900 leading-snug line-clamp-2" title={call.summary}>
+                          {call.summary}
                         </div>
-                        {call.capturedData?.preferredDate && (
-                          <div className="text-[11px] text-slate-400 truncate">
-                            Удобное время: {call.capturedData.preferredDate}
+                        {call.tags && call.tags.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                            {call.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium border border-slate-200/70"
+                              >
+                                <TagIcon className="w-2.5 h-2.5 text-slate-400" />
+                                <span>{tag}</span>
+                              </span>
+                            ))}
                           </div>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px] whitespace-nowrap">
-                        {call.timestamp}
+                      {/* 3. Sentiment Badge (зеленый / серый / красный) */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {getSentimentBadge(call.sentiment)}
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono text-[11px] whitespace-nowrap">
-                        <div className="text-slate-700 font-semibold">{call.audioDuration}</div>
-                        <div className="text-[10px] text-slate-400">
-                          расход ~
-                          {(
-                            call.costByn ||
-                            Math.max(0.2, Math.round((call.durationSeconds / 60) * 0.45 * 100) / 100)
-                          ).toFixed(2)}{' '}
-                          BYN
-                        </div>
+                      {/* 4. Follow-up status */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {getFollowUpBadge(call)}
                       </td>
 
+                      {/* 5. Call Outcome Status */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {getStatusBadge(call.status)}
                       </td>
 
+                      {/* 6. Order Value BYN */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap text-slate-900">
                         {call.dealValueByn > 0 ? (
                           <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
@@ -370,6 +506,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                         )}
                       </td>
 
+                      {/* 7. Audio & Detail Drawer Button */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
                           <button
@@ -409,7 +546,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
       {/* 2. Light Slide-Over Call Detail Drawer */}
       <AnimatePresence>
         {activeCallDetail && (
-          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end" role="dialog" aria-modal="true" aria-label="Карточка звонка">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -451,6 +588,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {getSentimentBadge(activeCallDetail.sentiment)}
                   {getStatusBadge(activeCallDetail.status)}
                   <button
                     type="button"
@@ -513,6 +651,50 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   </p>
                 </div>
 
+                {/* 1-Sentence Summary & Tags Card */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>Итог звонка (1-фразовое резюме)</span>
+                    </span>
+                    {getSentimentBadge(activeCallDetail.sentiment)}
+                  </div>
+                  <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                    {activeCallDetail.summary}
+                  </p>
+                  {activeCallDetail.tags && activeCallDetail.tags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                      {activeCallDetail.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-slate-700 text-[11px] font-medium border border-slate-200/80 shadow-2xs"
+                        >
+                          <TagIcon className="w-2.5 h-2.5 text-blue-600" />
+                          <span>{tag}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Follow-up Message Card */}
+                {activeCallDetail.followUpSent && (
+                  <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-indigo-900 flex items-center gap-1.5">
+                        <Send className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Автоматический Follow-up ({activeCallDetail.followUpChannel?.toUpperCase() || 'SMS'})</span>
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Доставлен клиенту
+                      </span>
+                    </div>
+                    <p className="text-xs text-indigo-950 font-mono bg-white/80 p-2.5 rounded-xl border border-indigo-100 leading-relaxed">
+                      «{activeCallDetail.followUpText}»
+                    </p>
+                  </div>
+                )}
+
                 {/* Extracted Lead Summary */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
                   <div className="flex items-center justify-between">
@@ -555,13 +737,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                       </span>
                     </div>
                   </div>
-
-                  {activeCallDetail.summary && (
-                    <div className="pt-2.5 border-t border-slate-200/70 text-xs text-slate-600 leading-relaxed">
-                      <strong className="text-slate-900 block mb-0.5">О чём договорились:</strong>
-                      {activeCallDetail.summary}
-                    </div>
-                  )}
                 </div>
 
                 {/* Transcript Messages (Light Theme) */}

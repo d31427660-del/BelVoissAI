@@ -84,7 +84,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {currentView === 'landing' && onOpenVoiceTest && (
+            <button
+              type="button"
+              onClick={onOpenVoiceTest}
+              className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors shadow-2xs whitespace-nowrap"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Поговорить с Voxi</span>
+            </button>
+          )}
+
           {user ? (
             <div className="flex items-center gap-2">
               {currentView === 'landing' ? (

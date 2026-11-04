@@ -846,6 +846,30 @@ export function App() {
         </Suspense>
       )}
 
+      {/* Floating 1-Click Live WebRTC Voice Call Widget (Landing Page) */}
+      {currentView === 'landing' && !isVoiceTestModalOpen && (
+        <div className="fixed bottom-5 right-4 sm:right-6 z-40">
+          <button
+            type="button"
+            onClick={() => setIsVoiceTestModalOpen(true)}
+            aria-label="Поговорить с Voxi прямо сейчас без ввода номера"
+            className="group flex items-center gap-2.5 px-4 py-2.5 sm:px-5 sm:py-3 rounded-full bg-slate-900/95 hover:bg-black text-white shadow-xl shadow-slate-900/25 border border-slate-700/60 backdrop-blur-md transition-all hover:scale-105 active:scale-95"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm font-bold text-white">Поговорить с Voxi</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold">Live</span>
+              </div>
+              <span className="text-[10px] text-slate-300 hidden sm:inline">1 клик • Без номера телефона</span>
+            </div>
+          </button>
+        </div>
+      )}
+
       {isVoiceTestModalOpen && (
         <Suspense fallback={null}>
           <VoiceTestModal

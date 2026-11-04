@@ -39,11 +39,17 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenAuth, onOpenVoiceT
               </button>
 
               <button
+                type="button"
                 onClick={onOpenVoiceTest}
-                className="w-full sm:w-auto px-7 py-4 rounded-full bg-[#ffffff]/15 hover:bg-[#ffffff]/25 text-[#ffffff] border border-white/20 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                className="w-full sm:w-auto px-7 py-4 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-emerald-500/20"
               >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-60" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-950" />
+                </span>
                 <PhoneCallingRoundedIcon size={18} />
-                <span>Прослушать демонстрацию</span>
+                <span>Поговорить с Voxi прямо сейчас</span>
+                <span className="text-[11px] font-semibold text-emerald-950 bg-white/40 px-2 py-0.5 rounded-full ml-1">1 клик без номера</span>
               </button>
             </div>
 

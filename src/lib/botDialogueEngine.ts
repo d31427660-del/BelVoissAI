@@ -503,9 +503,37 @@ export function createCallLogFromDialogue(params: {
   )}:${pad(now.getMinutes())}`;
 
   const firstQuestion = userMessages[0].text;
-  const serviceSummary = isLeadCaptured
-    ? `Запись через тест бота (${companyName || tmpl.companyName})`
-    : `Консультация: «${firstQuestion.slice(0, 55)}${firstQuestion.length > 55 ? '…' : ''}»`;
+  const isNegative = /жалоб|плох|претензи|дорог|не надо|ужас|ошибк|верните|отмените|груб|хам/.test(combinedUserText);
+  const isPositive = !isNegative && (isLeadCaptured || /спасибо|супер|отлично|запиш|подходит|договорились|буду|давайте|удобно|хорошо|благодар/.test(combinedUserText));
+  const sentiment: 'positive' | 'neutral' | 'negative' = isNegative ? 'negative' : isPositive ? 'positive' : 'neutral';
+
+  const tags: string[] = [];
+  if (isLeadCaptured) tags.push('Запись');
+  else tags.push('Консультация');
+
+  if (/цена|стоимост|прайс|тариф|рубл|byn|сколько/.test(combinedUserText)) {
+    tags.push('Прайс-лист');
+  }
+  if (/рассрочк|халва|карт.*покупок|частями/.test(combinedUserText)) {
+    tags.push('Рассрочка');
+  }
+  if (/срочн|сегодня|быстр|сейчас/.test(combinedUserText)) {
+    tags.push('Срочно');
+  }
+  if (niche === 'driving_school') tags.push('Автошкола');
+  else if (niche === 'auto_service') tags.push('СТО');
+  else if (niche === 'medical_clinic') tags.push('Клиника');
+  else if (niche === 'beauty_salon') tags.push('Салон красоты');
+
+  const oneSentenceSummary = isLeadCaptured
+    ? `Клиент ${finalCallerName} успешно записан на ${preferredDate || 'согласованное время'}.`
+    : `Консультация клиента по услугам и прайс-листу компании.`;
+
+  const followUpSent = isLeadCaptured;
+  const followUpChannel: 'sms' | 'telegram' = 'sms';
+  const followUpText = isLeadCaptured
+    ? `Здравствуйте, ${finalCallerName}! Ваша запись подтверждена: ${preferredDate || 'согласованное время'}. Адрес: ${address || tmpl.address}. Ждём вас!`
+    : undefined;
 
   return {
     id: `call-live-${Date.now()}`,
@@ -518,7 +546,12 @@ export function createCallLogFromDialogue(params: {
     costByn: Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100),
     status: isLeadCaptured ? 'lead_captured' : 'consultation',
     dealValueByn,
-    summary: `${serviceSummary}. Диалог из ${messages.length} реплик.`,
+    summary: oneSentenceSummary,
+    sentiment,
+    tags,
+    followUpSent,
+    followUpChannel,
+    followUpText,
     capturedData: {
       clientName: finalCallerName,
       phone: extractedPhone.replace(' (Тест)', ''),

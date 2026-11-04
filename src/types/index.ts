@@ -6,6 +6,7 @@ export type BusinessNiche =
   | 'custom';
 
 export type VoiceId = 'anna' | 'maxim';
+export type CallSentiment = 'positive' | 'neutral' | 'negative';
 
 export interface PhoneticRule {
   id: string;
@@ -46,6 +47,12 @@ export interface AgentConfig {
   phoneticRules?: PhoneticRule[];
   vapiAssistantId?: string;
   yclientsConfig?: YclientsSlotConfig;
+  autoFollowUp?: {
+    isEnabled: boolean;
+    channel: 'telegram' | 'sms' | 'both';
+    sendOnLeadOnly: boolean;
+    template?: string;
+  };
   isActive: boolean;
   updatedAt: string;
 }
@@ -133,6 +140,11 @@ export interface CallLog {
   costByn?: number;
   audioDuration: string;
   summary: string;
+  sentiment?: CallSentiment;
+  tags?: string[];
+  followUpSent?: boolean;
+  followUpChannel?: 'telegram' | 'sms' | 'none';
+  followUpText?: string;
   capturedData: CapturedLeadData;
   transcript: TranscriptMessage[];
 }

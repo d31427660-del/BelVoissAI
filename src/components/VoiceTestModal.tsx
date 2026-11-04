@@ -497,6 +497,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   return (
     <dialog
       ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
       aria-labelledby={titleId}
       {...(callState !== 'connected' && callState !== 'dialing' ? ({ closedby: 'any' } as any) : {})}
       className="m-auto w-[calc(100%-1.5rem)] max-w-lg rounded-3xl bg-white text-slate-900 border border-slate-200/90 shadow-2xl shadow-slate-900/15 p-0 overflow-hidden backdrop:bg-slate-900/35 backdrop:backdrop-blur-xs"
@@ -613,15 +615,20 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                autoFocus
-                onClick={() => beginCall(selectedNiche, selectedVoice)}
-                className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2.5 shadow-md shadow-emerald-600/20 transition-all active:scale-[0.99]"
-              >
-                <Phone size={18} />
-                <span>Позвонить боту ({voiceDisplayName})</span>
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => beginCall(selectedNiche, selectedVoice)}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2.5 shadow-md shadow-emerald-600/20 transition-all active:scale-[0.99]"
+                >
+                  <Phone size={18} />
+                  <span>Позвонить боту ({voiceDisplayName}) • 1 клик</span>
+                </button>
+                <p className="text-[11px] text-slate-500">
+                  Мгновенный голосовой тест через микрофон. Номер телефона не требуется.
+                </p>
+              </div>
             </div>
           ) : callState !== 'ended' ? (
             <>
@@ -753,8 +760,15 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
               {/* Mic warning if blocked */}
               {micError && (
-                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-left">
-                  {micError}
+                <div role="alert" className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-left space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-amber-800">
+                    <MicOff size={15} className="text-amber-700 shrink-0" />
+                    <span>Микрофон недоступен:</span>
+                  </div>
+                  <p className="leading-relaxed">{micError}</p>
+                  <p className="text-[11px] text-amber-800 font-medium">
+                    Вы можете свободно общаться через текстовое поле внизу — бот озвучит ответ голосом.
+                  </p>
                 </div>
               )}
 

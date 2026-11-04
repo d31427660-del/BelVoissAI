@@ -133,10 +133,14 @@ export const Hero: React.FC<HeroProps> = ({
                 <button
                   type="button"
                   onClick={onOpenVoiceTest}
-                  className="w-full sm:w-auto px-6 py-4 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+                  className="w-full sm:w-auto px-6 py-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/25 transition-all whitespace-nowrap group"
                 >
-                  <SoundwaveCircleIcon size={18} className="text-emerald-600" />
-                  <span>Поговорить с ботом (тест)</span>
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                  </span>
+                  <SoundwaveCircleIcon size={19} className="text-emerald-100 group-hover:scale-110 transition-transform" />
+                  <span>Поговорить с Voxi прямо сейчас</span>
                 </button>
               )}
 
@@ -146,6 +150,12 @@ export const Hero: React.FC<HeroProps> = ({
               >
                 Рассчитать выгоду в BYN
               </a>
+            </div>
+
+            {/* Helper reassurance: 1-click live voice call without phone number */}
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Звонок прямо из браузера • 1 клик • Номер телефона не требуется</span>
             </div>
 
           </div>
