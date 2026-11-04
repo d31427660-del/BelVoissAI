@@ -1,0 +1,18 @@
+{
+  "name": "Voxi.by — Голосовой ИИ-администратор в Беларуси",
+  "short_name": "Voxi.by",
+  "description": "Голосовые ИИ-администраторы для автошкол, СТО, клиник и салонов Беларуси. Поминутная оплата в BYN через bePaid и ЕРИП.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "lang": "ru-BY",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

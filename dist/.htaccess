@@ -1,0 +1,112 @@
+# ==============================================================================
+# Voxi.by — Apache / LiteSpeed LSAPI .htaccess для ISPmanager (hoster.by)
+# Поддержка: React SPA + PHP 8.2 API + MySQL БД ISPmanager
+# ==============================================================================
+
+AddDefaultCharset UTF-8
+DefaultLanguage ru
+Options -Indexes
+
+# 1. MIME-типы для современных веб-приложений и аудио
+<IfModule mod_mime.c>
+  AddType text/html .html .htm
+  AddType text/css .css
+  AddType application/javascript .js .mjs
+  AddType application/json .json
+  AddType audio/mpeg .mp3
+  AddType audio/wav .wav
+  AddType image/svg+xml .svg .svgz
+  AddType image/webp .webp
+  AddType image/png .png
+  AddType application/manifest+json .webmanifest
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+</IfModule>
+
+# 2. Сжатие Gzip / Deflate
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript text/javascript
+  AddOutputFilterByType DEFLATE application/json application/xml application/xhtml+xml
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# 3. Кэширование статических ресурсов
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/json "access plus 0 seconds"
+
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+
+  ExpiresByType audio/mpeg "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/x-icon "access plus 1 month"
+</IfModule>
+
+# 4. Заголовки безопасности и доступ к микрофону браузера
+<IfModule mod_headers.c>
+  Header always set Permissions-Policy "microphone=(self), camera=(), geolocation=()"
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  <FilesMatch "\.(js|css|woff2|woff)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# 5. Маршрутизация API (PHP LSAPI + MySQL ISPmanager) и SPA (React)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Передача заголовка Authorization в PHP LSAPI (для сессий и вебхуков bePaid)
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+  # Принудительный HTTPS (для работы Web Speech API и микрофона)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1) [NC]
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Запрет прямого доступа к служебным файлам конфигурации PHP
+  RewriteRule ^api/(config|bootstrap)\.php$ - [F,L]
+
+  # Маршрутизация путей /api/<endpoint> на локальные PHP-обработчики ISPmanager (работает и на основном, и на временном домене)
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook)/?$ api/$1.php [QSA,L]
+
+  # Существующие статические файлы и директории отдавать напрямую
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Все остальные клиентские маршруты отдают index.html (SPA fallback)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# 6. Защита скрытых файлов (.env, .htaccess и др.)
+<FilesMatch "^\.">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
