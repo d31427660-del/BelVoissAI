@@ -87,7 +87,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
   };
 
   const handleCopyPitch = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard?.writeText(text).catch(() => {});
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2500);
   };

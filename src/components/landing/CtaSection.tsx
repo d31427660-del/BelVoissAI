@@ -32,17 +32,17 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenAuth, onOpenVoiceT
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={onOpenAuth}
-                className="w-full sm:w-auto px-8 py-4 rounded-full bg-[#ffffff] hover:bg-blue-50 text-[#2563eb] font-semibold text-xs flex items-center justify-center gap-2 shadow-lg transition-all"
+                className="w-full sm:w-auto px-8 py-4 rounded-full bg-[#ffffff] hover:bg-blue-50 text-[#2563eb] font-semibold text-sm flex items-center justify-center gap-2 shadow-lg transition-all"
               >
                 <span>Начать бесплатно</span>
-                <ArrowRightIcon size={16} />
+                <ArrowRightIcon size={18} />
               </button>
 
               <button
                 onClick={onOpenVoiceTest}
-                className="w-full sm:w-auto px-7 py-4 rounded-full bg-[#ffffff]/15 hover:bg-[#ffffff]/25 text-[#ffffff] border border-white/20 font-semibold text-xs flex items-center justify-center gap-2 transition-colors"
+                className="w-full sm:w-auto px-7 py-4 rounded-full bg-[#ffffff]/15 hover:bg-[#ffffff]/25 text-[#ffffff] border border-white/20 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
               >
-                <PhoneCallingRoundedIcon size={16} />
+                <PhoneCallingRoundedIcon size={18} />
                 <span>Прослушать демонстрацию</span>
               </button>
             </div>
