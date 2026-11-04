@@ -244,7 +244,7 @@ export const SipSettingsTab: React.FC<SipSettingsTabProps> = ({
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
-                <span>🤫 Шёпотный брифинг сотрудника (Whisper Summary)</span>
+                <span>Шёпотный брифинг сотрудника (Whisper Summary)</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900">
                   Рекомендуется
                 </span>

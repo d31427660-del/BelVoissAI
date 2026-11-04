@@ -121,12 +121,12 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
 
   const handleSyncToCrm = (call: CallLog) => {
     const leadLines = [
-      `📞 Заявка со звонка (${agent?.companyName || 'Voxi.by'})`,
-      `👤 Клиент: ${call.callerName || 'Не указано'} (${call.callerNumber || 'Номер не определён'})`,
-      `🛠 Запрос: ${call.capturedData?.service || call.summary || 'Консультация'}`,
-      call.capturedData?.preferredDate ? `🕒 Время: ${call.capturedData.preferredDate}` : null,
-      (call.dealValueByn || 0) > 0 ? `💰 Оценка чека: ~${call.dealValueByn} BYN` : null,
-      `📝 Резюме: ${call.summary || 'Информация зафиксирована'}`
+      `Заявка со звонка (${agent?.companyName || 'Voxi.by'})`,
+      `• Клиент: ${call.callerName || 'Не указано'} (${call.callerNumber || 'Номер не определён'})`,
+      `• Запрос: ${call.capturedData?.service || call.summary || 'Консультация'}`,
+      call.capturedData?.preferredDate ? `• Время: ${call.capturedData.preferredDate}` : null,
+      (call.dealValueByn || 0) > 0 ? `• Оценка чека: ~${call.dealValueByn} BYN` : null,
+      `• Резюме: ${call.summary || 'Информация зафиксирована'}`
     ]
       .filter(Boolean)
       .join('\n');
@@ -364,21 +364,22 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
               <div className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200/70">
                 {[
                   { id: 'all', label: 'Все' },
-                  { id: 'positive', label: '🟢 Позитивные' },
-                  { id: 'neutral', label: '⚪ Нейтральные' },
-                  { id: 'negative', label: '🔴 Внимание' }
+                  { id: 'positive', label: 'Позитивные', dot: 'bg-emerald-500' },
+                  { id: 'neutral', label: 'Нейтральные', dot: 'bg-slate-400' },
+                  { id: 'negative', label: 'Внимание', dot: 'bg-rose-500' }
                 ].map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => setSelectedSentiment(s.id)}
-                    className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                    className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all inline-flex items-center gap-1.5 ${
                       selectedSentiment === s.id
                         ? 'bg-white text-slate-900 shadow-2xs'
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    {s.label}
+                    {s.dot && <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />}
+                    <span>{s.label}</span>
                   </button>
                 ))}
               </div>
@@ -389,21 +390,22 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
               <div className="inline-flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200/70">
                 {[
                   { id: 'all', label: 'Все' },
-                  { id: 'sent', label: '📩 Отправлен' },
-                  { id: 'pending', label: '⏳ Ожидает' },
+                  { id: 'sent', label: 'Отправлен', dot: 'bg-blue-500' },
+                  { id: 'pending', label: 'Ожидает', dot: 'bg-amber-500' },
                   { id: 'none', label: 'Не требуется' }
                 ].map((fu) => (
                   <button
                     key={fu.id}
                     type="button"
                     onClick={() => setSelectedFollowUp(fu.id)}
-                    className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                    className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all inline-flex items-center gap-1.5 ${
                       selectedFollowUp === fu.id
                         ? 'bg-white text-slate-900 shadow-2xs'
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    {fu.label}
+                    {fu.dot && <span className={`w-1.5 h-1.5 rounded-full ${fu.dot}`} />}
+                    <span>{fu.label}</span>
                   </button>
                 ))}
               </div>

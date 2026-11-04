@@ -319,8 +319,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
             <div className="font-semibold text-slate-800">
               {totalPeriodCalls > 0
-                ? `⚡ ${afterHoursShare}% вызовов обработано вне рабочего времени (сохранённая выручка)`
-                : '⚡ Голосовой бот готов принимать 100% звонков 24/7 без выходных'}
+                ? `${afterHoursShare}% вызовов обработано вне рабочего времени (сохранённая выручка)`
+                : 'Голосовой бот готов принимать 100% звонков 24/7 без выходных'}
             </div>
           </div>
         </div>

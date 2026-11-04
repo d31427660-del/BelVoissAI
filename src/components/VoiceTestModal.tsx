@@ -36,11 +36,11 @@ interface VoiceTestModalProps {
 
 type CallState = 'ready' | 'dialing' | 'connected' | 'ended';
 
-const CATEGORY_TABS: Array<{ id: BusinessNiche; shortLabel: string; emoji: string }> = [
-  { id: 'driving_school', shortLabel: 'Автошкола', emoji: '🚦' },
-  { id: 'auto_service', shortLabel: 'Автосервис', emoji: '🚗' },
-  { id: 'medical_clinic', shortLabel: 'Стоматология', emoji: '🦷' },
-  { id: 'beauty_salon', shortLabel: 'Салон красоты', emoji: '💇‍♀️' },
+const CATEGORY_TABS: Array<{ id: BusinessNiche; shortLabel: string }> = [
+  { id: 'driving_school', shortLabel: 'Автошкола' },
+  { id: 'auto_service', shortLabel: 'Автосервис' },
+  { id: 'medical_clinic', shortLabel: 'Стоматология' },
+  { id: 'beauty_salon', shortLabel: 'Салон красоты' },
 ];
 
 export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
@@ -188,7 +188,12 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const handleUserMessage = useCallback(
     async (userQuery: string) => {
       const clean = userQuery.trim();
-      if (!clean || callStateRef.current !== 'connected' || isBotSpeakingRef.current) return;
+      if (!clean || callStateRef.current !== 'connected') return;
+
+      // Barge-in: stop any active bot playback when user clicks a prompt chip or sends input
+      VoiceSimulator.stop();
+      isBotSpeakingRef.current = false;
+      setIsBotSpeaking(false);
 
       if (lastBotMessageRef.current && clean.length >= 25 && lastBotMessageRef.current === clean.toLowerCase()) {
         return;
@@ -614,7 +619,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                       : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
                   }`}
                 >
-                  <span className="shrink-0">{cat.emoji}</span>
                   <span>{cat.shortLabel}</span>
                 </button>
               );
@@ -723,7 +727,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-xs font-bold text-purple-900">
-                        ⚠️ Детектор автоответчика (AMD)
+                        Детектор автоответчика (AMD)
                       </span>
                       <span className="text-[10px] font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full">
                         0 BYN списано
@@ -749,7 +753,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-xs font-bold text-amber-950">
-                        🔄 SIP Warm Transfer активен
+                        SIP Warm Transfer активен
                       </span>
                       <span className="text-[10px] font-semibold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
                         Перевод на администратора
@@ -759,7 +763,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                       {transferBanner}
                     </p>
                     <div className="mt-1 text-[10px] text-amber-900 bg-white/80 px-2 py-0.5 rounded-md border border-amber-200/80 inline-block font-mono">
-                      🤫 Шёпотный брифинг: бот передаёт суть запроса дежурному персоналу
+                      Шёпотный брифинг: бот передаёт суть запроса дежурному персоналу
                     </div>
                   </div>
                 </div>
@@ -946,14 +950,14 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                     onClick={() => handleUserMessage('Соедините с человеком, пожалуйста')}
                     className="px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold transition-colors shadow-2xs"
                   >
-                    📞 Соедините с человеком (Warm Handoff)
+                    Соедините с человеком (Warm Handoff)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleUserMessage('Абонент временно недоступен. Оставьте сообщение после сигнала')}
                     className="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-semibold transition-colors shadow-2xs"
                   >
-                    🛡️ Автоответчик МТС/А1 (Тест AMD 0 BYN)
+                    Автоответчик МТС/А1 (Тест AMD 0 BYN)
                   </button>
                 </div>
               </div>

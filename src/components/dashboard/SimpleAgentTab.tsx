@@ -9,12 +9,14 @@ import {
   AltArrowDownIcon as ChevronDown,
   MagicWand3Icon as Sparkles
 } from '@solar-icons/react/bold-duotone';
+import { Wrench, Scissors, GraduationCap, Stethoscope } from 'lucide-react';
 import { AgentConfig, BusinessNiche, VoiceId, CallLog } from '../../types';
 import { NICHE_TEMPLATES } from '../../lib/mockData';
 import { generateSystemPrompt } from '../../lib/vapiService';
 import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
+import { KnowledgeBaseDocumentsCard } from './KnowledgeBaseDocumentsCard';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import {
   BelarusPhoneInput,
@@ -60,11 +62,16 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     };
   }, []);
 
-  const niches: Array<{ id: BusinessNiche; label: string; desc: string; icon: string }> = [
-    { id: 'auto_service', label: 'Автосервис (СТО)', desc: 'Ремонт, диагностика, ТО, шиномонтаж', icon: '🚗' },
-    { id: 'beauty_salon', label: 'Салон красоты', desc: 'Маникюр, стрижки, окрашивание, уход', icon: '💇‍♀️' },
-    { id: 'driving_school', label: 'Автошкола', desc: 'Категория B, группы, рассрочка, вождение', icon: '🚦' },
-    { id: 'medical_clinic', label: 'Стоматология / Центр', desc: 'Приём врача, снимки, запись по острой боли', icon: '🦷' }
+  const niches: Array<{
+    id: BusinessNiche;
+    label: string;
+    desc: string;
+    Icon: React.ComponentType<{ className?: string }>;
+  }> = [
+    { id: 'auto_service', label: 'Автосервис (СТО)', desc: 'Ремонт, диагностика, ТО, шиномонтаж', Icon: Wrench },
+    { id: 'beauty_salon', label: 'Салон красоты', desc: 'Маникюр, стрижки, окрашивание, уход', Icon: Scissors },
+    { id: 'driving_school', label: 'Автошкола', desc: 'Категория B, группы, рассрочка, вождение', Icon: GraduationCap },
+    { id: 'medical_clinic', label: 'Стоматология / Центр', desc: 'Приём врача, снимки, запись по острой боли', Icon: Stethoscope }
   ];
 
   const getVoiceDisplayName = (voice: VoiceId): string => {
@@ -278,7 +285,13 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                       onChange={() => handleSelectNiche(n.id)}
                       className="visually-hidden"
                     />
-                    <span className="text-xl shrink-0 mt-0.5">{n.icon}</span>
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      <n.Icon className="w-3.5 h-3.5" />
+                    </div>
                     <div className="min-w-0">
                       <div className={`text-xs font-bold leading-snug ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
                         {n.label}
@@ -499,7 +512,15 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             </div>
           </section>
 
-          {/* Card 5: Дополнительные правила (Native <details> disclosure) */}
+          {/* Card 5: База знаний из файлов */}
+          <KnowledgeBaseDocumentsCard
+            documents={formData.knowledgeDocuments || []}
+            onChange={(docs) => {
+              setFormData((prev) => ({ ...prev, knowledgeDocuments: docs }));
+            }}
+          />
+
+          {/* Card 6: Дополнительные правила (Native <details> disclosure) */}
           <details className="group border border-slate-200/90 rounded-2xl bg-white overflow-hidden shadow-xs">
             <summary className="list-none cursor-pointer p-4 flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-2">

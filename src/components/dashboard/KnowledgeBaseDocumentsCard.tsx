@@ -210,9 +210,9 @@ export const KnowledgeBaseDocumentsCard: React.FC<KnowledgeBaseDocumentsCardProp
                       {getFormatBadge(doc.type)}
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                      <span>{doc.size}</span>
+                      <span>{doc.size || `${doc.sizeKb} КБ`}</span>
                       <span>•</span>
-                      <span>{doc.chunks?.length || 1} фрагментов текста</span>
+                      <span>{doc.chunks?.length || doc.chunkCount || 1} фрагментов текста</span>
                       <span>•</span>
                       <span>{doc.uploadedAt}</span>
                     </div>
@@ -262,7 +262,7 @@ export const KnowledgeBaseDocumentsCard: React.FC<KnowledgeBaseDocumentsCardProp
                   <FileText className="w-5 h-5 text-blue-600 shrink-0" />
                   <div className="min-w-0">
                     <h4 className="text-xs font-bold text-slate-900 truncate">{previewDoc.name}</h4>
-                    <span className="text-[11px] text-slate-500">{previewDoc.size} • {previewDoc.chunks?.length || 1} фрагментов</span>
+                    <span className="text-[11px] text-slate-500">{previewDoc.size || `${previewDoc.sizeKb} КБ`} • {previewDoc.chunks?.length || previewDoc.chunkCount || 1} фрагментов</span>
                   </div>
                 </div>
                 <button
@@ -277,14 +277,19 @@ export const KnowledgeBaseDocumentsCard: React.FC<KnowledgeBaseDocumentsCardProp
               <div className="p-4 overflow-y-auto space-y-3 text-xs leading-relaxed text-slate-800">
                 <div className="font-semibold text-slate-900">Распознанный текст для ассистента:</div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[11px] whitespace-pre-wrap max-h-72 overflow-y-auto">
-                  {previewDoc.parsedText}
+                  {previewDoc.parsedText || previewDoc.extractedText}
                 </div>
 
-                {previewDoc.chunks && previewDoc.chunks.length > 0 && (
+                {((previewDoc.chunks && previewDoc.chunks.length > 0) || previewDoc.extractedText) && (
                   <div>
-                    <div className="font-semibold text-slate-900 mb-1.5">Семантические фрагменты ({previewDoc.chunks.length}):</div>
+                    <div className="font-semibold text-slate-900 mb-1.5">
+                      Семантические фрагменты ({previewDoc.chunks?.length || previewDoc.chunkCount || 1}):
+                    </div>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {previewDoc.chunks.map((chunk, idx) => (
+                      {(previewDoc.chunks && previewDoc.chunks.length > 0
+                        ? previewDoc.chunks
+                        : (previewDoc.extractedText || '').split('\n').filter(Boolean)
+                      ).map((chunk, idx) => (
                         <div key={idx} className="p-2 rounded-lg bg-blue-50/60 border border-blue-100 text-[11px] text-slate-700">
                           <span className="font-bold text-blue-700 mr-1.5">#{idx + 1}</span>
                           {chunk}
