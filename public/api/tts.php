@@ -59,8 +59,8 @@ if (!$ycCircuitBroken && ($yandexApiKey !== '' || ($yandexIamToken !== '' && $ya
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT_MS => 1000,
-        CURLOPT_TIMEOUT_MS => 1500,
+        CURLOPT_CONNECTTIMEOUT_MS => 1200,
+        CURLOPT_TIMEOUT_MS => 2500,
         CURLOPT_HTTPHEADER => [
             "Authorization: {$authHeader}",
             'Content-Type: application/x-www-form-urlencoded',
@@ -82,7 +82,7 @@ if (!$ycCircuitBroken && ($yandexApiKey !== '' || ($yandexIamToken !== '' && $ya
         exit;
     }
 
-    $cooldown = ($httpCode === 401 || $httpCode === 403) ? 600 : 60;
+    $cooldown = 10;
     @file_put_contents($cbFile, (string)(time() + $cooldown));
 }
 

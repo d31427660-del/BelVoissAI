@@ -205,9 +205,9 @@ export class VoiceSimulator {
             return;
           }
 
-          // Dynamic synthesis with strict 2.5s timeout to guarantee zero long silences
+          // Dynamic synthesis with 6s timeout so neural voice streams smoothly without falling back to robotic voice
           const res = await fetch(audioUrl, {
-            signal: AbortSignal.timeout(2500),
+            signal: AbortSignal.timeout(6000),
           });
           if (token !== this.activeToken) {
             resolve();

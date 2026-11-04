@@ -9,7 +9,7 @@ interface UseSpeechRecognitionOptions {
 export function useSpeechRecognition({
   onFinalTranscript,
   lang = 'ru-RU',
-  silenceDelayMs = 750,
+  silenceDelayMs = 1400,
 }: UseSpeechRecognitionOptions = {}) {
   const [isSupported, setIsSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -247,12 +247,20 @@ export function useSpeechRecognition({
       setTranscript(fullText);
       setInterimTranscript(fullText);
 
-      // Faster turn-taking once browser marks segment final (500ms), or 750ms on interim pause
-      if (latestSegmentIsFinal) {
-        scheduleSilenceSubmit(Math.min(500, silenceDelayMs));
-      } else if (textChanged || !silenceTimerRef.current) {
-        scheduleSilenceSubmit(silenceDelayMs);
-      }
+      // Adaptive turn-taking silence:
+      // Gives the user natural breathing room to finish their thought without interruption:
+      // - If segment has few words (<= 3 words, e.g. "Здравствуйте"), wait at least 1600ms
+      // - If segment has a complete thought (4+ words), wait 1200ms
+      // - Never cut off on rapid 500ms micro-pauses
+      const words = fullText.split(/\s+/).filter(Boolean);
+      const isShortUtterance = words.length <= 3;
+      const targetDelay = isShortUtterance
+        ? Math.max(silenceDelayMs, 1600)
+        : latestSegmentIsFinal
+        ? Math.max(1200, silenceDelayMs - 200)
+        : silenceDelayMs;
+
+      scheduleSilenceSubmit(targetDelay);
     };
 
     recognition.onerror = (event: any) => {

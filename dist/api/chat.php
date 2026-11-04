@@ -109,8 +109,8 @@ $ch = curl_init('https://llm.api.cloud.yandex.net/foundationModels/v1/completion
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_CONNECTTIMEOUT_MS => 1200,
-    CURLOPT_TIMEOUT_MS => 1800,
+    CURLOPT_CONNECTTIMEOUT_MS => 1500,
+    CURLOPT_TIMEOUT_MS => 3800,
     CURLOPT_HTTPHEADER => [
         "Authorization: {$authHeader}",
         'Content-Type: application/json',
@@ -132,11 +132,18 @@ $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($rawResp === false || $httpCode < 200 || $httpCode >= 300) {
-    $cooldown = ($httpCode === 401 || $httpCode === 403) ? 300 : 120;
+    // Короткий таймаут блокировки (10 сек), чтобы после добавления роли в консоли Yandex Cloud всё заработало мгновенно
+    $cooldown = 10;
     @file_put_contents($cbFile, (string)(time() + $cooldown));
+
+    $errMsg = 'YandexGPT upstream error or timeout';
+    if ($httpCode === 403) {
+        $errMsg = 'Yandex Cloud 403: сервисному аккаунту не назначена роль ai.languageModels.user для каталога ' . $yandexFolderId;
+    }
+
     voxi_json([
         'configured' => false,
-        'error' => 'YandexGPT upstream error or timeout',
+        'error' => $errMsg,
         'status' => $httpCode,
     ], ($httpCode === 401 || $httpCode === 403) ? 503 : 502);
 }

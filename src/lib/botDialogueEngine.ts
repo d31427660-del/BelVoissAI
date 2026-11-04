@@ -335,7 +335,7 @@ export async function requestBotReply(
   signal?: AbortSignal
 ): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback' }> {
   const localController = new AbortController();
-  const timer = setTimeout(() => localController.abort(), 1800);
+  const timer = setTimeout(() => localController.abort(), 4500);
   const onParentAbort = () => localController.abort();
 
   if (signal) {
