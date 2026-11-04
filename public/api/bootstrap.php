@@ -234,12 +234,28 @@ function voxi_get_pdo(array $cfg): PDO
     $user = trim((string)($cfg['db_user'] ?? ''));
     $pass = (string)($cfg['db_pass'] ?? '');
 
-    $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
+    $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
+    ];
+
+    $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
+    try {
+        $pdo = new PDO($dsn, $user, $pass, $options);
+    } catch (PDOException $e) {
+        // Если localhost не смог подключиться через UNIX сокет, пробуем TCP 127.0.0.1
+        if ($host === 'localhost') {
+            $dsnTcp = "mysql:host=127.0.0.1;port={$port};dbname={$name};charset=utf8mb4";
+            try {
+                $pdo = new PDO($dsnTcp, $user, $pass, $options);
+            } catch (PDOException $eTcp) {
+                throw new PDOException($eTcp->getMessage(), (int)$eTcp->getCode());
+            }
+        } else {
+            throw $e;
+        }
+    }
 
     voxi_ensure_schema($pdo, $name);
     return $pdo;

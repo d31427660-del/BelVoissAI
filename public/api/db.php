@@ -161,7 +161,8 @@ if ($action === 'status') {
             'driver' => 'mysql-ispmanager',
             'configured' => true,
             'connected' => false,
-            'error' => 'Ошибка подключения к MySQL в ISPmanager. Проверьте DB_NAME, DB_USER и DB_PASS в api/config.php.',
+            'error' => 'Ошибка подключения к MySQL в ISPmanager. Проверьте DB_NAME, DB_USER и DB_PASS в .env.',
+            'detail' => $e->getMessage(),
         ], 503);
     }
 }
