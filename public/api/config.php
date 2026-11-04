@@ -2,11 +2,12 @@
 /**
  * Voxi.by — Конфигурация подключения к БД MySQL в ISPmanager (hoster.by)
  *
- * Как заполнить на хостинге:
- * 1. В ISPmanager откройте «Базы данных» -> «Создать базу данных» (тип MySQL).
- * 2. Впишите ниже Имя БД (DB_NAME), Пользователя (DB_USER) и Пароль (DB_PASS),
- *    ЛИБО задайте их в файле .env рядом с папкой сайта (www/.env или www/voxi.by/.env).
- * 3. Все таблицы создадутся АВТОМАТИЧЕСКИ при первом открытии сайта!
+ * Переменные читаются автоматически из:
+ * 1. .env файла (в корне сайта или рядом с www)
+ * 2. getenv(), $_ENV, $_SERVER
+ * 3. Дефолтных значений из ISPmanager (voxitest / voxiadmin / voxiadminuser)
+ *
+ * Все 6 таблиц создаются АВТОМАТИЧЕСКИ при первом открытии сайта!
  */
 
 if (!defined('VOXI_API_BOOT')) {
@@ -14,26 +15,29 @@ if (!defined('VOXI_API_BOOT')) {
     exit('Forbidden');
 }
 
+$fnEnv = function_exists('voxi_env') ? 'voxi_env' : null;
+
 return [
     // --- 1. База данных MySQL / MariaDB (ISPmanager) ---
-    'db_host' => getenv('DB_HOST') ?: 'localhost',
-    'db_port' => getenv('DB_PORT') ?: '3306',
-    'db_name' => getenv('DB_NAME') ?: '', // <-- Например: 'u123456_voxi'
-    'db_user' => getenv('DB_USER') ?: '', // <-- Например: 'u123456_voxi'
-    'db_pass' => getenv('DB_PASS') ?: '', // <-- Пароль пользователя БД из ISPmanager
+    // Хост: 127.0.0.1 (TCP порт 3306) или localhost
+    'db_host' => $fnEnv ? voxi_env(['DB_HOST', 'MYSQL_HOST'], '127.0.0.1') : (getenv('DB_HOST') ?: '127.0.0.1'),
+    'db_port' => $fnEnv ? voxi_env(['DB_PORT', 'MYSQL_PORT'], '3306') : (getenv('DB_PORT') ?: '3306'),
+    'db_name' => $fnEnv ? voxi_env(['DB_NAME', 'DB_DATABASE', 'MYSQL_DATABASE'], 'voxitest') : (getenv('DB_NAME') ?: 'voxitest'),
+    'db_user' => $fnEnv ? voxi_env(['DB_USER', 'DB_USERNAME', 'MYSQL_USER'], 'voxiadmin') : (getenv('DB_USER') ?: 'voxiadmin'),
+    'db_pass' => $fnEnv ? voxi_env(['DB_PASS', 'DB_PASSWORD', 'MYSQL_PASSWORD', 'DB_PWD'], 'voxiadminuser') : (getenv('DB_PASS') ?: 'voxiadminuser'),
 
     // --- 2. Yandex SpeechKit + YandexGPT Lite (опционально) ---
-    'yandex_api_key'   => getenv('YANDEX_GPT_API_KEY') ?: (getenv('YANDEX_API_KEY') ?: ''),
-    'yandex_iam_token' => getenv('YANDEX_IAM_TOKEN') ?: '',
-    'yandex_folder_id' => getenv('YANDEX_FOLDER_ID') ?: '',
+    'yandex_api_key'   => $fnEnv ? voxi_env(['YANDEX_GPT_API_KEY', 'YANDEX_API_KEY']) : (getenv('YANDEX_GPT_API_KEY') ?: (getenv('YANDEX_API_KEY') ?: '')),
+    'yandex_iam_token' => $fnEnv ? voxi_env(['YANDEX_IAM_TOKEN']) : (getenv('YANDEX_IAM_TOKEN') ?: ''),
+    'yandex_folder_id' => $fnEnv ? voxi_env(['YANDEX_FOLDER_ID']) : (getenv('YANDEX_FOLDER_ID') ?: ''),
 
     // --- 3. Платёжный шлюз bePaid (ЕРИП + карты РБ в BYN) ---
-    'bepaid_shop_id'         => getenv('BEPAID_SHOP_ID') ?: '',
-    'bepaid_secret_key'      => getenv('BEPAID_SECRET_KEY') ?: '',
-    'bepaid_test_mode'       => (getenv('BEPAID_TEST_MODE') ?: 'true') !== 'false',
-    'bepaid_erip_service_no' => getenv('BEPAID_ERIP_SERVICE_NO') ?: '99999999',
-    'public_site_url'        => getenv('PUBLIC_SITE_URL') ?: '',
+    'bepaid_shop_id'         => $fnEnv ? voxi_env(['BEPAID_SHOP_ID']) : (getenv('BEPAID_SHOP_ID') ?: ''),
+    'bepaid_secret_key'      => $fnEnv ? voxi_env(['BEPAID_SECRET_KEY']) : (getenv('BEPAID_SECRET_KEY') ?: ''),
+    'bepaid_test_mode'       => ($fnEnv ? voxi_env(['BEPAID_TEST_MODE'], 'true') : (getenv('BEPAID_TEST_MODE') ?: 'true')) !== 'false',
+    'bepaid_erip_service_no' => $fnEnv ? voxi_env(['BEPAID_ERIP_SERVICE_NO'], '99999999') : (getenv('BEPAID_ERIP_SERVICE_NO') ?: '99999999'),
+    'public_site_url'        => $fnEnv ? voxi_env(['PUBLIC_SITE_URL']) : (getenv('PUBLIC_SITE_URL') ?: ''),
 
-    // --- 4. Резервный нейросетевой синтез речи (если ключ Yandex ещё не указан) ---
-    'fallback_tts_url' => getenv('FALLBACK_TTS_URL') ?: 'https://telerobot.vercel.app/api/tts',
+    // --- 4. Резервный нейросетевой синтез речи ---
+    'fallback_tts_url' => $fnEnv ? voxi_env(['FALLBACK_TTS_URL'], 'https://telerobot.vercel.app/api/tts') : (getenv('FALLBACK_TTS_URL') ?: 'https://telerobot.vercel.app/api/tts'),
 ];

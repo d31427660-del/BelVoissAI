@@ -6,16 +6,55 @@ ini_set('display_errors', '0');
 error_reporting(E_ALL);
 date_default_timezone_set('Europe/Minsk');
 
+$GLOBALS['VOXI_DOTENV'] = [];
+
 /**
- * Загрузка переменных из .env (проверяет папку выше корня сайта и корень сайта)
+ * Получить переменную окружения из всех доступных источников
+ * (включая распарсенный .env массив, $_ENV, $_SERVER, getenv)
+ * Поддерживает список альтернативных ключей (псевдонимов)
+ */
+function voxi_env(string|array $keys, string $default = ''): string
+{
+    $keyList = is_array($keys) ? $keys : [$keys];
+
+    foreach ($keyList as $k) {
+        if (isset($GLOBALS['VOXI_DOTENV'][$k]) && (string)$GLOBALS['VOXI_DOTENV'][$k] !== '') {
+            return (string)$GLOBALS['VOXI_DOTENV'][$k];
+        }
+    }
+    foreach ($keyList as $k) {
+        if (isset($_ENV[$k]) && (string)$_ENV[$k] !== '') {
+            return (string)$_ENV[$k];
+        }
+    }
+    foreach ($keyList as $k) {
+        if (isset($_SERVER[$k]) && (string)$_SERVER[$k] !== '') {
+            return (string)$_SERVER[$k];
+        }
+    }
+    foreach ($keyList as $k) {
+        $val = getenv($k);
+        if ($val !== false && (string)$val !== '') {
+            return (string)$val;
+        }
+    }
+    return $default;
+}
+
+/**
+ * Загрузка переменных из .env (проверяет DOCUMENT_ROOT, корень сайта и родительскую папку)
  */
 function voxi_load_dotenv(): void
 {
-    $candidates = [
+    $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
+    // Проверяем файлы от общих к частным (чтобы более близкий .env переопределял)
+    $candidates = array_unique(array_filter([
         dirname(__DIR__, 2) . '/.env',
         dirname(__DIR__) . '/.env',
+        $docRoot !== '' ? dirname($docRoot) . '/.env' : '',
+        $docRoot !== '' ? "{$docRoot}/.env" : '',
         __DIR__ . '/.env',
-    ];
+    ]));
 
     foreach ($candidates as $envFile) {
         if (!is_file($envFile) || !is_readable($envFile)) {
@@ -42,12 +81,13 @@ function voxi_load_dotenv(): void
             ) {
                 $val = substr($val, 1, -1);
             }
-            if ($key !== '' && getenv($key) === false) {
-                putenv("{$key}={$val}");
+            if ($key !== '') {
+                $GLOBALS['VOXI_DOTENV'][$key] = $val;
+                @putenv("{$key}={$val}");
                 $_ENV[$key] = $val;
+                $_SERVER[$key] = $val;
             }
         }
-        break;
     }
 }
 
@@ -228,10 +268,13 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
 
 function voxi_get_pdo(array $cfg): PDO
 {
-    $host = trim((string)($cfg['db_host'] ?? 'localhost'));
+    $primaryHost = trim((string)($cfg['db_host'] ?? '127.0.0.1'));
+    if ($primaryHost === '') {
+        $primaryHost = '127.0.0.1';
+    }
     $port = trim((string)($cfg['db_port'] ?? '3306'));
-    $name = trim((string)($cfg['db_name'] ?? ''));
-    $user = trim((string)($cfg['db_user'] ?? ''));
+    $name = trim((string)($cfg['db_name'] ?? 'voxitest'));
+    $user = trim((string)($cfg['db_user'] ?? 'voxiadmin'));
     $pass = (string)($cfg['db_pass'] ?? '');
 
     $options = [
@@ -240,25 +283,21 @@ function voxi_get_pdo(array $cfg): PDO
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
 
-    $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
-    try {
-        $pdo = new PDO($dsn, $user, $pass, $options);
-    } catch (PDOException $e) {
-        // Если localhost не смог подключиться через UNIX сокет, пробуем TCP 127.0.0.1
-        if ($host === 'localhost') {
-            $dsnTcp = "mysql:host=127.0.0.1;port={$port};dbname={$name};charset=utf8mb4";
-            try {
-                $pdo = new PDO($dsnTcp, $user, $pass, $options);
-            } catch (PDOException $eTcp) {
-                throw new PDOException($eTcp->getMessage(), (int)$eTcp->getCode());
-            }
-        } else {
-            throw $e;
+    $hosts = array_values(array_unique([$primaryHost, '127.0.0.1', 'localhost']));
+    $lastException = null;
+
+    foreach ($hosts as $host) {
+        try {
+            $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
+            $pdo = new PDO($dsn, $user, $pass, $options);
+            voxi_ensure_schema($pdo, $name);
+            return $pdo;
+        } catch (Throwable $e) {
+            $lastException = $e;
         }
     }
 
-    voxi_ensure_schema($pdo, $name);
-    return $pdo;
+    throw ($lastException instanceof Exception ? $lastException : new Exception('Database connection failed: ' . ($lastException ? $lastException->getMessage() : 'unknown error')));
 }
 
 function voxi_extract_session_token(): string
