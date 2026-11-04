@@ -32,6 +32,25 @@ $userId = trim((string)($body['userId'] ?? 'guest')) ?: 'guest';
 $email = trim((string)($body['email'] ?? ''));
 $companyName = trim((string)($body['companyName'] ?? ''));
 
+// Серверная верификация пользователя из сессии: предотвращаем подделку userId клиентом
+if (voxi_is_db_configured($VOXI_CONFIG)) {
+    try {
+        $pdo = voxi_get_pdo($VOXI_CONFIG);
+        $authUser = voxi_find_authenticated_user($pdo);
+        if ($authUser) {
+            $userId = (string)$authUser['id'];
+            if ($email === '') {
+                $email = (string)$authUser['email'];
+            }
+            if ($companyName === '') {
+                $companyName = (string)$authUser['company_name'];
+            }
+        }
+    } catch (Throwable) {
+        // Fallback to sanitized payload
+    }
+}
+
 $minutes = 300;
 $amountByn = 120;
 $description = 'Пополнение баланса Voxi.by — 300 минут';

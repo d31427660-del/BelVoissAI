@@ -80,8 +80,8 @@ export const BelarusPhoneInput: React.FC<BelarusPhoneInputProps> = ({ id, value,
         helpExample="+375 (29) 112-44-55"
       />
 
-      {/* Quick Operator Pills */}
-      <div className="flex flex-wrap items-center gap-1 mb-1.5" role="group" aria-label="Код оператора Беларуси">
+      {/* Quick Operator Pills (Comfortable Mobile Touch Targets) */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-2" role="group" aria-label="Код оператора Беларуси">
         {BY_OPERATORS.map((op) => {
           const active = currentCode === op.code;
           return (
@@ -90,10 +90,10 @@ export const BelarusPhoneInput: React.FC<BelarusPhoneInputProps> = ({ id, value,
               type="button"
               aria-pressed={active}
               onClick={() => handleSelectOperator(op.code)}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-colors border ${
+              className={`px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition-all border ${
                 active
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border-slate-200'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200'
               }`}
             >
               +{op.code}

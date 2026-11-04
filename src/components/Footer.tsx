@@ -210,7 +210,7 @@ export const Footer: React.FC<FooterProps> = ({
         aria-labelledby="legal-modal-title"
         onClose={closeDocModal}
         onClick={handleBackdropClick}
-        className="w-full max-w-lg rounded-[36px] bg-[#ffffff] border border-[#e5e5ea] shadow-apple-hover p-0 text-[#1d1d1f] backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
+        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[28px] sm:rounded-[36px] bg-[#ffffff] border border-[#e5e5ea] shadow-apple-hover p-0 text-[#1d1d1f] backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
       >
         {activeDocModal && (
           <div>

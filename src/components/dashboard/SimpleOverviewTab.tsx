@@ -182,7 +182,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
           <button
             type="button"
-            onClick={() => onNavigateTab('agent')}
+            onClick={onOpenVoiceTest}
             className="p-4 rounded-2xl bg-slate-50/80 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-200 text-left transition-all group space-y-1.5"
           >
             <div className="flex items-center justify-between">
@@ -193,7 +193,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
               <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Проверяйте ответы на типовые вопросы клиентов в интерактивном симуляторе.
+              Позвоните боту прямо с экрана и проверьте ответы на вопросы голосом или текстом.
             </p>
           </button>
 

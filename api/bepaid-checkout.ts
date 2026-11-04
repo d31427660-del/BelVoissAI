@@ -39,7 +39,26 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { packageId, customMinutes, paymentMethod, userId, email, companyName } = body;
+    let { packageId, customMinutes, paymentMethod, userId, email, companyName } = body;
+
+    // Verify session token if present to prevent userId spoofing
+    const authHeader = req.headers?.authorization;
+    if (authHeader && typeof authHeader === 'string' && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const token = authHeader.replace(/^bearer\s+/i, '').trim();
+        if (token) {
+          const { createClient } = await import('@supabase/supabase-js');
+          const sb = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+          const { data } = await sb.auth.getUser(token);
+          if (data?.user?.id) {
+            userId = data.user.id;
+            if (!email) email = data.user.email;
+          }
+        }
+      } catch {
+        // Fallback to body-provided userId
+      }
+    }
 
     let minutes = 300;
     let amountByn = 120;

@@ -119,15 +119,24 @@ export function App() {
   // Call logs: real users get empty / DB logs; demo users get showcase logs + persisted live test calls
   const [callLogs, setCallLogs] = useState<CallLog[]>(() => {
     try {
+      const savedUser = localStorage.getItem(LOCAL_STORAGE_KEYS.DEMO_AUTH_USER);
+      const isDemo = savedUser ? Boolean(JSON.parse(savedUser)?.isMock) : true;
       const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.CALL_LOGS);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const existingIds = new Set(parsed.map((c: CallLog) => c.id));
-          const missingDemo = INITIAL_CALL_LOGS.filter((c) => !existingIds.has(c.id));
-          return [...parsed, ...missingDemo];
+          if (isDemo) {
+            const existingIds = new Set(parsed.map((c: CallLog) => c.id));
+            const missingDemo = INITIAL_CALL_LOGS.filter((c) => !existingIds.has(c.id));
+            return [...parsed, ...missingDemo];
+          }
+          // Real user: never inject fake mock demo calls
+          const realLogs = parsed.filter((c: CallLog) => !INITIAL_CALL_LOGS.some((m) => m.id === c.id));
+          return realLogs;
         }
       }
+      if (isDemo) return INITIAL_CALL_LOGS;
+      return [];
     } catch {
       // fallback
     }

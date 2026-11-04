@@ -525,7 +525,7 @@ if ($action === 'record_call') {
     $niche = mb_substr((string)($log['niche'] ?? 'driving_school'), 0, 64);
     $callerNumber = mb_substr(trim((string)($log['callerNumber'] ?? '+375 (29) 000-00-00')), 0, 64);
     $callerName = mb_substr(trim((string)($log['callerName'] ?? 'Клиент')), 0, 191);
-    $durationSec = max(0, (int)($log['durationSeconds'] ?? 0));
+    $durationSec = min(7200, max(0, (int)($log['durationSeconds'] ?? 0)));
     $status = in_array(($log['status'] ?? ''), ['lead_captured', 'consultation', 'forwarded', 'spam'], true)
         ? (string)$log['status']
         : 'consultation';
@@ -534,8 +534,9 @@ if ($action === 'record_call') {
     $capturedJson = json_encode($log['capturedData'] ?? new stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $transcriptJson = json_encode($log['transcript'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
+    $isTestCall = !empty($log['isTest']) || str_starts_with($callId, 'test-') || str_starts_with($callId, 'call-sim-');
     $rate = (float)$authUser['rate_per_minute'] > 0 ? (float)$authUser['rate_per_minute'] : 0.45;
-    $usedMinutes = max(0.25, round($durationSec / 60, 2));
+    $usedMinutes = $isTestCall ? 0.0 : max(0.25, round($durationSec / 60, 2));
     $costByn = round($usedMinutes * $rate, 2);
 
     $pdo->beginTransaction();
@@ -565,19 +566,32 @@ if ($action === 'record_call') {
                 $transcriptJson,
             ]);
 
-            $pdo->prepare(
-                'UPDATE users
-                 SET balance_minutes = GREATEST(0, balance_minutes - ?),
-                     spent_minutes = spent_minutes + ?,
-                     spent_total_byn = spent_total_byn + ?,
-                     updated_at = NOW()
-                 WHERE id = ?'
-            )->execute([$usedMinutes, $usedMinutes, $costByn, $userId]);
+            // Списание баланса минут производится только для реальных телефонных SIP-вызовов
+            if (!$isTestCall && $usedMinutes > 0) {
+                $pdo->prepare(
+                    'UPDATE users
+                     SET balance_minutes = GREATEST(0, balance_minutes - ?),
+                         spent_minutes = spent_minutes + ?,
+                         spent_total_byn = spent_total_byn + ?,
+                         updated_at = NOW()
+                     WHERE id = ?'
+                )->execute([$usedMinutes, $usedMinutes, $costByn, $userId]);
 
-            $pdo->prepare(
-                'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
-            )->execute([
+                $pdo->prepare(
+                    'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, description)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)'
+                )->execute([
+                    voxi_uuid(),
+                    $userId,
+                    'call',
+                    -$usedMinutes,
+                    -$costByn,
+                    'telephony_sip',
+                    "Входящий звонок: {$callerNumber} ({$durationSec} сек)",
+                ]);
+            }
+        }
+        $pdo->commit();
                 voxi_uuid(),
                 $userId,
                 'deduction',

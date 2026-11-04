@@ -314,7 +314,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       aria-labelledby="auth-modal-title"
       onClose={onClose}
       onClick={handleBackdropClick}
-      className="w-full max-w-md rounded-[40px] bg-[#ffffff] border border-[#e5e5ea] overflow-hidden shadow-2xl p-0 text-[#1d1d1f] backdrop:bg-black/50 backdrop:backdrop-blur-md open:animate-fadeIn m-auto"
+      className="w-[calc(100%-1.5rem)] max-w-md rounded-[32px] sm:rounded-[40px] bg-[#ffffff] border border-[#e5e5ea] overflow-hidden shadow-2xl p-0 text-[#1d1d1f] backdrop:bg-black/50 backdrop:backdrop-blur-md open:animate-fadeIn m-auto"
     >
       {/* Header */}
       <div className="px-7 py-5 border-b border-[#e5e5ea] flex items-center justify-between bg-[#ffffff]">

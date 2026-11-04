@@ -1,5 +1,75 @@
 // Vercel Serverless Function: /api/dispatch-webhook
 // Securely relays call leads and test payloads to external CRM / 1C / Make webhooks without browser CORS issues.
+// Protected against SSRF (Server-Side Request Forgery) attacks and rate-limited.
+
+import dns from 'node:dns/promises';
+
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const bucket = rateBuckets.get(ip);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (bucket.count >= 20) return false;
+  bucket.count += 1;
+  return true;
+}
+
+function isPrivateOrReservedIp(ip: string): boolean {
+  // IPv4 checks
+  if (ip.includes('.')) {
+    const parts = ip.split('.').map(Number);
+    if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return true;
+    const [a, b] = parts;
+    if (a === 0) return true; // 0.0.0.0/8
+    if (a === 127) return true; // 127.0.0.0/8 loopback
+    if (a === 10) return true; // 10.0.0.0/8 private
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
+    if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local & cloud metadata
+    if (a === 100 && b >= 64 && b <= 127) return true; // Carrier-grade NAT
+    if (a >= 224) return true; // Multicast & broadcast
+    return false;
+  }
+  // IPv6 checks
+  const lower = ip.toLowerCase();
+  if (lower === '::1' || lower === '::' || lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) {
+    return true;
+  }
+  return false;
+}
+
+async function validateWebhookUrlSafety(rawUrl: string): Promise<{ safe: boolean; error?: string }> {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return { safe: false, error: 'Разрешены только протоколы https:// или http://' };
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname.endsWith('.localhost') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
+    ) {
+      return { safe: false, error: 'Запрещено отправлять вебхуки на локальные и внутренние адреса' };
+    }
+
+    // Resolve DNS and check all IPs
+    const lookup = await dns.lookup(hostname, { all: true });
+    for (const record of lookup) {
+      if (isPrivateOrReservedIp(record.address)) {
+        return { safe: false, error: 'Запрещено обращаться к закрытым IP-адресам внутренней сети' };
+      }
+    }
+    return { safe: true };
+  } catch {
+    return { safe: false, error: 'Не удалось разрешить адрес узла вебхука' };
+  }
+}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -7,6 +77,15 @@ export default async function handler(req: any, res: any) {
     res.setHeader('Allow', 'POST');
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+    return;
+  }
+
+  const forwarded = req.headers?.['x-forwarded-for'];
+  const clientIp = (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]) || 'anon';
+  if (!checkRateLimit(clientIp)) {
+    res.statusCode = 429;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ error: 'Слишком много запросов. Подождите минуту перед повтором' }));
     return;
   }
 
@@ -18,6 +97,14 @@ export default async function handler(req: any, res: any) {
       res.statusCode = 400;
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.end(JSON.stringify({ error: 'Укажите корректный URL-адрес обработчика (начинающийся с https:// или http://)' }));
+      return;
+    }
+
+    const safety = await validateWebhookUrlSafety(webhookUrl.trim());
+    if (!safety.safe) {
+      res.statusCode = 400;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ error: safety.error || 'Небезопасный URL вебхука' }));
       return;
     }
 

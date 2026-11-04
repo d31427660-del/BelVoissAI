@@ -8,6 +8,46 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     voxi_json(['error' => 'Method Not Allowed'], 405);
 }
 
+function voxi_is_private_or_internal_ip(string $ip): bool
+{
+    // Filter private and reserved ranges
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return true;
+    }
+    // Block AWS/GCP/Azure link-local metadata (169.254.169.254)
+    if (str_starts_with($ip, '169.254.') || str_starts_with($ip, '127.')) {
+        return true;
+    }
+    return false;
+}
+
+function voxi_validate_webhook_safety(string $url): ?string
+{
+    $parts = parse_url($url);
+    if (!$parts || empty($parts['host']) || empty($parts['scheme'])) {
+        return 'Некорректный адрес вебхука';
+    }
+    $scheme = strtolower($parts['scheme']);
+    if ($scheme !== 'https' && $scheme !== 'http') {
+        return 'Разрешены только https:// или http:// протоколы';
+    }
+    $host = strtolower($parts['host']);
+    if ($host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
+        return 'Запрещено обращаться к локальным адресам';
+    }
+
+    $ips = @gethostbynamel($host);
+    if (!is_array($ips) || empty($ips)) {
+        return 'Не удалось определить IP-адрес узла вебхука';
+    }
+    foreach ($ips as $ip) {
+        if (voxi_is_private_or_internal_ip($ip)) {
+            return 'Запрещено обращаться к закрытым IP-адресам внутренней сети хостинга';
+        }
+    }
+    return null;
+}
+
 $body = voxi_read_json_body();
 $webhookUrl = trim((string)($body['webhookUrl'] ?? ''));
 $secretKey = trim((string)($body['secretKey'] ?? ''));
@@ -17,6 +57,11 @@ $isTest = !empty($body['isTest']);
 
 if ($webhookUrl === '' || !preg_match('/^https?:\/\//i', $webhookUrl)) {
     voxi_json(['error' => 'Укажите корректный URL-адрес обработчика (начинающийся с https:// или http://)'], 400);
+}
+
+$safetyErr = voxi_validate_webhook_safety($webhookUrl);
+if ($safetyErr !== null) {
+    voxi_json(['error' => $safetyErr], 400);
 }
 
 $clientName = (string)($lead['clientName'] ?? 'Тестовый клиент');

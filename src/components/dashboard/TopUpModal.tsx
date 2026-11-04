@@ -387,7 +387,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
       aria-labelledby="topup-modal-title"
       onClose={onClose}
       onClick={handleBackdropClick}
-      className="w-full max-w-xl rounded-[40px] bg-white border border-slate-200 shadow-2xl overflow-hidden p-0 text-slate-900 backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
+      className="w-[calc(100%-1.5rem)] max-w-xl rounded-[32px] sm:rounded-[40px] bg-white border border-slate-200 shadow-2xl overflow-hidden p-0 text-slate-900 backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
     >
       <div className="max-h-[90vh] flex flex-col">
         {/* Header */}

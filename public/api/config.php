@@ -5,7 +5,7 @@
  * Переменные читаются автоматически из:
  * 1. .env файла (в корне сайта или рядом с www)
  * 2. getenv(), $_ENV, $_SERVER
- * 3. Дефолтных значений из ISPmanager (voxitest / voxiadmin / voxiadminuser)
+ * 3. Настроек в ISPmanager / окружения хостинга
  *
  * Все 6 таблиц создаются АВТОМАТИЧЕСКИ при первом открытии сайта!
  */
@@ -24,7 +24,7 @@ return [
     'db_port' => $fnEnv ? voxi_env(['DB_PORT', 'MYSQL_PORT'], '3306') : (getenv('DB_PORT') ?: '3306'),
     'db_name' => $fnEnv ? voxi_env(['DB_NAME', 'DB_DATABASE', 'MYSQL_DATABASE'], 'voxitest') : (getenv('DB_NAME') ?: 'voxitest'),
     'db_user' => $fnEnv ? voxi_env(['DB_USER', 'DB_USERNAME', 'MYSQL_USER'], 'voxiadmin') : (getenv('DB_USER') ?: 'voxiadmin'),
-    'db_pass' => $fnEnv ? voxi_env(['DB_PASS', 'DB_PASSWORD', 'MYSQL_PASSWORD', 'DB_PWD'], 'voxiadminuser') : (getenv('DB_PASS') ?: 'voxiadminuser'),
+    'db_pass' => $fnEnv ? voxi_env(['DB_PASS', 'DB_PASSWORD', 'MYSQL_PASSWORD', 'DB_PWD'], '') : (getenv('DB_PASS') ?: ''),
 
     // --- 2. Yandex SpeechKit + YandexGPT Lite (опционально) ---
     'yandex_api_key'   => $fnEnv ? voxi_env(['YANDEX_GPT_API_KEY', 'YANDEX_API_KEY']) : (getenv('YANDEX_GPT_API_KEY') ?: (getenv('YANDEX_API_KEY') ?: '')),

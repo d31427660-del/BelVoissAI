@@ -450,6 +450,10 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     if (typeof HTMLDialogElement !== 'undefined' && !('closedBy' in HTMLDialogElement.prototype)) {
       handleBackdropClick = (event: MouseEvent) => {
         if (event.target !== dialog) return;
+        // Do not drop ongoing call on accidental backdrop click
+        if (callStateRef.current === 'connected' || callStateRef.current === 'dialing') {
+          return;
+        }
         const rect = dialog.getBoundingClientRect();
         const isDialogContent =
           rect.top <= event.clientY &&
@@ -494,7 +498,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      {...({ closedby: 'any' } as any)}
+      {...(callState !== 'connected' && callState !== 'dialing' ? ({ closedby: 'any' } as any) : {})}
       className="m-auto w-[calc(100%-1.5rem)] max-w-lg rounded-3xl bg-white text-slate-900 border border-slate-200/90 shadow-2xl shadow-slate-900/15 p-0 overflow-hidden backdrop:bg-slate-900/35 backdrop:backdrop-blur-xs"
     >
       <div className="flex flex-col max-h-[90vh]">
@@ -674,16 +678,24 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 >
                   <motion.span
                     animate={{
-                      scale: isBotSpeaking
+                      scale: isBotThinking
+                        ? [1, 1.28, 1]
+                        : isBotSpeaking
                         ? [1, 1.24, 1]
                         : !isMuted && audioLevel > 5
                         ? [1, 1.18, 1]
                         : [1, 1.05, 1],
-                      opacity: isBotSpeaking ? [0.45, 0.15, 0.45] : [0.3, 0.1, 0.3],
+                      opacity: isBotThinking
+                        ? [0.55, 0.2, 0.55]
+                        : isBotSpeaking
+                        ? [0.45, 0.15, 0.45]
+                        : [0.3, 0.1, 0.3],
                     }}
-                    transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+                    transition={{ repeat: Infinity, duration: isBotThinking ? 0.9 : 1.6, ease: 'easeInOut' }}
                     className={`absolute inset-0 rounded-full ${
-                      isBotSpeaking
+                      isBotThinking
+                        ? 'bg-indigo-300'
+                        : isBotSpeaking
                         ? 'bg-blue-200'
                         : !isMuted
                         ? 'bg-emerald-200'
@@ -692,14 +704,18 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   />
                   <span
                     className={`relative w-18 h-18 rounded-full flex items-center justify-center border shadow-sm transition-all ${
-                      isBotSpeaking
+                      isBotThinking
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-500/25'
+                        : isBotSpeaking
                         ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/25'
                         : !isMuted
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-emerald-500/25'
                         : 'bg-slate-100 text-slate-500 border-slate-300'
                     }`}
                   >
-                    {isBotSpeaking ? (
+                    {isBotThinking ? (
+                      <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    ) : isBotSpeaking ? (
                       <Volume2 className="w-8 h-8 animate-pulse" />
                     ) : !isMuted ? (
                       <Mic className="w-8 h-8" />
