@@ -1,0 +1,111 @@
+# ==============================================================================
+# Voxi.by — Apache .htaccess for hoster.by Shared Hosting (тариф «Стандарт»)
+# ==============================================================================
+
+# 1. UTF-8 по умолчанию
+AddDefaultCharset UTF-8
+DefaultLanguage ru
+
+# 2. MIME-типы для современных веб-приложений и аудио
+<IfModule mod_mime.c>
+  AddType text/html .html .htm
+  AddType text/css .css
+  AddType application/javascript .js .mjs
+  AddType application/json .json
+  AddType audio/mpeg .mp3
+  AddType audio/wav .wav
+  AddType image/svg+xml .svg .svgz
+  AddType image/webp .webp
+  AddType image/png .png
+  AddType application/manifest+json .webmanifest
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+</IfModule>
+
+# 3. Сжатие Gzip / Deflate для максимальной скорости загрузки
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript text/javascript
+  AddOutputFilterByType DEFLATE application/json application/xml application/xhtml+xml
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# 4. Кэширование статических ресурсов
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+
+  # HTML всегда свежий (SPA updates)
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/json "access plus 0 seconds"
+
+  # Хэшированные ассеты Vite (assets/*.js, assets/*.css) — вечный кэш
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+
+  # Аудиофайлы и шрифты
+  ExpiresByType audio/mpeg "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+
+  # Изображения
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/x-icon "access plus 1 month"
+</IfModule>
+
+# 5. Заголовки безопасности и разрешений
+<IfModule mod_headers.c>
+  # Разрешение микрофона (КРИТИЧНО для голосового бота Voxi)
+  Header always set Permissions-Policy "microphone=(self), camera=(), geolocation=()"
+  
+  # Защита от clickjacking и MIME-sniffing
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  
+  # Кэш-контроль для index.html
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Долгосрочный кэш для хэшированных файлов assets
+  <FilesMatch "\.(js|css|woff2|woff)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# 6. Роутинг Single Page Application (SPA)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 6.1. Принудительный HTTPS (если подключён бесплатный SSL в hoster.by)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 6.2. Проксирование /api/ запросов на продакшен-бэкенд (если включён mod_proxy)
+  # Позволяет бесплатному тарифу хостинга отдавать статику со скоростью CDN,
+  # а серверные запросы (bePaid, LLM, TTS) направлять в облачный рантайм Vercel
+  <IfModule mod_proxy.c>
+    RewriteRule ^api/(.*)$ https://telerobot.vercel.app/api/$1 [P,L]
+  </IfModule>
+
+  # 6.3. Не перенаправлять существующие файлы и папки
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 6.4. Все остальные маршруты отдают index.html (React Router)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# 7. Защита служебных файлов от прямого скачивания
+<FilesMatch "^\.">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
