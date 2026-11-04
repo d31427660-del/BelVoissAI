@@ -284,7 +284,7 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPackage, onOpenAuth })
             href="#calculator"
             className="px-6 py-3 rounded-full bg-[#ffffff] border border-blue-200 hover:border-[#2563eb] text-[#2563eb] font-semibold whitespace-nowrap transition-colors shadow-xs"
           >
-            Сравнить с зарплатой админа →
+            Сравнить с зарплатой администратора →
           </a>
         </div>
 

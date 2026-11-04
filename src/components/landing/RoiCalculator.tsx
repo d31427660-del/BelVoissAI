@@ -6,7 +6,7 @@ interface RoiCalculatorProps {
 }
 
 export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
-  const [calcMode, setCalcMode] = useState<'backup' | 'replace_admin'>('backup');
+  const calcMode = 'replace_admin';
   const [missedCalls, setMissedCalls] = useState<number>(45);
   const [avgCheck, setAvgCheck] = useState<number>(250);
 
@@ -72,69 +72,29 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
             
             {/* Left Column: Mode Radio + Sliders */}
             <div className="lg:col-span-6 space-y-5">
-              {/* Scenario Radio Selector (< 6 mutually exclusive options -> visible radio buttons) */}
-              <fieldset className="p-4 rounded-[28px] bg-[#ffffff] border border-slate-200/70">
-                <legend className="text-xs font-semibold text-[#1d1d1f] px-1 mb-2">
+              {/* Scenario Selector */}
+              <div className="p-4 sm:p-5 rounded-[28px] bg-[#ffffff] border border-slate-200/70 space-y-2.5">
+                <div className="text-xs font-semibold text-slate-500">
                   Режим работы ИИ-администратора:
-                </legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {[
-                    {
-                      id: 'backup' as const,
-                      title: 'Перехват пропущенных',
-                      desc: 'Вечер, выходные и когда занято'
-                    },
-                    {
-                      id: 'replace_admin' as const,
-                      title: 'Замена штатного админа',
-                      desc: 'Весь поток звонков 24/7 + экономия ФОТ'
-                    }
-                  ].map((opt) => {
-                    const isSelected = calcMode === opt.id;
-                    const radioId = `roi-mode-${opt.id}`;
-                    return (
-                      <label
-                        key={opt.id}
-                        htmlFor={radioId}
-                        className={`p-3 rounded-2xl border cursor-pointer transition-all block ${
-                          isSelected
-                            ? 'border-[#2563eb] bg-blue-50/70 shadow-2xs'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <input
-                          id={radioId}
-                          type="radio"
-                          name="roiCalcMode"
-                          value={opt.id}
-                          checked={isSelected}
-                          onChange={() => setCalcMode(opt.id)}
-                          className="visually-hidden"
-                        />
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`text-xs font-bold ${isSelected ? 'text-[#2563eb]' : 'text-[#1d1d1f]'}`}>
-                            {opt.title}
-                          </span>
-                          <span
-                            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
-                              isSelected ? 'border-[#2563eb] bg-[#2563eb]' : 'border-slate-300 bg-white'
-                            }`}
-                          >
-                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-[#86868b] mt-0.5">{opt.desc}</div>
-                      </label>
-                    );
-                  })}
                 </div>
-              </fieldset>
+                <div className="p-3.5 sm:p-4 rounded-2xl border border-[#2563eb] bg-blue-50/70 flex items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] animate-pulse shrink-0" />
+                    <span className="text-xs sm:text-sm font-bold text-[#2563eb] truncate">
+                      Замена штатного администратора
+                    </span>
+                  </div>
+                  <span className="w-4 h-4 rounded-full border border-[#2563eb] bg-[#2563eb] flex items-center justify-center shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                  </span>
+                </div>
+              </div>
 
               {/* Slider 1 */}
               <div className="space-y-3 p-6 rounded-[32px] bg-[#ffffff] border border-slate-200/70">
                 <div className="flex justify-between items-center">
                   <label htmlFor="roi-missed-calls" className="text-xs font-medium text-[#1d1d1f]">
-                    Пропущенные (вечерние) звонки в месяц
+                    Пропущенные звонки в месяц
                   </label>
                   <span className="text-sm font-bold text-[#2563eb] bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
                     {missedCalls} звонков
