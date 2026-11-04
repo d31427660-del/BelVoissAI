@@ -99,6 +99,11 @@ function voxi_load_workspace_bundle(PDO $pdo, array $userRow): array
             'status' => (string)($r['status'] ?: 'consultation'),
             'dealValueByn' => round((float)($r['deal_value_byn'] ?? 0), 2),
             'summary' => (string)($r['summary'] ?? ''),
+            'sentiment' => (string)($captured['sentiment'] ?? 'neutral'),
+            'tags' => isset($captured['tags']) && is_array($captured['tags']) ? $captured['tags'] : [],
+            'followUpSent' => !empty($captured['followUpSent']),
+            'followUpChannel' => (string)($captured['followUpChannel'] ?? 'none'),
+            'followUpText' => (string)($captured['followUpText'] ?? ''),
             'capturedData' => is_array($captured) ? $captured : [],
             'transcript' => is_array($transcript) ? $transcript : [],
         ];
@@ -531,7 +536,19 @@ if ($action === 'record_call') {
         : 'consultation';
     $dealValueByn = max(0.0, (float)($log['dealValueByn'] ?? 0));
     $summary = (string)($log['summary'] ?? '');
-    $capturedJson = json_encode($log['capturedData'] ?? new stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $captured = is_array($log['capturedData'] ?? null) ? $log['capturedData'] : [];
+    if (!empty($log['sentiment'])) {
+        $captured['sentiment'] = $log['sentiment'];
+    }
+    if (!empty($log['tags']) && is_array($log['tags'])) {
+        $captured['tags'] = $log['tags'];
+    }
+    if (isset($log['followUpSent'])) {
+        $captured['followUpSent'] = (bool)$log['followUpSent'];
+        $captured['followUpChannel'] = (string)($log['followUpChannel'] ?? 'none');
+        $captured['followUpText'] = (string)($log['followUpText'] ?? '');
+    }
+    $capturedJson = json_encode($captured, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $transcriptJson = json_encode($log['transcript'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     $isTestCall = !empty($log['isTest']) || str_starts_with($callId, 'test-') || str_starts_with($callId, 'call-sim-');
