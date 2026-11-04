@@ -47,6 +47,13 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
     fallbackEnabled: sipSettings.fallbackEnabled ?? true,
     fallbackPhone: sipSettings.fallbackPhone || '+375 (29) 700-11-22',
     fallbackTrigger: sipSettings.fallbackTrigger || 'human_request',
+    warmTransferEnabled: sipSettings.warmTransferEnabled ?? true,
+    transferPhone: sipSettings.transferPhone || sipSettings.fallbackPhone || '+375 (29) 700-11-22',
+    whisperMessage: sipSettings.whisperMessage || 'Секунду, перевожу звонок на дежурного менеджера, пожалуйста, оставайтесь на линии...',
+    sendTelegramSummaryOnTransfer: sipSettings.sendTelegramSummaryOnTransfer ?? true,
+    amdEnabled: sipSettings.amdEnabled ?? true,
+    amdSensitivity: sipSettings.amdSensitivity || 'high',
+    amdHangupImmediately: sipSettings.amdHangupImmediately ?? true,
     piiMaskingEnabled: sipSettings.piiMaskingEnabled ?? true,
     recordingDisclaimerEnabled: sipSettings.recordingDisclaimerEnabled ?? true,
     disclaimerText:
@@ -1038,6 +1045,43 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
           )}
         </div>
 
+        <div className="pt-2 border-t border-slate-100 space-y-3">
+          <div>
+            <FieldLabel
+              htmlFor="fallback-whisper"
+              label="Фраза бота клиенту перед переводом (Whisper)"
+              helpTitle="Что бот произносит абоненту"
+              helpText="Эту фразу бот скажет клиенту, пока система набирает номер вашего дежурного сотрудника."
+              helpExample="Секунду, перевожу звонок на дежурного менеджера, пожалуйста, оставайтесь на линии..."
+            />
+            <input
+              id="fallback-whisper"
+              type="text"
+              value={localSip.whisperMessage || ''}
+              onChange={(e) => setLocalSip({ ...localSip, whisperMessage: e.target.value })}
+              placeholder="Секунду, перевожу звонок на дежурного менеджера, пожалуйста, оставайтесь на линии..."
+              className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-800">
+                Отправлять сводку диалога сотруднику в Telegram перед переводом
+              </span>
+              <p className="text-[11px] text-slate-500">
+                Сотрудник увидит имя звонящего, причину перевода и краткую суть разговора до поднятия трубки.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={localSip.sendTelegramSummaryOnTransfer !== false}
+              onChange={(e) => setLocalSip({ ...localSip, sendTelegramSummaryOnTransfer: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 accent-blue-600"
+            />
+          </div>
+        </div>
+
         {/* Collapsible Secondary Legal & Recording Settings */}
         <details className="group border border-slate-200/80 rounded-xl bg-slate-50/50 overflow-hidden">
           <summary className="list-none cursor-pointer p-3.5 flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100/70 transition-colors">
@@ -1122,6 +1166,71 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
             </div>
           </div>
         </details>
+      </fieldset>
+
+      {/* STEP 4: Answering Machine Detection (AMD) */}
+      <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 border border-purple-200/80 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <legend className="text-sm font-bold text-slate-900">
+                Шаг 4. Защита от автоответчиков (AMD)
+              </legend>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Мгновенный сброс звонка при срабатывании голосовой почты мобильных операторов РБ
+              </p>
+            </div>
+          </div>
+
+          <label htmlFor="amd-enabled-checkbox" className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer shrink-0">
+            <input
+              id="amd-enabled-checkbox"
+              name="amdEnabled"
+              type="checkbox"
+              checked={localSip.amdEnabled !== false}
+              onChange={(e) => setLocalSip({ ...localSip, amdEnabled: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 accent-purple-600"
+            />
+            <span>Защита AMD включена</span>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-950">
+                Мгновенный сброс (0 BYN списания)
+              </span>
+              <input
+                type="checkbox"
+                checked={localSip.amdHangupImmediately !== false}
+                onChange={(e) => setLocalSip({ ...localSip, amdHangupImmediately: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 accent-purple-600"
+              />
+            </div>
+            <p className="text-[11px] text-purple-900 leading-relaxed">
+              При фразах «Абонент временно недоступен», «Вызываемый абонент отключен» или «Оставьте сообщение после сигнала» бот кладет трубку за 1-2 секунды, не тратя оплаченные минуты.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <span className="text-xs font-bold text-slate-900">
+              Поддерживаемые операторы РБ
+            </span>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-100 text-red-800 border border-red-200">МТС РБ</span>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-yellow-100 text-yellow-900 border border-yellow-200">А1 РБ</span>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">life:) РБ</span>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Белтелеком</span>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Экономия до 18-25% бюджета на исходящих обзвонах и перехватах.
+            </p>
+          </div>
+        </div>
       </fieldset>
     </form>
   );

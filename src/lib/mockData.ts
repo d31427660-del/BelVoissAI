@@ -684,6 +684,11 @@ export const INITIAL_CALL_LOGS: CallLog[] = [
     sentiment: 'negative',
     tags: ['Претензия', 'Перевод', 'Срочно'],
     followUpSent: false,
+    transferDetails: {
+      targetPhone: '+375 (29) 700-11-22',
+      reason: 'conflict',
+      summarySentToStaff: true
+    },
     capturedData: {
       clientName: 'Павел Василевский',
       phone: '+375 (29) 554-12-88',
@@ -720,6 +725,36 @@ export const INITIAL_CALL_LOGS: CallLog[] = [
       { speaker: 'caller', text: 'Добрый день, предлагаем оптовые поставки офисной бумаги SvetoCopy в Минске...', time: '0:08' },
       { speaker: 'assistant', text: 'Спасибо за предложение, но наша компания не заинтересована в закупках бумаги. Хорошего дня!', time: '0:17' }
     ]
+  },
+  {
+    id: 'call-bel-amd-108',
+    niche: 'auto_service',
+    callerNumber: '+375 (29) 991-00-11',
+    callerName: 'МТС Автоответчик (Исходящий)',
+    timestamp: '2026-10-23 15:10',
+    durationSeconds: 3,
+    audioDuration: '0:03',
+    status: 'voicemail_detected',
+    dealValueByn: 0,
+    costByn: 0.00,
+    summary: 'Сработал автоответчик оператора МТС («Абонент временно недоступен»). Бот мгновенно положил трубку, баланс минут защищен (0 BYN списано).',
+    sentiment: 'neutral',
+    tags: ['AMD', 'Автоответчик МТС', '0 BYN', 'Защита минут'],
+    followUpSent: false,
+    amdDetails: {
+      detected: true,
+      carrierName: 'МТС Беларусь',
+      detectedPhrase: 'Абонент временно недоступен, пожалуйста, перезвоните позже',
+      savedCostByn: 0.45
+    },
+    capturedData: {
+      service: 'Определение автоответчика AMD',
+      urgency: 'normal'
+    },
+    transcript: [
+      { speaker: 'caller', text: 'Вас приветствует МТС. Абонент временно недоступен. Пожалуйста, оставьте сообщение после сигнала...', time: '0:01' },
+      { speaker: 'assistant', text: '[AMD Детектор]: Обнаружен автоответчик сотового оператора. Мгновенный сброс для защиты минут бизнеса.', time: '0:02' }
+    ]
   }
 ];
 
@@ -737,6 +772,30 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
   workingHours: NICHE_TEMPLATES.driving_school.workingHours,
   pricingAndServices: NICHE_TEMPLATES.driving_school.pricingAndServices,
   knowledgeBase: NICHE_TEMPLATES.driving_school.knowledgeBase,
+  knowledgeDocuments: [
+    {
+      id: 'doc-drive-price',
+      name: 'Прайс-лист_и_условия_рассрочки_2026.pdf',
+      sizeKb: 340,
+      type: 'pdf',
+      uploadedAt: '2026-10-20 14:10',
+      status: 'ready',
+      extractedText: 'ПРАЙС-ЛИСТ АВТОШКОЛЫ «ДРАЙВ-МИНСК»:\n1. Полный курс кат. B (механика) — 1050 BYN (рассрочка на 4 этапа по 262.50 BYN).\n2. Полный курс кат. B (автомат) — 1150 BYN.\n3. Восстановление навыков вождения — 220 BYN (пакет из 5 занятий).\nФилиалы: Сурганова, 24 и пр-т Дзержинского, 104.',
+      summary: 'Тарифы на кат. B, условия 4-этапной рассрочки и адреса 2 филиалов.',
+      chunkCount: 3
+    },
+    {
+      id: 'doc-drive-faq',
+      name: 'Регламент_медкомиссии_24_поликлиника.docx',
+      sizeKb: 120,
+      type: 'docx',
+      uploadedAt: '2026-10-21 09:30',
+      status: 'ready',
+      extractedText: 'СПИСОК ДОКУМЕНТОВ ДЛЯ МЕДКОМИССИИ (ул. Филимонова, 53):\nПаспорт гражданина РБ, 2 матовые фотографии 3х4 см, выписка из поликлиники по месту жительства за последние 5 лет.',
+      summary: 'Требования к медкомиссии водителей.',
+      chunkCount: 1
+    }
+  ],
   firstMessage: NICHE_TEMPLATES.driving_school.firstMessage,
   systemPrompt: '',
   phoneticRules: [
@@ -768,6 +827,19 @@ export const DEFAULT_SIP_SETTINGS: SipSettings = {
   fallbackEnabled: true,
   fallbackPhone: '+375 (29) 700-11-22',
   fallbackTrigger: 'human_request',
+  // Warm Handoff & SIP Transfer
+  warmTransferEnabled: true,
+  transferNumber: '+375 (29) 700-11-22',
+  transferPhone: '+375 (29) 700-11-22',
+  transferTriggers: ['human_request', 'conflict_or_complaint', 'complex_query'],
+  whisperMessage: 'Минутку, перевожу вас на старшего администратора. Я уже передаю коллеге суть вопроса, оставайтесь на линии...',
+  sendSummaryBeforeTransfer: true,
+  sendTelegramSummaryOnTransfer: true,
+  // AMD - Answering Machine Detection
+  amdEnabled: true,
+  amdSensitivity: 'normal',
+  amdHangupImmediately: true,
+  amdProtectMinutes: true,
   piiMaskingEnabled: true,
   recordingDisclaimerEnabled: true,
   disclaimerText: 'В целях контроля качества обслуживания разговор записывается согласно Закону № 99-З.'

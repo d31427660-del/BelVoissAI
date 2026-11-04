@@ -1,4 +1,4 @@
-import{M as F,_ as Z}from"./index-DfKANDlE.js";import{r as i,j as e,v as U,d as ee,n as v,ac as te,a1 as se,a3 as le,ad as ne,F as ae,ae as ie,af as re,o as oe}from"./icons-Ci6fRXMZ.js";import"./vendor-CUhgEvHs.js";import"./motion-YXnOzh9R.js";import"./supabase-s3XNS0mn.js";function X(N){const{invoiceNo:r,invoiceDate:n,companyName:a,unp:h,userEmail:u,minutes:f,ratePerMinute:o,totalByn:x}=N;return`<!DOCTYPE html>
+import{M as F,_ as Z}from"./index-DZR-K-iE.js";import{r as i,j as e,v as U,d as ee,n as v,ae as te,a3 as se,a5 as le,af as ne,F as ae,ag as ie,ah as re,o as oe}from"./icons-DWqaJcTh.js";import"./vendor-CO5mzzrs.js";import"./motion-DlrfMMYJ.js";import"./supabase-s3XNS0mn.js";function X(N){const{invoiceNo:r,invoiceDate:n,companyName:a,unp:h,userEmail:u,minutes:f,ratePerMinute:o,totalByn:x}=N;return`<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">

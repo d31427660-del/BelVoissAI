@@ -104,6 +104,8 @@ function voxi_load_workspace_bundle(PDO $pdo, array $userRow): array
             'followUpSent' => !empty($captured['followUpSent']),
             'followUpChannel' => (string)($captured['followUpChannel'] ?? 'none'),
             'followUpText' => (string)($captured['followUpText'] ?? ''),
+            'transferDetails' => isset($captured['transferDetails']) && is_array($captured['transferDetails']) ? $captured['transferDetails'] : null,
+            'amdDetails' => isset($captured['amdDetails']) && is_array($captured['amdDetails']) ? $captured['amdDetails'] : null,
             'capturedData' => is_array($captured) ? $captured : [],
             'transcript' => is_array($transcript) ? $transcript : [],
         ];
@@ -531,7 +533,7 @@ if ($action === 'record_call') {
     $callerNumber = mb_substr(trim((string)($log['callerNumber'] ?? '+375 (29) 000-00-00')), 0, 64);
     $callerName = mb_substr(trim((string)($log['callerName'] ?? 'Клиент')), 0, 191);
     $durationSec = min(7200, max(0, (int)($log['durationSeconds'] ?? 0)));
-    $status = in_array(($log['status'] ?? ''), ['lead_captured', 'consultation', 'forwarded', 'spam'], true)
+    $status = in_array(($log['status'] ?? ''), ['lead_captured', 'consultation', 'forwarded', 'spam', 'voicemail_detected'], true)
         ? (string)$log['status']
         : 'consultation';
     $dealValueByn = max(0.0, (float)($log['dealValueByn'] ?? 0));
@@ -548,13 +550,20 @@ if ($action === 'record_call') {
         $captured['followUpChannel'] = (string)($log['followUpChannel'] ?? 'none');
         $captured['followUpText'] = (string)($log['followUpText'] ?? '');
     }
+    if (!empty($log['transferDetails']) && is_array($log['transferDetails'])) {
+        $captured['transferDetails'] = $log['transferDetails'];
+    }
+    if (!empty($log['amdDetails']) && is_array($log['amdDetails'])) {
+        $captured['amdDetails'] = $log['amdDetails'];
+    }
     $capturedJson = json_encode($captured, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $transcriptJson = json_encode($log['transcript'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
+    $isVoicemail = ($status === 'voicemail_detected');
     $isTestCall = !empty($log['isTest']) || str_starts_with($callId, 'test-') || str_starts_with($callId, 'call-sim-');
     $rate = (float)$authUser['rate_per_minute'] > 0 ? (float)$authUser['rate_per_minute'] : 0.45;
-    $usedMinutes = $isTestCall ? 0.0 : max(0.25, round($durationSec / 60, 2));
-    $costByn = round($usedMinutes * $rate, 2);
+    $usedMinutes = ($isTestCall || $isVoicemail) ? 0.0 : max(0.25, round($durationSec / 60, 2));
+    $costByn = $isVoicemail ? 0.0 : round($usedMinutes * $rate, 2);
 
     $pdo->beginTransaction();
     try {
@@ -583,8 +592,8 @@ if ($action === 'record_call') {
                 $transcriptJson,
             ]);
 
-            // Списание баланса минут производится только для реальных телефонных SIP-вызовов
-            if (!$isTestCall && $usedMinutes > 0) {
+            // Списание баланса минут производится только для реальных телефонных SIP-вызовов (автоответчик не списывает минуты)
+            if (!$isTestCall && !$isVoicemail && $usedMinutes > 0) {
                 $pdo->prepare(
                     'UPDATE users
                      SET balance_minutes = GREATEST(0, balance_minutes - ?),
@@ -607,16 +616,6 @@ if ($action === 'record_call') {
                     "Входящий звонок: {$callerNumber} ({$durationSec} сек)",
                 ]);
             }
-        }
-        $pdo->commit();
-                voxi_uuid(),
-                $userId,
-                'deduction',
-                -$usedMinutes,
-                $costByn,
-                'call_usage',
-                "Звонок {$callerNumber} ({$durationSec} сек)",
-            ]);
         }
         $pdo->commit();
     } catch (Throwable $err) {

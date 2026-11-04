@@ -13,7 +13,9 @@ import {
   CloseCircleIcon as X,
   MagicWand3Icon as Sparkles,
   GraphNewUpIcon as TrendingUp,
-  WalletMoneyIcon as Wallet
+  WalletMoneyIcon as Wallet,
+  DocumentTextIcon as FileText,
+  CallChatIcon as CallTransfer
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession } from '../../types';
 import { SimpleOverviewTab } from './SimpleOverviewTab';
@@ -22,6 +24,8 @@ import { OverviewTab } from './OverviewTab';
 import { IntegrationsTab } from './IntegrationsTab';
 import { CallLogsTab } from './CallLogsTab';
 import { MysteryCallerTab } from './MysteryCallerTab';
+import { KnowledgeBaseTab } from './KnowledgeBaseTab';
+import { SipSettingsTab } from './SipSettingsTab';
 import { GuideModal } from './GuideModal';
 
 interface DashboardLayoutProps {
@@ -63,7 +67,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onExitToLanding,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'analytics' | 'integrations' | 'mystery'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'analytics' | 'integrations' | 'sip' | 'knowledge' | 'mystery'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
@@ -115,6 +119,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   ];
 
   const secondaryNavItems = [
+    {
+      id: 'knowledge' as const,
+      label: 'База знаний',
+      subtitle: 'PDF, Word и регламенты',
+      icon: <FileText className="w-4 h-4 shrink-0" />,
+      badge: (agent.knowledgeDocuments || []).length > 0 ? `${(agent.knowledgeDocuments || []).length}` : undefined
+    },
+    {
+      id: 'sip' as const,
+      label: 'SIP и перевод',
+      subtitle: 'Warm Handoff и AMD',
+      icon: <CallTransfer className="w-4 h-4 shrink-0" />,
+      badge: undefined
+    },
     {
       id: 'integrations' as const,
       label: 'Номер и заявки',
@@ -435,6 +453,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               telegramSettings={telegramSettings}
               onNavigateTab={(t) => setActiveTab(t as any)}
               onOpenTopUp={onOpenTopUp}
+            />
+          )}
+
+          {activeTab === 'knowledge' && (
+            <KnowledgeBaseTab
+              agent={agent}
+              onSaveAgent={onSaveAgent}
+            />
+          )}
+
+          {activeTab === 'sip' && (
+            <SipSettingsTab
+              sipSettings={sipSettings}
+              onSaveSip={onSaveSip}
+              onOpenVoiceTest={onOpenVoiceTest}
             />
           )}
 

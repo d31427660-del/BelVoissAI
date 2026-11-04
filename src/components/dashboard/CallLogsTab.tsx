@@ -13,6 +13,8 @@ import {
   SmileCircleIcon,
   DangerCircleIcon,
   TagIcon,
+  ShieldCheckIcon as ShieldCheck,
+  PhoneCallingRoundedIcon as Phone,
 } from '@solar-icons/react/bold-duotone';
 import { CallLog, AgentConfig, VoiceId, CallSentiment } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
@@ -180,6 +182,13 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
             Переведён сотруднику
           </span>
         );
+      case 'voicemail_detected':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+            Автоответчик (0 BYN)
+          </span>
+        );
       case 'spam':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
@@ -312,7 +321,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                 htmlFor="call-logs-filter-all"
                 label="Результат разговора"
                 helpTitle="Что означают статусы звонков"
-                helpText="«Заявка получена» — клиент оставил контакты и время записи. «Вопрос клиента» — бот ответил по ценам или графику. «Переведён сотруднику» — звонок переключили на живого менеджера. «Реклама / спам» — бот вежливо завершил нецелевой звонок."
+                helpText="«Заявка получена» — клиент оставил контакты и время записи. «Вопрос клиента» — бот ответил по ценам или графику. «Переведён сотруднику» — звонок переключили на живого менеджера. «Автоответчик» — сработал AMD (0 списанных минут). «Реклама / спам» — бот вежливо завершил нецелевой звонок."
               />
               <div
                 className="flex flex-wrap items-center gap-1.5"
@@ -324,6 +333,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   { id: 'lead_captured', label: 'Заявки' },
                   { id: 'consultation', label: 'Вопросы' },
                   { id: 'forwarded', label: 'Переведённые' },
+                  { id: 'voicemail_detected', label: 'Автоответчик (AMD)' },
                   { id: 'spam', label: 'Спам' }
                 ].map((f) => (
                   <button
@@ -676,6 +686,60 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                     </div>
                   )}
                 </div>
+
+                {/* AMD Details Card */}
+                {activeCallDetail.amdDetails?.detected && (
+                  <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-200/80 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-purple-900 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-purple-600" />
+                        <span>Автоответчик сотовой сети РБ (AMD)</span>
+                      </span>
+                      <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200">
+                        0 BYN • Баланс сохранён
+                      </span>
+                    </div>
+                    <p className="text-xs text-purple-950 leading-relaxed font-medium">
+                      Оператор: <span className="font-bold">{activeCallDetail.amdDetails.carrierName || 'Сотовая сеть РБ'}</span>
+                    </p>
+                    {activeCallDetail.amdDetails.detectedPhrase && (
+                      <p className="text-[11px] text-purple-900 font-mono bg-white/90 p-2.5 rounded-xl border border-purple-200/70 leading-relaxed">
+                        «{activeCallDetail.amdDetails.detectedPhrase}»
+                      </p>
+                    )}
+                    <p className="text-[11px] text-purple-700 leading-relaxed">
+                      Бот мгновенно определил автоответчик и положил трубку без списания тарифных минут бизнеса.
+                    </p>
+                  </div>
+                )}
+
+                {/* Warm Handoff / Transfer Details Card */}
+                {activeCallDetail.transferDetails && (
+                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-900 flex items-center gap-1.5">
+                        <Phone className="w-4 h-4 text-amber-600" />
+                        <span>Перевод вызова сотруднику (Warm Handoff)</span>
+                      </span>
+                      <span className="text-[10px] font-semibold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200">
+                        {activeCallDetail.transferDetails.reason === 'conflict'
+                          ? 'Претензия клиента'
+                          : activeCallDetail.transferDetails.reason === 'complex_query'
+                          ? 'Сложный запрос'
+                          : 'Запрос человека'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-950 leading-relaxed">
+                      Звонок переключен на номер: <span className="font-mono font-bold">{activeCallDetail.transferDetails.targetPhone}</span>
+                    </p>
+                    {activeCallDetail.transferDetails.summarySentToStaff && (
+                      <div className="p-2 rounded-xl bg-white/90 border border-amber-200/70 text-[11px] text-emerald-800 font-medium flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Резюме диалога и контекст вопроса переданы дежурному сотруднику до поднятия трубки</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Follow-up Message Card */}
                 {activeCallDetail.followUpSent && (

@@ -1182,3 +1182,6 @@ export const InteractiveServicesBuilder: React.FC<InteractiveServicesBuilderProp
     </div>
   );
 };
+
+export { KnowledgeBaseUploader } from './KnowledgeBaseUploader';
+

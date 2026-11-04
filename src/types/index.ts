@@ -28,6 +28,21 @@ export interface YclientsSlotConfig {
   selectedStaff?: string;
 }
 
+export interface KnowledgeDocument {
+  id: string;
+  name: string;
+  sizeKb: number;
+  type: 'pdf' | 'docx' | 'txt' | 'csv';
+  uploadedAt: string;
+  status: 'ready' | 'processing' | 'error';
+  extractedText: string;
+  parsedText?: string;
+  size?: string;
+  summary?: string;
+  chunkCount?: number;
+  chunks?: string[];
+}
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -42,6 +57,7 @@ export interface AgentConfig {
   workingHours: string;
   pricingAndServices: string;
   knowledgeBase: string;
+  knowledgeDocuments?: KnowledgeDocument[];
   firstMessage: string;
   systemPrompt: string;
   phoneticRules?: PhoneticRule[];
@@ -70,6 +86,19 @@ export interface SipSettings {
   fallbackEnabled: boolean;
   fallbackPhone: string;
   fallbackTrigger: 'human_request' | 'conflict_or_emergency' | 'all';
+  // Warm Handoff & SIP Transfer (Priority 2)
+  warmTransferEnabled: boolean;
+  transferNumber?: string;
+  transferPhone: string;
+  transferTriggers: ('human_request' | 'conflict' | 'conflict_or_complaint' | 'complex_query')[];
+  whisperMessage: string;
+  sendSummaryBeforeTransfer?: boolean;
+  sendTelegramSummaryOnTransfer: boolean;
+  // AMD - Answering Machine Detection (Priority 2)
+  amdEnabled: boolean;
+  amdSensitivity: 'normal' | 'high';
+  amdHangupImmediately: boolean;
+  amdProtectMinutes: boolean;
   // Law 99-Z & NCZPD Compliance
   piiMaskingEnabled: boolean;
   recordingDisclaimerEnabled: boolean;
@@ -135,7 +164,7 @@ export interface CallLog {
   callerName?: string;
   timestamp: string;
   durationSeconds: number;
-  status: 'lead_captured' | 'consultation' | 'forwarded' | 'spam';
+  status: 'lead_captured' | 'consultation' | 'forwarded' | 'spam' | 'voicemail_detected';
   dealValueByn: number;
   costByn?: number;
   audioDuration: string;
@@ -145,6 +174,17 @@ export interface CallLog {
   followUpSent?: boolean;
   followUpChannel?: 'telegram' | 'sms' | 'none';
   followUpText?: string;
+  transferDetails?: {
+    targetPhone: string;
+    reason: 'human_request' | 'conflict' | 'complex_query';
+    summarySentToStaff: boolean;
+  };
+  amdDetails?: {
+    detected: boolean;
+    carrierName?: string;
+    detectedPhrase?: string;
+    savedCostByn: number;
+  };
   capturedData: CapturedLeadData;
   transcript: TranscriptMessage[];
 }

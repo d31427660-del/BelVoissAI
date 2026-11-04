@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.call_logs (
   call_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   duration_seconds INTEGER NOT NULL DEFAULT 0 CHECK (duration_seconds >= 0),
   cost_byn NUMERIC(10, 2) NOT NULL DEFAULT 0.00 CHECK (cost_byn >= 0),
-  status TEXT NOT NULL CHECK (status IN ('lead_captured', 'consultation', 'forwarded', 'spam')),
+  status TEXT NOT NULL CHECK (status IN ('lead_captured', 'consultation', 'forwarded', 'spam', 'voicemail_detected')),
   deal_value_byn NUMERIC(10, 2) NOT NULL DEFAULT 0,
   summary TEXT,
   captured_data JSONB NOT NULL DEFAULT '{}'::jsonb,

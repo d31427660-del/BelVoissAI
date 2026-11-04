@@ -1,5 +1,7 @@
-import { BusinessNiche, CallLog } from '../types';
+import { BusinessNiche, CallLog, KnowledgeDocument } from '../types';
 import { NICHE_TEMPLATES } from './mockData';
+import { queryKnowledgeDocuments } from './documentParser';
+import { detectCarrierVoicemail, detectWarmTransferRequest, AmdDetectionResult } from './amdDetector';
 
 export interface DialogueContext {
   niche?: BusinessNiche;
@@ -10,8 +12,16 @@ export interface DialogueContext {
   workingHours?: string;
   pricingAndServices?: string;
   knowledgeBase?: string;
+  knowledgeDocuments?: KnowledgeDocument[];
   systemPrompt?: string;
   voice?: string;
+  warmTransfer?: {
+    enabled: boolean;
+    targetPhone?: string;
+    triggers?: ('human_request' | 'conflict' | 'complex_query')[];
+    whisperMessage?: string;
+  };
+  amdEnabled?: boolean;
 }
 
 export interface DialogueTurn {
@@ -91,6 +101,22 @@ export function generateBotReply(query: string, context: DialogueContext): strin
   const hours = context.workingHours || template.workingHours || 'Пн-Пт с 09:00 до 20:00';
   const pricing = context.pricingAndServices || template.pricingAndServices || '';
 
+  // 0. AMD (Answering Machine Detection) check
+  if (context.amdEnabled !== false) {
+    const amd = detectCarrierVoicemail(q);
+    if (amd.isVoicemail) {
+      return `[AMD_VOICEMAIL_DETECTED:${amd.carrierName || 'Автоответчик'}] Обнаружен автоответчик оператора. Звонок завершен (0 BYN).`;
+    }
+  }
+
+  // 0.1 Warm Handoff / Transfer check
+  if (context.warmTransfer?.enabled !== false) {
+    const transfer = detectWarmTransferRequest(q, context.warmTransfer?.triggers);
+    if (transfer.isTransferRequested) {
+      return `[WARM_TRANSFER_TRIGGERED:${transfer.reason}] Перевожу вас на старшего администратора, секунду...`;
+    }
+  }
+
   // 1. Greetings & Audio / Mic check
   if (
     q.includes('привет') ||
@@ -143,6 +169,14 @@ export function generateBotReply(query: string, context: DialogueContext): strin
         .join('. ');
 
       return `Сориентирую по стоимости в «${company}»: ${picked}. Записать вас на удобное время?`;
+    }
+
+    // Check uploaded knowledge documents for pricing before static fallback
+    if (context.knowledgeDocuments && context.knowledgeDocuments.length > 0) {
+      const docResult = queryKnowledgeDocuments(query, context.knowledgeDocuments);
+      if (docResult) {
+        return `Согласно прайс-листу из базы знаний («${docResult.sourceDocument}»): ${docResult.answer.replace(/[.]+$/, '')}. Записать вас на консультацию?`;
+      }
     }
 
     if (niche === 'driving_school') {
@@ -320,6 +354,14 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     }
   }
 
+  // 10.1 Grounding in uploaded Knowledge Base files (PDF, Word, FAQ)
+  if (context.knowledgeDocuments && context.knowledgeDocuments.length > 0) {
+    const docResult = queryKnowledgeDocuments(query, context.knowledgeDocuments);
+    if (docResult) {
+      return `${docResult.answer.replace(/[.]+$/, '')}. Подсказать вам что-то ещё по услугам компании?`;
+    }
+  }
+
   // 11. Default contextual helpful reply
   return `Спасибо за вопрос! Компания «${company}» с радостью поможет. Уточните, пожалуйста: вас интересует расчет точной стоимости, адрес филиала или свободное время для записи?`;
 }
@@ -433,7 +475,13 @@ export function createCallLogFromDialogue(params: {
   const tmpl = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
   const combinedUserText = userMessages.map((m) => m.text).join(' ').toLowerCase();
 
+  // Check AMD & Warm Transfer detection across dialogue turns
+  const amdTriggered = userMessages.map((m) => detectCarrierVoicemail(m.text)).find((r) => r.isVoicemail);
+  const transferTriggered = userMessages.map((m) => detectWarmTransferRequest(m.text)).find((r) => r.isTransferRequested);
+
   const isLeadCaptured =
+    !amdTriggered &&
+    !transferTriggered &&
     /запиш|запис|бронир|забронир|18:30|11:30|14:00|16:30|17:00|09:30|10:00|завтра|сегодня|пятниц|суббот|вечерн|согласен|подходит|давай/.test(
       combinedUserText
     );
@@ -508,8 +556,15 @@ export function createCallLogFromDialogue(params: {
   const sentiment: 'positive' | 'neutral' | 'negative' = isNegative ? 'negative' : isPositive ? 'positive' : 'neutral';
 
   const tags: string[] = [];
-  if (isLeadCaptured) tags.push('Запись');
-  else tags.push('Консультация');
+  if (amdTriggered) {
+    tags.push('AMD', amdTriggered.carrierName || 'Автоответчик', '0 BYN', 'Защита минут');
+  } else if (transferTriggered) {
+    tags.push('Перевод', transferTriggered.reason === 'conflict' ? 'Претензия' : 'Оператор');
+  } else if (isLeadCaptured) {
+    tags.push('Запись');
+  } else {
+    tags.push('Консультация');
+  }
 
   if (/цена|стоимост|прайс|тариф|рубл|byn|сколько/.test(combinedUserText)) {
     tags.push('Прайс-лист');
@@ -525,33 +580,62 @@ export function createCallLogFromDialogue(params: {
   else if (niche === 'medical_clinic') tags.push('Клиника');
   else if (niche === 'beauty_salon') tags.push('Салон красоты');
 
-  const oneSentenceSummary = isLeadCaptured
+  const oneSentenceSummary = amdTriggered
+    ? `Сработал автоответчик оператора ${amdTriggered.carrierName || 'РБ'} («${amdTriggered.matchedPhrase || ''}»). Звонок завершен мгновенно для защиты минут (0 BYN).`
+    : transferTriggered
+    ? `Вызов переведён сотруднику: ${transferTriggered.triggerPhrase}. Сводка передана дежурному персоналу.`
+    : isLeadCaptured
     ? `Клиент ${finalCallerName} успешно записан на ${preferredDate || 'согласованное время'}.`
     : `Консультация клиента по услугам и прайс-листу компании.`;
 
-  const followUpSent = isLeadCaptured;
+  const followUpSent = isLeadCaptured && !amdTriggered;
   const followUpChannel: 'sms' | 'telegram' = 'sms';
   const followUpText = isLeadCaptured
     ? `Здравствуйте, ${finalCallerName}! Ваша запись подтверждена: ${preferredDate || 'согласованное время'}. Адрес: ${address || tmpl.address}. Ждём вас!`
     : undefined;
 
+  const finalStatus: CallLog['status'] = amdTriggered
+    ? 'voicemail_detected'
+    : transferTriggered
+    ? 'forwarded'
+    : isLeadCaptured
+    ? 'lead_captured'
+    : 'consultation';
+
+  const finalCostByn = amdTriggered ? 0.00 : Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100);
+
   return {
     id: `call-live-${Date.now()}`,
     niche,
     callerNumber: extractedPhone,
-    callerName: finalCallerName,
+    callerName: amdTriggered ? 'Автоответчик оператора' : finalCallerName,
     timestamp,
-    durationSeconds: safeDuration,
-    audioDuration: `${mins}:${secs}`,
-    costByn: Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100),
-    status: isLeadCaptured ? 'lead_captured' : 'consultation',
+    durationSeconds: amdTriggered ? 3 : safeDuration,
+    audioDuration: amdTriggered ? '0:03' : `${mins}:${secs}`,
+    costByn: finalCostByn,
+    status: finalStatus,
     dealValueByn,
     summary: oneSentenceSummary,
-    sentiment,
+    sentiment: amdTriggered ? 'neutral' : sentiment,
     tags,
     followUpSent,
     followUpChannel,
     followUpText,
+    transferDetails: transferTriggered
+      ? {
+          targetPhone: '+375 (29) 700-11-22',
+          reason: transferTriggered.reason || 'human_request',
+          summarySentToStaff: true,
+        }
+      : undefined,
+    amdDetails: amdTriggered
+      ? {
+          detected: true,
+          carrierName: amdTriggered.carrierName,
+          detectedPhrase: amdTriggered.matchedPhrase,
+          savedCostByn: 0.45,
+        }
+      : undefined,
     capturedData: {
       clientName: finalCallerName,
       phone: extractedPhone.replace(' (Тест)', ''),
@@ -564,7 +648,7 @@ export function createCallLogFromDialogue(params: {
     },
     transcript: messages.map((m) => ({
       speaker: m.speaker === 'user' ? 'caller' : 'assistant',
-      text: m.text,
+      text: m.text.replace(/\[(AMD_VOICEMAIL_DETECTED|WARM_TRANSFER_TRIGGERED)[^\]]*\]\s*/g, ''),
       time: m.time,
     })),
   };
