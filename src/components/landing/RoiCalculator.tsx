@@ -49,7 +49,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
   };
 
   return (
-    <section id="calculator" className="py-24 bg-[#ffffff]">
+    <section id="calculator" className="py-24 bg-[#ffffff] scroll-mt-20">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6">
         
         {/* Section Header */}

@@ -10,6 +10,8 @@ const VOICE_MAP_YANDEX: Record<string, { voice: string; emotion?: string }> = {
 };
 
 function voxiTtsDevPlugin(env: Record<string, string>) {
+  let yandexTtsCircuitBrokenUntil = 0;
+
   return {
     name: 'voxi-tts-dev',
     configureServer(server: any) {
@@ -34,33 +36,43 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
             .slice(0, 600);
 
           const yandexApiKey = (env.YANDEX_API_KEY || process.env.YANDEX_API_KEY || '').trim();
-          if (yandexApiKey) {
-            const profile = VOICE_MAP_YANDEX[voiceParam] || VOICE_MAP_YANDEX.anna;
-            const params = new URLSearchParams({
-              text: cleanText,
-              lang: 'ru-RU',
-              voice: profile.voice,
-              speed: '1.05',
-              format: 'mp3',
-            });
-            if (profile.emotion) params.set('emotion', profile.emotion);
+          if (yandexApiKey && Date.now() >= yandexTtsCircuitBrokenUntil) {
+            try {
+              const profile = VOICE_MAP_YANDEX[voiceParam] || VOICE_MAP_YANDEX.anna;
+              const params = new URLSearchParams({
+                text: cleanText,
+                lang: 'ru-RU',
+                voice: profile.voice,
+                speed: '1.05',
+                format: 'mp3',
+              });
+              if (profile.emotion) params.set('emotion', profile.emotion);
 
-            const ycRes = await fetch('https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize', {
-              method: 'POST',
-              headers: {
-                Authorization: `Api-Key ${yandexApiKey}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: params.toString(),
-            });
+              const ycRes = await fetch('https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Api-Key ${yandexApiKey}`,
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params.toString(),
+                signal: AbortSignal.timeout(1500),
+              });
 
-            if (ycRes.ok) {
-              const buf = Buffer.from(await ycRes.arrayBuffer());
-              res.setHeader('Content-Type', 'audio/mpeg');
-              res.setHeader('Cache-Control', 'public, max-age=3600');
-              res.setHeader('X-TTS-Provider', 'yandex-speechkit');
-              res.end(buf);
-              return;
+              if (ycRes.ok) {
+                const buf = Buffer.from(await ycRes.arrayBuffer());
+                res.setHeader('Content-Type', 'audio/mpeg');
+                res.setHeader('Cache-Control', 'public, max-age=3600');
+                res.setHeader('X-TTS-Provider', 'yandex-speechkit');
+                res.end(buf);
+                return;
+              }
+
+              if (ycRes.status === 401 || ycRes.status === 403) {
+                // Key revoked or invalid; circuit-break for 10 minutes so requests complete immediately
+                yandexTtsCircuitBrokenUntil = Date.now() + 10 * 60 * 1000;
+              }
+            } catch {
+              yandexTtsCircuitBrokenUntil = Date.now() + 60 * 1000;
             }
           }
 

@@ -204,7 +204,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   // Speech Recognition Hook
   const speechRecognition = useSpeechRecognition({
     lang: 'ru-RU',
-    silenceDelayMs: 1350,
+    silenceDelayMs: 750,
     onFinalTranscript: (transcript) => {
       if (callStatusRef.current === 'connected' && !isBotSpeakingRef.current && !isMicMuted) {
         handleSendMessage(transcript);

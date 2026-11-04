@@ -49,8 +49,8 @@ export const FeatureShowcase: React.FC = () => {
   ];
 
   return (
-    <section id="features" className="py-24 bg-slate-50/80 relative">
-      <div id="integrations" className="absolute -top-16" aria-hidden="true" />
+    <section id="features" className="py-24 bg-slate-50/80 relative scroll-mt-20">
+      <div id="integrations" className="absolute -top-24" aria-hidden="true" />
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6">
         
         <div className="mb-14 max-w-2xl space-y-3">

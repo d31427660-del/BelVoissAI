@@ -11,6 +11,7 @@ const VOICE_MAP_YANDEX: Record<string, { voice: string; emotion?: string }> = {
 
 // Simple per-instance IP sliding rate limiter (45 req / min / IP)
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+let yandexTtsCircuitBrokenUntil = 0;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
@@ -63,7 +64,7 @@ export default async function handler(req: any, res: any) {
   const yandexFolderId = process.env.YANDEX_FOLDER_ID?.trim();
 
   // 1. Primary Production Engine: Yandex SpeechKit TTS API v1
-  if (yandexApiKey || (yandexIamToken && yandexFolderId)) {
+  if ((yandexApiKey || (yandexIamToken && yandexFolderId)) && Date.now() >= yandexTtsCircuitBrokenUntil) {
     try {
       const profile = VOICE_MAP_YANDEX[voiceParam] || VOICE_MAP_YANDEX.anna;
       const params = new URLSearchParams({
@@ -92,6 +93,7 @@ export default async function handler(req: any, res: any) {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: params.toString(),
+        signal: AbortSignal.timeout(1500),
       });
 
       if (ycResponse.ok) {
@@ -103,8 +105,14 @@ export default async function handler(req: any, res: any) {
         res.end(audioBuffer);
         return;
       }
+
+      if (ycResponse.status === 401 || ycResponse.status === 403) {
+        // Revoked or invalid key: break circuit for 10 minutes so requests complete immediately
+        yandexTtsCircuitBrokenUntil = Date.now() + 10 * 60 * 1000;
+      }
     } catch {
       // Fall through to neural fallback if Yandex Cloud is temporarily unreachable
+      yandexTtsCircuitBrokenUntil = Date.now() + 60 * 1000;
     }
   }
 

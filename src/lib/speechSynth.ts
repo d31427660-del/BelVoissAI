@@ -118,17 +118,46 @@ export class VoiceSimulator {
         }
 
         const spokenText = this.applyPhonetics(text);
+        const textWithAnna = spokenText.replace(/меня зовут (Максим|Дмитрий)/gi, 'меня зовут Анна');
+        const textWithMaxim = spokenText.replace(/меня зовут (Анна|Дмитрий)/gi, 'меня зовут Максим');
+
         const key = this.normalizeKey(voiceName, spokenText);
-        const fallbackKey = this.normalizeKey(
-          voiceName === 'maxim' ? 'maxim' : 'anna',
-          spokenText
-        );
+        const dmitryKey = this.normalizeKey('dmitry', spokenText);
+        const maximKey = this.normalizeKey('maxim', spokenText);
+        const annaKey = this.normalizeKey('anna', spokenText);
         const rawKey = this.normalizeKey(voiceName, text);
+        const rawDmitryKey = this.normalizeKey('dmitry', text);
+        const rawMaximKey = this.normalizeKey('maxim', text);
+
+        const annaVariantKey = this.normalizeKey(voiceName, textWithAnna);
+        const maximVariantKey = this.normalizeKey(voiceName, textWithMaxim);
+        const dmitryAnnaVariantKey = this.normalizeKey('dmitry', textWithAnna);
+        const dmitryMaximVariantKey = this.normalizeKey('dmitry', textWithMaxim);
 
         const cachedPath =
           manifest[key] ||
-          manifest[fallbackKey] ||
-          (spokenText === text ? manifest[rawKey] : undefined);
+          (voiceName === 'maxim'
+            ? manifest[maximKey] ||
+              manifest[dmitryKey] ||
+              manifest[rawMaximKey] ||
+              manifest[rawDmitryKey] ||
+              manifest[maximVariantKey] ||
+              manifest[dmitryMaximVariantKey] ||
+              manifest[dmitryAnnaVariantKey]
+            : undefined) ||
+          ((voiceName as string) === 'dmitry'
+            ? manifest[dmitryKey] ||
+              manifest[maximKey] ||
+              manifest[rawDmitryKey] ||
+              manifest[rawMaximKey] ||
+              manifest[dmitryMaximVariantKey] ||
+              manifest[maximVariantKey] ||
+              manifest[dmitryAnnaVariantKey]
+            : undefined) ||
+          manifest[annaVariantKey] ||
+          manifest[maximVariantKey] ||
+          (spokenText === text ? manifest[rawKey] : undefined) ||
+          (voiceName !== 'anna' ? manifest[annaKey] || manifest[this.normalizeKey('anna', textWithAnna)] : undefined);
 
         // Append cache-buster ?v=yc3 to static MP3s so browsers never play stale pre-SpeechKit files
         const audioUrl = cachedPath
@@ -158,9 +187,28 @@ export class VoiceSimulator {
         };
 
         try {
-          // Fetch MP3 bytes first so we always verify HTTP 200 Yandex SpeechKit audio
-          // and never trigger browser robotic fallback due to streaming race or stale element state
-          const res = await fetch(audioUrl);
+          // If cached static MP3, load directly without full-blob fetch delay
+          if (cachedPath) {
+            const audio = this.sharedAudio || new Audio();
+            this.sharedAudio = audio;
+            audio.onplay = handleStart;
+            audio.onended = handleFinish;
+            audio.onerror = () => {
+              if (token !== this.activeToken) return;
+              this.speakBrowserFallback(text, voiceName, onStart, onEnd, onWaveformUpdate, resolve);
+            };
+            audio.volume = 1;
+            audio.src = audioUrl;
+            this.currentAudio = audio;
+            handleStart();
+            await audio.play();
+            return;
+          }
+
+          // Dynamic synthesis with strict 2.5s timeout to guarantee zero long silences
+          const res = await fetch(audioUrl, {
+            signal: AbortSignal.timeout(2500),
+          });
           if (token !== this.activeToken) {
             resolve();
             return;
@@ -189,8 +237,8 @@ export class VoiceSimulator {
 
           handleStart();
           await audio.play();
-        } catch (err: any) {
-          if (token !== this.activeToken || err?.name === 'AbortError') {
+        } catch {
+          if (token !== this.activeToken) {
             resolve();
             return;
           }

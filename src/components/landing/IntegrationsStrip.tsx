@@ -93,7 +93,7 @@ export const IntegrationsStrip: React.FC = () => {
           </div>
 
           {/* 8 Integration Pills Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {integrations.map((item, idx) => (
               <div
                 key={idx}
@@ -102,11 +102,11 @@ export const IntegrationsStrip: React.FC = () => {
                 <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${item.color}`}>
                   {item.icon}
                 </div>
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-sm font-semibold text-[#1d1d1f] truncate flex items-center gap-1.5">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs sm:text-sm font-semibold text-[#1d1d1f] flex items-center gap-1.5">
                     <span className="truncate">{item.name}</span>
                   </div>
-                  <div className="text-[11px] text-[#86868b] truncate flex items-center gap-1 mt-0.5">
+                  <div className="text-[11px] text-[#86868b] flex items-center gap-1 mt-0.5">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
                     <span className="truncate">{item.tag}</span>
                   </div>

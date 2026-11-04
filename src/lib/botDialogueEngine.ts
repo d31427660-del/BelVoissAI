@@ -334,6 +334,18 @@ export async function requestBotReply(
   history: DialogueTurn[] = [],
   signal?: AbortSignal
 ): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback' }> {
+  const localController = new AbortController();
+  const timer = setTimeout(() => localController.abort(), 1800);
+  const onParentAbort = () => localController.abort();
+
+  if (signal) {
+    if (signal.aborted) {
+      localController.abort();
+    } else {
+      signal.addEventListener('abort', onParentAbort, { once: true });
+    }
+  }
+
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -344,7 +356,7 @@ export async function requestBotReply(
         history: history.slice(-8),
         context,
       }),
-      signal,
+      signal: localController.signal,
     });
 
     if (response.ok) {
@@ -357,8 +369,13 @@ export async function requestBotReply(
       }
     }
   } catch (err: any) {
-    if (err?.name === 'AbortError') {
+    if (signal?.aborted) {
       throw err;
+    }
+  } finally {
+    clearTimeout(timer);
+    if (signal) {
+      signal.removeEventListener('abort', onParentAbort);
     }
   }
 

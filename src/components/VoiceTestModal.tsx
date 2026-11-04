@@ -251,7 +251,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   // Speech Recognition Hook
   const speechRecognition = useSpeechRecognition({
     lang: 'ru-RU',
-    silenceDelayMs: 1350,
+    silenceDelayMs: 750,
     onFinalTranscript: (spoken) => {
       if (callStateRef.current === 'connected' && !isBotSpeakingRef.current && !isMuted) {
         handleUserMessage(spoken);
@@ -559,7 +559,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CATEGORY_TABS.map((cat) => {
               const active = selectedNiche === cat.id;
               return (
@@ -567,14 +567,14 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   key={cat.id}
                   type="button"
                   onClick={() => handleSelectCategory(cat.id)}
-                  className={`px-2.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 border ${
+                  className={`px-2.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 border whitespace-nowrap ${
                     active
                       ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                       : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
                   }`}
                 >
-                  <span>{cat.emoji}</span>
-                  <span className="truncate">{cat.shortLabel}</span>
+                  <span className="shrink-0">{cat.emoji}</span>
+                  <span>{cat.shortLabel}</span>
                 </button>
               );
             })}

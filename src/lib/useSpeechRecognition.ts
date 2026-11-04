@@ -9,7 +9,7 @@ interface UseSpeechRecognitionOptions {
 export function useSpeechRecognition({
   onFinalTranscript,
   lang = 'ru-RU',
-  silenceDelayMs = 1400,
+  silenceDelayMs = 750,
 }: UseSpeechRecognitionOptions = {}) {
   const [isSupported, setIsSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -247,9 +247,9 @@ export function useSpeechRecognition({
       setTranscript(fullText);
       setInterimTranscript(fullText);
 
-      // Faster turn-taking once browser marks segment final (900ms), or 1400ms on interim pause
+      // Faster turn-taking once browser marks segment final (500ms), or 750ms on interim pause
       if (latestSegmentIsFinal) {
-        scheduleSilenceSubmit(Math.min(900, silenceDelayMs));
+        scheduleSilenceSubmit(Math.min(500, silenceDelayMs));
       } else if (textChanged || !silenceTimerRef.current) {
         scheduleSilenceSubmit(silenceDelayMs);
       }

@@ -138,7 +138,7 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
   const currentBenefit = nicheBenefits[activeTab];
 
   return (
-    <section id="who" className="py-24 bg-[#ffffff]">
+    <section id="who" className="py-24 bg-[#ffffff] scroll-mt-20">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6">
         
         {/* Section Header */}
@@ -206,26 +206,26 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
               </div>
 
               {/* Metrics Row */}
-              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-slate-200/80">
-                <div className="p-4 rounded-[28px] bg-[#ffffff] border border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-4 border-t border-slate-200/80">
+                <div className="p-3.5 sm:p-4 rounded-2xl sm:rounded-[28px] bg-[#ffffff] border border-slate-100 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
                   <div className="text-[11px] text-[#86868b]">Средний чек</div>
-                  <div className="text-base sm:text-lg font-bold text-[#2563eb] mt-0.5">{currentBenefit.avgCheck}</div>
+                  <div className="text-sm sm:text-lg font-bold text-[#2563eb] sm:mt-0.5">{currentBenefit.avgCheck}</div>
                 </div>
-                <div className="p-4 rounded-[28px] bg-[#ffffff] border border-slate-100">
+                <div className="p-3.5 sm:p-4 rounded-2xl sm:rounded-[28px] bg-[#ffffff] border border-slate-100 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
                   <div className="text-[11px] text-[#86868b]">Поток в месяц</div>
-                  <div className="text-base sm:text-lg font-bold text-[#1d1d1f] mt-0.5">{currentBenefit.monthlyLeads}</div>
+                  <div className="text-sm sm:text-lg font-bold text-[#1d1d1f] sm:mt-0.5">{currentBenefit.monthlyLeads}</div>
                 </div>
-                <div className="p-4 rounded-[28px] bg-[#ffffff] border border-slate-100">
+                <div className="p-3.5 sm:p-4 rounded-2xl sm:rounded-[28px] bg-[#ffffff] border border-slate-100 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
                   <div className="text-[11px] text-[#86868b]">Окупаемость</div>
-                  <div className="text-base sm:text-lg font-bold text-emerald-600 mt-0.5">{currentBenefit.roi}</div>
+                  <div className="text-sm sm:text-lg font-bold text-emerald-600 sm:mt-0.5">{currentBenefit.roi}</div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-1">
                 <button
                   onClick={() => onSelectNiche(activeTab)}
-                  className="px-6 py-3.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+                  className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all"
                 >
                   <span>Применить шаблон</span>
                   <ArrowRightIcon size={16} />
@@ -233,7 +233,7 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
 
                 <button
                   onClick={handlePlaySample}
-                  className={`px-6 py-3.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-colors ${
+                  className={`w-full sm:w-auto justify-center px-6 py-3.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-colors ${
                     isPlayingAudio
                       ? 'bg-[#2563eb] text-[#ffffff]'
                       : 'bg-[#ffffff] hover:bg-blue-50 text-[#2563eb] border border-blue-200'

@@ -4,6 +4,7 @@
 // 2. mode = "generate_prompt": Generates/improves a structured phone receptionist system prompt for Belarusian SMBs
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+let yandexLlmCircuitBrokenUntil = 0;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
@@ -115,6 +116,18 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  if (Date.now() < yandexLlmCircuitBrokenUntil) {
+    res.statusCode = 503;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(
+      JSON.stringify({
+        configured: false,
+        error: 'YandexGPT upstream in cooldown, using instant local fallback',
+      })
+    );
+    return;
+  }
+
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
   const mode = body.mode === 'generate_prompt' ? 'generate_prompt' : 'dialogue';
   const context = typeof body.context === 'object' && body.context ? body.context : {};
@@ -185,10 +198,13 @@ export default async function handler(req: any, res: any) {
         },
         messages,
       }),
-      signal: AbortSignal.timeout(6500),
+      signal: AbortSignal.timeout(1800),
     });
 
     if (!ycResponse.ok) {
+      if (ycResponse.status === 401 || ycResponse.status === 403) {
+        yandexLlmCircuitBrokenUntil = Date.now() + 180_000;
+      }
       const errText = await ycResponse.text().catch(() => '');
       res.statusCode = ycResponse.status === 401 || ycResponse.status === 403 ? 503 : 502;
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -234,6 +250,7 @@ export default async function handler(req: any, res: any) {
       })
     );
   } catch {
+    yandexLlmCircuitBrokenUntil = Date.now() + 120_000;
     res.statusCode = 502;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(JSON.stringify({ error: 'YandexGPT connection timeout or error' }));

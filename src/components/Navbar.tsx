@@ -116,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <button
               onClick={onOpenAuth}
-              className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap"
+              className="hidden sm:inline-flex px-4 py-1.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap"
             >
               Войти
             </button>

@@ -119,11 +119,11 @@ export const Hero: React.FC<HeroProps> = ({
               Естественно общается с клиентами без пауз, считает стоимость услуг в BYN, подключается к номерам МТС и А1 за 5 минут и сразу отправляет готовые заявки в CRM и Telegram.
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3.5">
+            <div className="pt-2 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-3.5">
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="px-8 py-4 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-sm flex items-center gap-2.5 shadow-lg shadow-blue-500/25 transition-all whitespace-nowrap"
+                className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-blue-500/25 transition-all whitespace-nowrap"
               >
                 <span>Настроить за 5 минут</span>
                 <ArrowRightIcon size={18} />
@@ -133,7 +133,7 @@ export const Hero: React.FC<HeroProps> = ({
                 <button
                   type="button"
                   onClick={onOpenVoiceTest}
-                  className="px-6 py-4 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-sm flex items-center gap-2 transition-colors whitespace-nowrap"
+                  className="w-full sm:w-auto px-6 py-4 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
                 >
                   <SoundwaveCircleIcon size={18} className="text-emerald-600" />
                   <span>Поговорить с ботом (тест)</span>
@@ -142,7 +142,7 @@ export const Hero: React.FC<HeroProps> = ({
 
               <a
                 href="#calculator"
-                className="px-5 py-3.5 rounded-full bg-slate-100 hover:bg-slate-200/80 text-[#1d1d1f] font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap"
+                className="w-full sm:w-auto px-5 py-3.5 rounded-full bg-slate-100 hover:bg-slate-200/80 text-[#1d1d1f] font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap text-center flex items-center justify-center"
               >
                 Рассчитать выгоду в BYN
               </a>

@@ -39,7 +39,7 @@ export const Pricing: React.FC<PricingProps> = ({ onSelectPackage, onOpenAuth })
   };
 
   return (
-    <section id="pricing" className="py-24 bg-[#ffffff]">
+    <section id="pricing" className="py-24 bg-[#ffffff] scroll-mt-20">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6">
         
         {/* Section Header */}
