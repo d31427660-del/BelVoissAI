@@ -23,6 +23,16 @@ import {
 import { generateSystemPrompt } from './lib/vapiService';
 import { adaptGreetingForVoice } from './lib/botDialogueEngine';
 import { supabase, isSupabaseConfigured, LOCAL_STORAGE_KEYS } from './lib/supabaseClient';
+import {
+  getIspDbStatus,
+  getStoredIspToken,
+  ispGetMe,
+  ispRecordCall,
+  ispSaveAgent,
+  ispSaveIntegrations,
+  ispSignOut,
+  IspWorkspaceBundle,
+} from './lib/ispDbClient';
 import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession, BusinessNiche, VoiceId, MinutePackage } from './types';
 
 // Code-split heavy workspace & modal chunks so landing LCP stays ultra-fast
@@ -68,6 +78,16 @@ export function App() {
   } | null>(null);
   const [externalLegalDoc, setExternalLegalDoc] = useState<LegalDocType | null>(getInitialLegalDocFromLocation);
   const [paymentToast, setPaymentToast] = useState<string | null>(null);
+  const [resetLinkData, setResetLinkData] = useState<{ token: string; email: string } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const p = new URLSearchParams(window.location.search);
+    const token = p.get('reset_token') || '';
+    const email = p.get('email') || '';
+    return token ? { token, email } : null;
+  });
+  const [isRestoringSession, setIsRestoringSession] = useState<boolean>(() => {
+    return Boolean(getStoredIspToken() || isSupabaseConfigured);
+  });
 
   // User session: restore demo user from localStorage ONLY if demo mode; real Supabase sessions come via auth listener
   const [user, setUser] = useState<UserSession | null>(() => {
@@ -149,83 +169,122 @@ export function App() {
 
   const vapiApiKey = '';
 
-  // Subscribe to real Supabase Auth session & fetch profile + call_logs from DB
+  // Open AuthModal automatically if user clicked a password-reset link from email
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (resetLinkData) {
+      setIsAuthModalOpen(true);
+    }
+  }, [resetLinkData]);
 
-    const loadRealUserData = async (userId: string, email: string, fallbackCompany: string) => {
-      if (!supabase) return;
-      const [{ data: profile }, { data: dbLogs }] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('email, company_name, balance_minutes, rate_per_minute, spent_minutes')
-          .eq('id', userId)
-          .maybeSingle(),
-        supabase
-          .from('call_logs')
-          .select('*')
-          .eq('user_id', userId)
-          .order('call_timestamp', { ascending: false })
-          .limit(50),
-      ]);
+  // Restore real session: Priority #1 = ISPmanager MySQL (/api/db), Priority #2 = Supabase fallback
+  useEffect(() => {
+    let cancelled = false;
+    let authCleanup: (() => void) | undefined;
 
-      setUser({
-        id: userId,
-        email: profile?.email || email,
-        companyName: profile?.company_name || fallbackCompany,
-        balanceMinutes: Number(profile?.balance_minutes ?? 15),
-        ratePerMinute: Number(profile?.rate_per_minute ?? 0.45),
-        spentMinutes: Number(profile?.spent_minutes ?? 0),
-        isMock: false,
+    (async () => {
+      const ispStatus = await getIspDbStatus();
+      if (cancelled) return;
+
+      if (ispStatus.available && ispStatus.configured && ispStatus.connected) {
+        const bundle = await ispGetMe();
+        if (!cancelled) {
+          if (bundle) {
+            setUser(bundle.user);
+            if (bundle.agent) setAgent(bundle.agent);
+            if (bundle.sipSettings) setSipSettings(bundle.sipSettings);
+            if (bundle.telegramSettings) setTelegramSettings(bundle.telegramSettings);
+            if (bundle.webhookSettings) setWebhookSettings(bundle.webhookSettings);
+            setCallLogs(bundle.callLogs);
+          }
+          setIsRestoringSession(false);
+        }
+        return;
+      }
+
+      if (!isSupabaseConfigured || !supabase) {
+        setIsRestoringSession(false);
+        return;
+      }
+
+      const loadRealUserData = async (userId: string, email: string, fallbackCompany: string) => {
+        if (!supabase || cancelled) return;
+        const [{ data: profile }, { data: dbLogs }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('email, company_name, balance_minutes, rate_per_minute, spent_minutes')
+            .eq('id', userId)
+            .maybeSingle(),
+          supabase
+            .from('call_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .order('call_timestamp', { ascending: false })
+            .limit(50),
+        ]);
+        if (cancelled) return;
+
+        setUser({
+          id: userId,
+          email: profile?.email || email,
+          companyName: profile?.company_name || fallbackCompany,
+          balanceMinutes: Number(profile?.balance_minutes ?? 15),
+          ratePerMinute: Number(profile?.rate_per_minute ?? 0.45),
+          spentMinutes: Number(profile?.spent_minutes ?? 0),
+          isMock: false,
+        });
+
+        if (Array.isArray(dbLogs)) {
+          setCallLogs(
+            dbLogs.map((row: any) => {
+              const durSec = Number(row.duration_seconds || 0);
+              const mins = Math.floor(durSec / 60);
+              const secs = String(durSec % 60).padStart(2, '0');
+              return {
+                id: row.id,
+                callerNumber: row.caller_number,
+                callerName: row.caller_name || 'Клиент',
+                timestamp: new Date(row.call_timestamp).toLocaleString('ru-RU'),
+                durationSeconds: durSec,
+                audioDuration: `${mins}:${secs}`,
+                costByn: Number(row.cost_byn || 0),
+                status: row.status || 'consultation',
+                dealValueByn: Number(row.deal_value_byn || 0),
+                summary: row.summary || '',
+                capturedData: row.captured_data || {},
+                transcript: row.transcript || [],
+              };
+            })
+          );
+        }
+      };
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!cancelled) {
+        if (session?.user) {
+          await loadRealUserData(
+            session.user.id,
+            session.user.email || '',
+            session.user.user_metadata?.company_name || 'Компания РБ'
+          );
+        }
+        setIsRestoringSession(false);
+      }
+
+      const { data: authSub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        if (nextSession?.user) {
+          loadRealUserData(
+            nextSession.user.id,
+            nextSession.user.email || '',
+            nextSession.user.user_metadata?.company_name || 'Компания РБ'
+          );
+        }
       });
-
-      if (Array.isArray(dbLogs)) {
-        setCallLogs(
-          dbLogs.map((row: any) => {
-            const durSec = Number(row.duration_seconds || 0);
-            const mins = Math.floor(durSec / 60);
-            const secs = String(durSec % 60).padStart(2, '0');
-            return {
-              id: row.id,
-              callerNumber: row.caller_number,
-              callerName: row.caller_name || 'Клиент',
-              timestamp: new Date(row.call_timestamp).toLocaleString('ru-RU'),
-              durationSeconds: durSec,
-              audioDuration: `${mins}:${secs}`,
-              costByn: Number(row.cost_byn || 0),
-              status: row.status || 'consultation',
-              dealValueByn: Number(row.deal_value_byn || 0),
-              summary: row.summary || '',
-              capturedData: row.captured_data || {},
-              transcript: row.transcript || [],
-            };
-          })
-        );
-      }
-    };
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadRealUserData(
-          session.user.id,
-          session.user.email || '',
-          session.user.user_metadata?.company_name || 'Компания РБ'
-        );
-      }
-    });
-
-    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadRealUserData(
-          session.user.id,
-          session.user.email || '',
-          session.user.user_metadata?.company_name || 'Компания РБ'
-        );
-      }
-    });
+      authCleanup = () => authSub.subscription.unsubscribe();
+    })();
 
     return () => {
-      authSub.subscription.unsubscribe();
+      cancelled = true;
+      if (authCleanup) authCleanup();
     };
   }, []);
 
@@ -261,6 +320,7 @@ export function App() {
 
   // Sync URL path & document title for SPA navigation & browser Back button
   useEffect(() => {
+    if (isRestoringSession) return;
     if (currentView === 'dashboard' && !user) {
       setCurrentView('landing');
       setIsAuthModalOpen(true);
@@ -376,6 +436,16 @@ export function App() {
             }
           : prev
       );
+    } else if (user && !user.isMock) {
+      getIspDbStatus().then((st) => {
+        if (st.available && st.configured && st.connected) {
+          ispRecordCall(newLog)
+            .then((freshUser) => {
+              if (freshUser) setUser(freshUser);
+            })
+            .catch(() => {});
+        }
+      });
     }
 
     // Автоматическая отправка лида в CRM / 1C / Make по внешнему Webhook
@@ -454,6 +524,7 @@ export function App() {
   };
 
   const handleLogout = async () => {
+    await ispSignOut();
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
@@ -567,21 +638,54 @@ export function App() {
                   setAgent(updatedAgent);
                   if (updatedAgent.companyName && updatedAgent.companyName !== user.companyName) {
                     setUser(prev => prev ? { ...prev, companyName: updatedAgent.companyName } : prev);
-                    if (!user.isMock && isSupabaseConfigured && supabase) {
-                      supabase
-                        .from('profiles')
-                        .update({ company_name: updatedAgent.companyName, niche: updatedAgent.niche, updated_at: new Date().toISOString() })
-                        .eq('id', user.id)
-                        .then(() => {});
-                    }
+                  }
+                  if (!user.isMock) {
+                    getIspDbStatus().then((st) => {
+                      if (st.available && st.configured && st.connected) {
+                        ispSaveAgent(updatedAgent).catch(() => {});
+                      } else if (isSupabaseConfigured && supabase) {
+                        supabase
+                          .from('profiles')
+                          .update({ company_name: updatedAgent.companyName, niche: updatedAgent.niche, updated_at: new Date().toISOString() })
+                          .eq('id', user.id)
+                          .then(() => {});
+                      }
+                    });
                   }
                 }}
                 sipSettings={sipSettings}
-                onSaveSip={setSipSettings}
+                onSaveSip={(nextSip) => {
+                  setSipSettings(nextSip);
+                  if (!user.isMock) {
+                    getIspDbStatus().then((st) => {
+                      if (st.available && st.configured && st.connected) {
+                        ispSaveIntegrations({ sipSettings: nextSip }).catch(() => {});
+                      }
+                    });
+                  }
+                }}
                 telegramSettings={telegramSettings}
-                onSaveTelegram={setTelegramSettings}
+                onSaveTelegram={(nextTg) => {
+                  setTelegramSettings(nextTg);
+                  if (!user.isMock) {
+                    getIspDbStatus().then((st) => {
+                      if (st.available && st.configured && st.connected) {
+                        ispSaveIntegrations({ telegramSettings: nextTg }).catch(() => {});
+                      }
+                    });
+                  }
+                }}
                 webhookSettings={webhookSettings}
-                onSaveWebhook={setWebhookSettings}
+                onSaveWebhook={(nextWh) => {
+                  setWebhookSettings(nextWh);
+                  if (!user.isMock) {
+                    getIspDbStatus().then((st) => {
+                      if (st.available && st.configured && st.connected) {
+                        ispSaveIntegrations({ webhookSettings: nextWh }).catch(() => {});
+                      }
+                    });
+                  }
+                }}
                 vapiApiKey={vapiApiKey}
                 onSaveVapiApiKey={() => {}}
                 callLogs={callLogs}
@@ -621,37 +725,86 @@ export function App() {
         <Suspense fallback={null}>
           <AuthModal
             isOpen={isAuthModalOpen}
-            onClose={() => setIsAuthModalOpen(false)}
+            initialResetEmail={resetLinkData?.email}
+            initialResetToken={resetLinkData?.token}
+            onClose={() => {
+              setIsAuthModalOpen(false);
+              if (resetLinkData) {
+                setResetLinkData(null);
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+            }}
             onOpenLegalDoc={(doc) => setExternalLegalDoc(doc)}
-            onLoginSuccess={(loggedInUser) => {
+            onLoginSuccess={(loggedInUser, workspace?: Partial<IspWorkspaceBundle>) => {
+              if (resetLinkData) {
+                setResetLinkData(null);
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+
               const liveTestLogs = callLogs.filter((c) => c.id.startsWith('call-live-'));
               if (loggedInUser.isMock) {
                 const liveIds = new Set(liveTestLogs.map((c) => c.id));
                 setCallLogs([...liveTestLogs, ...INITIAL_CALL_LOGS.filter((c) => !liveIds.has(c.id))]);
               } else {
-                setCallLogs(liveTestLogs);
+                const dbLogs = Array.isArray(workspace?.callLogs) ? workspace!.callLogs! : [];
+                const dbIds = new Set(dbLogs.map((c) => c.id));
+                const unsavedLive = liveTestLogs.filter((c) => !dbIds.has(c.id));
+                setCallLogs([...unsavedLive, ...dbLogs]);
+
+                if (unsavedLive.length > 0) {
+                  getIspDbStatus().then((st) => {
+                    if (st.available && st.configured && st.connected) {
+                      unsavedLive.forEach((l) => ispRecordCall(l).catch(() => {}));
+                    }
+                  });
+                }
               }
+
+              if (workspace?.sipSettings) setSipSettings(workspace.sipSettings);
+              if (workspace?.telegramSettings) setTelegramSettings(workspace.telegramSettings);
+              if (workspace?.webhookSettings) setWebhookSettings(workspace.webhookSettings);
 
               if (selectedPackageForTopUp) {
                 setIsTopUpModalOpen(true);
               }
 
-              if (pendingVoiceTestSelection) {
+              if (workspace?.agent && !pendingVoiceTestSelection) {
+                setAgent(workspace.agent);
+                setUser(loggedInUser);
+              } else if (pendingVoiceTestSelection) {
                 const updated = buildAgentForNicheAndVoice(
                   agent,
                   pendingVoiceTestSelection.niche,
                   pendingVoiceTestSelection.voice
                 );
+                if (!loggedInUser.isMock && loggedInUser.companyName) {
+                  updated.companyName = loggedInUser.companyName;
+                }
                 setAgent(updated);
                 setUser({
                   ...loggedInUser,
                   companyName: loggedInUser.isMock ? updated.companyName : loggedInUser.companyName || updated.companyName,
                 });
                 setPendingVoiceTestSelection(null);
+                if (!loggedInUser.isMock) {
+                  getIspDbStatus().then((st) => {
+                    if (st.available && st.configured && st.connected) {
+                      ispSaveAgent(updated).catch(() => {});
+                    }
+                  });
+                }
               } else if (loggedInUser.companyName.includes('СТО')) {
                 const updated = buildAgentForNicheAndVoice(agent, 'auto_service', 'maxim');
+                if (!loggedInUser.isMock) updated.companyName = loggedInUser.companyName;
                 setAgent(updated);
                 setUser(loggedInUser);
+                if (!loggedInUser.isMock) {
+                  getIspDbStatus().then((st) => {
+                    if (st.available && st.configured && st.connected) {
+                      ispSaveAgent(updated).catch(() => {});
+                    }
+                  });
+                }
               } else {
                 setUser(loggedInUser);
                 if (loggedInUser.companyName && loggedInUser.companyName !== agent.companyName) {
@@ -667,6 +820,13 @@ export function App() {
                   };
                   updated.systemPrompt = generateSystemPrompt(updated);
                   setAgent(updated);
+                  if (!loggedInUser.isMock) {
+                    getIspDbStatus().then((st) => {
+                      if (st.available && st.configured && st.connected) {
+                        ispSaveAgent(updated).catch(() => {});
+                      }
+                    });
+                  }
                 }
               }
 

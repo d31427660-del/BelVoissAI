@@ -12,3 +12,4 @@ dist-ssr/
 coverage/
 *.log
 motion_render/
+*.zip

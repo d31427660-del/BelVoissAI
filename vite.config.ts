@@ -111,6 +111,19 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         }
       });
 
+      server.middlewares.use('/api/db', async (_req: any, res: any) => {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(
+          JSON.stringify({
+            ok: true,
+            driver: 'dev-local',
+            configured: false,
+            connected: false,
+          })
+        );
+      });
+
       server.middlewares.use('/api/chat', async (req: any, res: any) => {
         try {
           let rawBody = '';

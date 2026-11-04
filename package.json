@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "pack:ispmanager": "npm run build && rm -f voxi-ispmanager.zip && (cd dist && zip -r -q ../voxi-ispmanager.zip . -x '*.DS_Store')",
     "preview": "vite preview"
   },
   "dependencies": {

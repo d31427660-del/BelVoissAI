@@ -11,14 +11,24 @@ import {
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import {
+  getIspDbStatus,
+  ispConfirmResetPassword,
+  ispResetPassword,
+  ispSignIn,
+  ispSignUp,
+  IspWorkspaceBundle,
+} from '../lib/ispDbClient';
 import { UserSession } from '../types';
 import { LegalDocType } from './Footer';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (user: UserSession) => void;
+  onLoginSuccess: (user: UserSession, workspace?: Partial<IspWorkspaceBundle>) => void;
   onOpenLegalDoc?: (doc: LegalDocType) => void;
+  initialResetEmail?: string;
+  initialResetToken?: string;
 }
 
 function localizeAuthError(msg: string): string {
@@ -36,10 +46,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onLoginSuccess,
-  onOpenLegalDoc
+  onOpenLegalDoc,
+  initialResetEmail,
+  initialResetToken
 }) => {
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset' | 'confirm_reset'>(
+    initialResetToken ? 'confirm_reset' : 'signin'
+  );
+  const [email, setEmail] = useState(initialResetEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [companyName, setCompanyName] = useState('');
@@ -47,6 +61,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
+
+  useEffect(() => {
+    if (initialResetToken) {
+      setMode('confirm_reset');
+      if (initialResetEmail) setEmail(initialResetEmail);
+    }
+  }, [initialResetEmail, initialResetToken]);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -133,10 +154,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const ispStatus = await getIspDbStatus();
+
     if (mode === 'reset') {
       setLoading(true);
       try {
-        if (isSupabaseConfigured && supabase) {
+        if (ispStatus.available && ispStatus.configured) {
+          if (!ispStatus.connected) {
+            throw new Error(ispStatus.error || 'База данных хостинга недоступна. Проверьте api/config.php');
+          }
+          const msg = await ispResetPassword(email.trim());
+          setInfoMessage(msg);
+        } else if (isSupabaseConfigured && supabase) {
           const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
             redirectTo: `${window.location.origin}/`
           });
@@ -158,6 +187,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    if (mode === 'confirm_reset' && initialResetToken) {
+      setLoading(true);
+      try {
+        const bundle = await ispConfirmResetPassword(email.trim(), initialResetToken, password);
+        onLoginSuccess(bundle.user, bundle);
+        onClose();
+      } catch (err: unknown) {
+        setErrorMessage(localizeAuthError(err instanceof Error ? err.message : 'Ошибка смены пароля'));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (mode === 'signup' && !consentAccepted) {
       setErrorMessage('Для регистрации необходимо согласие на обработку персональных данных (Закон РБ № 99-З)');
       return;
@@ -165,6 +208,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
 
+    // 1. Приоритет: База данных MySQL на хостинге ISPmanager (/api/db)
+    if (ispStatus.available && ispStatus.configured) {
+      try {
+        if (!ispStatus.connected) {
+          throw new Error(
+            ispStatus.error || 'Не удалось подключиться к БД MySQL в ISPmanager. Проверьте api/config.php'
+          );
+        }
+        if (mode === 'signup') {
+          const bundle = await ispSignUp(
+            email.trim(),
+            password,
+            companyName.trim() || 'Моя компания РБ'
+          );
+          onLoginSuccess(bundle.user, bundle);
+          onClose();
+        } else {
+          const bundle = await ispSignIn(email.trim(), password);
+          onLoginSuccess(bundle.user, bundle);
+          onClose();
+        }
+      } catch (err: unknown) {
+        const rawMsg = err instanceof Error ? err.message : 'Ошибка авторизации';
+        setErrorMessage(localizeAuthError(rawMsg));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 2. Резервная поддержка облачной БД (если настроена вместо ISPmanager)
     if (isSupabaseConfigured && supabase) {
       try {
         if (mode === 'signup') {
@@ -179,7 +253,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           });
           if (error) throw error;
 
-          // If email confirmation is enabled in Supabase, session will be null until confirmed
           if (data.user && !data.session) {
             setInfoMessage('На ваш email отправлено письмо для подтверждения аккаунта. Перейдите по ссылке в письме, чтобы получить 15 бесплатных минут.');
             setLoading(false);
@@ -218,7 +291,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setLoading(false);
       }
     } else {
-      // Demo sandbox mode when Supabase keys are not yet configured
+      // 3. Ознакомительный песочный режим (если БД ещё не подключена)
       setTimeout(() => {
         onLoginSuccess({
           id: `usr_demo_${Date.now()}`,
@@ -254,6 +327,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ? 'Регистрация (+15 мин в подарок)'
               : mode === 'reset'
               ? 'Восстановление доступа'
+              : mode === 'confirm_reset'
+              ? 'Установка нового пароля'
               : 'Вход в личный кабинет'}
           </h2>
         </div>
@@ -455,6 +530,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     ? 'Зарегистрироваться'
                     : mode === 'reset'
                     ? 'Отправить ссылку сброса'
+                    : mode === 'confirm_reset'
+                    ? 'Сохранить новый пароль'
                     : 'Войти в кабинет'}
                 </span>
                 <ArrowRightIcon size={17} aria-hidden="true" />
