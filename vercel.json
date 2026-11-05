@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/|voices/|assets/|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|og-image\\.svg|og-image\\.png|icon\\.svg|voxi-avatar\\.png|voxi-favicon\\.png).*)",
+      "source": "/((?!api/|voices/|assets/|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|widget\\.js|og-image\\.svg|og-image\\.png|icon\\.svg|voxi-avatar\\.png|voxi-favicon\\.png).*)",
       "destination": "/index.html"
     }
   ],
