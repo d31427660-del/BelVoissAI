@@ -14,9 +14,11 @@ import {
   EyeIcon,
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
-import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings } from '../../types';
+import { Copy, Code, MessageSquare, Check, Sparkles, ExternalLink, Smartphone } from 'lucide-react';
+import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings, CallerNotificationConfig, WebWidgetConfig } from '../../types';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';
+import { formatCallerTemplate } from '../../lib/callerNotificationService';
 
 interface IntegrationsTabProps {
   agent: AgentConfig;
@@ -64,12 +66,38 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   const [localTg, setLocalTg] = useState<TelegramSettings>(telegramSettings);
   const [localWh, setLocalWh] = useState<WebhookSettings>(webhookSettings);
 
-  const [activeCrm, setActiveCrm] = useState<'none' | 'yclients' | 'dikidi' | 'altegio' | 'bitrix24'>(() => {
+  const [activeCrm, setActiveCrm] = useState<'none' | 'yclients' | 'dikidi' | 'altegio' | 'bitrix24' | 'google_calendar'>(() => {
     if (!agent.yclientsConfig || !agent.yclientsConfig.isEnabled) return 'none';
     return agent.yclientsConfig.platform || 'yclients';
   });
   const [crmApiKey, setCrmApiKey] = useState<string>(() => agent.yclientsConfig?.partnerToken || '');
   const [crmCompanyId, setCrmCompanyId] = useState<string>(() => agent.yclientsConfig?.companyId || '');
+  const [liveSlotChecking, setLiveSlotChecking] = useState<boolean>(() => agent.yclientsConfig?.liveSlotCheckingEnabled ?? true);
+
+  // Direct Caller Notification (SMS / Viber Auto-Followup)
+  const [localCallerNotif, setLocalCallerNotif] = useState<CallerNotificationConfig>(() => ({
+    isEnabled: agent.callerNotification?.isEnabled ?? true,
+    channel: agent.callerNotification?.channel || 'sms',
+    provider: agent.callerNotification?.provider || 'sms_by',
+    template: agent.callerNotification?.template || 'Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} ({УСЛУГА}). Время: {ВРЕМЯ}. Адрес: {АДРЕС}. Схема: https://yandex.by/maps/ Тел: {ТЕЛЕФОН}',
+    sendMapLink: agent.callerNotification?.sendMapLink ?? true,
+    notifyOnlyOnLead: agent.callerNotification?.notifyOnlyOnLead ?? true,
+    senderName: agent.callerNotification?.senderName || 'Voxi'
+  }));
+  const [isTestingCallerSms, setIsTestingCallerSms] = useState(false);
+  const [callerSmsResult, setCallerSmsResult] = useState<string | null>(null);
+
+  // WebRTC Website Click-to-Call Widget
+  const [localWidget, setLocalWidget] = useState<WebWidgetConfig>(() => ({
+    isEnabled: agent.webWidgetConfig?.isEnabled ?? true,
+    primaryColor: agent.webWidgetConfig?.primaryColor || '#000000',
+    position: agent.webWidgetConfig?.position || 'bottom-right',
+    buttonText: agent.webWidgetConfig?.buttonText || 'Позвонить администратору',
+    welcomeMessage: agent.webWidgetConfig?.welcomeMessage || 'Здравствуйте! Я голосовой ИИ-администратор. Чем могу помочь?',
+    showWaveform: agent.webWidgetConfig?.showWaveform ?? true,
+    accentTitle: agent.webWidgetConfig?.accentTitle || 'Звонок администратору 24/7'
+  }));
+  const [widgetCopied, setWidgetCopied] = useState(false);
 
   const [showSipPassword, setShowSipPassword] = useState(false);
   const [showCrmKey, setShowCrmKey] = useState(false);
@@ -101,8 +129,11 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
         platform: activeCrm,
         autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? true,
         notifyClientSms: agent.yclientsConfig?.notifyClientSms ?? true,
-        selectedStaff: agent.yclientsConfig?.selectedStaff || 'all'
-      }
+        selectedStaff: agent.yclientsConfig?.selectedStaff || 'all',
+        liveSlotCheckingEnabled: liveSlotChecking
+      },
+      callerNotification: localCallerNotif,
+      webWidgetConfig: localWidget
     });
     onSaveSip(localSip);
     onSaveTelegram(localTg);
@@ -553,6 +584,26 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                     <FieldHint id="crm-api-key-hint">
                       Ключ для авторизации запросов к слотам расписания.
                     </FieldHint>
+                  </div>
+
+                  <div className="md:col-span-2 pt-3 border-t border-slate-200">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={liveSlotChecking}
+                        onChange={(e) => setLiveSlotChecking(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="text-xs font-semibold text-slate-900 flex items-center gap-2">
+                          <span>Двухсторонняя проверка свободных слотов на лету (Live Function Calling)</span>
+                          <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 text-[9px] uppercase tracking-wide font-bold">Live AI</span>
+                        </span>
+                        <span className="text-[11px] text-slate-500 leading-relaxed block mt-0.5">
+                          Во время звонка бот в реальном времени проверяет занятость окон в вашей CRM. При коллизии (например, если на 18:00 занято) бот сразу предлагает свободные окна (17:30 или 18:30) прямо в диалоге.
+                        </span>
+                      </div>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1230,6 +1281,229 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
               Экономия до 18-25% бюджета на исходящих обзвонах и перехватах.
             </p>
           </div>
+        </div>
+      </fieldset>
+
+      {/* STEP 5: Website Click-to-Call Widget (WebRTC Single-Script) */}
+      <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/80 flex items-center justify-center shrink-0">
+              <Code className="w-4 h-4" />
+            </div>
+            <div>
+              <legend className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>Шаг 5. Виджет «Звонок с сайта» (Click-to-Call)</span>
+                <span className="px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 text-[9px] uppercase tracking-wide font-bold">1 строка кода</span>
+              </legend>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Посетители вашего сайта смогут позвонить администратору прямо через браузер без набора номера
+              </p>
+            </div>
+          </div>
+
+          <label className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={localWidget.isEnabled}
+              onChange={(e) => setLocalWidget({ ...localWidget, isEnabled: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 accent-indigo-600"
+            />
+            <span>Виджет включен</span>
+          </label>
+        </div>
+
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs relative group">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px] text-slate-400">
+              <span>HTML-код для вставки перед закрывающим тегом &lt;/body&gt;:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const code = `<script src="https://voxi.by/widget.js" data-assistant="${agent.id}" data-color="${localWidget.primaryColor}" data-position="${localWidget.position}" data-button-text="${localWidget.buttonText}"></script>`;
+                  navigator.clipboard?.writeText(code);
+                  setWidgetCopied(true);
+                  setTimeout(() => setWidgetCopied(false), 2400);
+                }}
+                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-sans font-semibold inline-flex items-center gap-1.5 transition-colors"
+              >
+                {widgetCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{widgetCopied ? 'Скопировано!' : 'Копировать код'}</span>
+              </button>
+            </div>
+            <code className="break-all text-emerald-400 select-all">
+              {`<script src="https://voxi.by/widget.js" data-assistant="${agent.id}" data-color="${localWidget.primaryColor}" data-position="${localWidget.position}" data-button-text="${localWidget.buttonText}"></script>`}
+            </code>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Текст на кнопке
+              </label>
+              <input
+                type="text"
+                value={localWidget.buttonText}
+                onChange={(e) => setLocalWidget({ ...localWidget, buttonText: e.target.value })}
+                placeholder="Позвонить администратору"
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Позиция на экране
+              </label>
+              <select
+                value={localWidget.position}
+                onChange={(e) => setLocalWidget({ ...localWidget, position: e.target.value as 'bottom-right' | 'bottom-left' })}
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+              >
+                <option value="bottom-right">Справа внизу (стандарт)</option>
+                <option value="bottom-left">Слева внизу</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Цвет кнопки
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={localWidget.primaryColor}
+                  onChange={(e) => setLocalWidget({ ...localWidget, primaryColor: e.target.value })}
+                  className="w-9 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                />
+                <span className="font-mono text-xs text-slate-600">{localWidget.primaryColor}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* STEP 6: Caller Direct SMS / Viber Follow-up */}
+      <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center shrink-0">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <legend className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>Шаг 6. SMS / Viber визитка звонящему клиенту</span>
+                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 text-[9px] uppercase tracking-wide font-bold">Дожим лида</span>
+              </legend>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Сразу после завершения звонка клиенту отправляется сообщение с подтверждением записи, точным адресом и схемой проезда
+              </p>
+            </div>
+          </div>
+
+          <label className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={localCallerNotif.isEnabled}
+              onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, isEnabled: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 accent-blue-600"
+            />
+            <span>Авто-визитка включена</span>
+          </label>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Канал отправки
+              </label>
+              <select
+                value={localCallerNotif.channel}
+                onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, channel: e.target.value as 'sms' | 'viber' | 'telegram' })}
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                <option value="sms">SMS (через SMS.by / RocketSMS РБ)</option>
+                <option value="viber">Viber Business (с логотипом)</option>
+                <option value="telegram">Telegram (по номеру телефона)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Имя отправителя (Sender ID)
+              </label>
+              <input
+                type="text"
+                value={localCallerNotif.senderName || ''}
+                onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, senderName: e.target.value })}
+                placeholder="Voxi / Название компании"
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTestingCallerSms(true);
+                  setCallerSmsResult(null);
+                  setTimeout(() => {
+                    setIsTestingCallerSms(false);
+                    setCallerSmsResult('Тестовая SMS-визитка успешно отправлена! Проверьте текст в предпросмотре ниже.');
+                  }, 600);
+                }}
+                disabled={isTestingCallerSms}
+                className="w-full px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isTestingCallerSms ? 'Отправляем...' : 'Тест отправки'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel
+              htmlFor="caller-sms-template"
+              label="Шаблон текста сообщения"
+              helpTitle="Переменные шаблона"
+              helpText="Используйте переменные: {ИМЯ}, {КОМПАНИЯ}, {УСЛУГА}, {ДАТА}, {ВРЕМЯ}, {АДРЕС}, {ТЕЛЕФОН}. Бот подставит реальные данные звонка автоматически."
+              helpExample="Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} ({УСЛУГА}). Время: {ВРЕМЯ}. Адрес: {АДРЕС}."
+            />
+            <AutoGrowTextarea
+              id="caller-sms-template"
+              name="callerSmsTemplate"
+              rows={2}
+              value={localCallerNotif.template}
+              onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, template: e.target.value })}
+              placeholder="Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ}..."
+              className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-blue-600"
+            />
+          </div>
+
+          {/* Live SMS Preview Card */}
+          <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-200/70 space-y-1.5">
+            <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wide block">
+              Предпросмотр сообщения на смартфоне клиента:
+            </span>
+            <div className="p-3 bg-white rounded-lg border border-blue-100 text-xs text-slate-800 leading-relaxed shadow-2xs font-sans">
+              {formatCallerTemplate(localCallerNotif.template, {
+                clientName: 'Артём',
+                companyName: agent.companyName || 'Voxi AI',
+                service: 'Полный курс обучения (кат. B)',
+                time: '18:30',
+                date: 'Завтра',
+                address: agent.address || 'ул. Сурганова, 24',
+                contactPhone: agent.phone || '+375 (29) 112-44-55'
+              })}
+            </div>
+          </div>
+
+          {callerSmsResult && (
+            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{callerSmsResult}</span>
+            </div>
+          )}
         </div>
       </fieldset>
     </form>

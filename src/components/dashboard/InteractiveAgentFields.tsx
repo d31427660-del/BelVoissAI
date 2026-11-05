@@ -761,6 +761,12 @@ interface InteractiveGreetingBuilderProps {
   voice: VoiceId;
   niche: BusinessNiche;
   onChange: (next: string) => void;
+  abTestingEnabled?: boolean;
+  onToggleAbTesting?: (enabled: boolean) => void;
+  greetingB?: string;
+  onChangeGreetingB?: (next: string) => void;
+  fillerPhrasesEnabled?: boolean;
+  onToggleFillerPhrases?: (enabled: boolean) => void;
 }
 
 export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProps> = ({
@@ -768,10 +774,17 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
   companyName,
   voice,
   niche,
-  onChange
+  onChange,
+  abTestingEnabled = false,
+  onToggleAbTesting,
+  greetingB = '',
+  onChangeGreetingB,
+  fillerPhrasesEnabled = true,
+  onToggleFillerPhrases,
 }) => {
   const [activeStyle, setActiveStyle] = useState<'niche' | 'friendly' | 'booking' | 'custom'>('niche');
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayingA, setIsPlayingA] = useState(false);
+  const [isPlayingB, setIsPlayingB] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -784,40 +797,73 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
     onChange(buildGreetingTemplate(style, companyName, voice, niche));
   };
 
-  const handlePlayGreeting = () => {
+  const handlePlayGreeting = (text: string, isVariantB = false) => {
+    const isPlaying = isVariantB ? isPlayingB : isPlayingA;
     if (isPlaying) {
       VoiceSimulator.stop();
-      setIsPlaying(false);
+      if (isVariantB) setIsPlayingB(false);
+      else setIsPlayingA(false);
       return;
     }
     VoiceSimulator.stop();
+    setIsPlayingA(false);
+    setIsPlayingB(false);
     VoiceSimulator.speak(
-      value || buildGreetingTemplate('friendly', companyName, voice, niche),
+      text || buildGreetingTemplate('friendly', companyName, voice, niche),
       voice,
-      () => setIsPlaying(true),
-      () => setIsPlaying(false)
+      () => (isVariantB ? setIsPlayingB(true) : setIsPlayingA(true)),
+      () => (isVariantB ? setIsPlayingB(false) : setIsPlayingA(false))
     );
   };
 
   return (
-    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+    <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <FieldLabel
           htmlFor="agent-first-message"
-          label="Первая фраза бота при ответе на звонок"
-          helpTitle="Как работает конструктор приветствия"
-          helpText="Выберите один из готовых стилей приветствия кнопкой — туда автоматически подставятся ваше название компании и имя выбранного голоса. Нажмите «Прослушать», чтобы сразу оценить звучание."
+          label="Приветствие бота при ответе на звонок"
+          helpTitle="Как работает приветствие и A/B сплит-тест"
+          helpText="Выберите готовый стиль кнопки или включите A/B сплит-тестирование, чтобы звонки делились 50/50 между двумя приветствиями для сравнения конверсии."
           helpExample="Здравствуйте! Автошкола «Все категории», меня зовут Анна. Чем могу вам помочь?"
         />
+
+        {onToggleAbTesting && (
+          <label className="inline-flex items-center gap-2 cursor-pointer text-[11px] font-semibold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+            <input
+              type="checkbox"
+              checked={abTestingEnabled}
+              onChange={(e) => onToggleAbTesting(e.target.checked)}
+              className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500"
+            />
+            <span>A/B сплит-тест (50/50)</span>
+            <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 text-[9px] uppercase tracking-wide font-bold">New</span>
+          </label>
+        )}
       </div>
 
-      {/* Style Switcher Pills + Play Audio Button */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Варианты приветствия">
+      {/* Variant A */}
+      <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] flex items-center justify-center font-bold">A</span>
+            <span>Вариант А (Основной)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => handlePlayGreeting(value, false)}
+            className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+          >
+            {isPlayingA ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+            <span>{isPlayingA ? 'Стоп' : 'Прослушать'}</span>
+          </button>
+        </div>
+
+        {/* Style Switcher Pills */}
+        <div className="flex flex-wrap gap-1.5 pt-1" role="group" aria-label="Варианты приветствия">
           {[
             { id: 'niche' as const, label: 'Под вашу сферу' },
             { id: 'friendly' as const, label: 'Короткое и тёплое' },
-            { id: 'booking' as const, label: 'С предложением записи' }
+            { id: 'booking' as const, label: 'С предложением записи' },
           ].map((preset) => {
             const active = activeStyle === preset.id;
             return (
@@ -826,10 +872,10 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
                 type="button"
                 aria-pressed={active}
                 onClick={() => handleChooseStyle(preset.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition-all ${
                   active
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                    : 'bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border-slate-200'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border-slate-200'
                 }`}
               >
                 {preset.label}
@@ -838,32 +884,74 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
           })}
         </div>
 
-        <button
-          type="button"
-          onClick={handlePlayGreeting}
-          className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
-        >
-          {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          <span>{isPlaying ? 'Стоп' : 'Прослушать'}</span>
-        </button>
+        <AutoGrowTextarea
+          id="agent-first-message"
+          name="firstMessage"
+          rows={1}
+          value={value}
+          onChange={(e) => {
+            setActiveStyle('custom');
+            onChange(e.target.value);
+          }}
+          placeholder="Здравствуйте! Чем могу вам помочь?"
+          className="w-full px-3 py-2 rounded-lg bg-slate-50/50 border border-slate-200 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-blue-600"
+        />
       </div>
 
-      <AutoGrowTextarea
-        id="agent-first-message"
-        name="firstMessage"
-        rows={1}
-        aria-describedby="agent-greeting-hint"
-        value={value}
-        onChange={(e) => {
-          setActiveStyle('custom');
-          onChange(e.target.value);
-        }}
-        placeholder="Здравствуйте! Чем могу вам помочь?"
-        className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-blue-600"
-      />
-      <FieldHint id="agent-greeting-hint">
-        Название компании и имя бота обновляются в этой фразе автоматически при их изменении.
-      </FieldHint>
+      {/* Variant B (A/B Test) */}
+      {abTestingEnabled && (
+        <div className="p-3 bg-purple-50/40 rounded-xl border border-purple-200 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
+              <span className="w-5 h-5 rounded-full bg-purple-200 text-purple-800 text-[11px] flex items-center justify-center font-bold">B</span>
+              <span>Вариант Б (Сплит 50% звонков)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handlePlayGreeting(greetingB || value, true)}
+              className="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-300 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+            >
+              {isPlayingB ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              <span>{isPlayingB ? 'Стоп' : 'Прослушать'}</span>
+            </button>
+          </div>
+
+          <p className="text-[10px] text-purple-700">
+            Рекомендуется протестировать более активное приветствие с акцией или прямым вопросом о записи.
+          </p>
+
+          <AutoGrowTextarea
+            id="agent-greeting-b"
+            name="greetingB"
+            rows={1}
+            value={greetingB}
+            onChange={(e) => onChangeGreetingB?.(e.target.value)}
+            placeholder="Добрый день! Рады вашему звонку. На какую услугу вас записать?"
+            className="w-full px-3 py-2 rounded-lg bg-white border border-purple-200 text-xs text-slate-900 leading-relaxed focus:outline-none focus:border-purple-600"
+          />
+        </div>
+      )}
+
+      {/* Conversational Filler Phrases Toggle */}
+      {onToggleFillerPhrases && (
+        <div className="pt-1 border-t border-slate-200/70 flex items-start justify-between gap-3">
+          <div className="space-y-0.5">
+            <div className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
+              <span>Речевые заполнители пауз (Filler phrases)</span>
+              <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Ультра-реализм</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Сглаживает паузу ответа живыми репликами («Секундочку, сверяюсь с расписанием...», «Минутку, открываю прайс-лист...») и тихим звуком клавиш, если генерация ответа длится более 0.8 сек.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={fillerPhrasesEnabled}
+            onChange={(e) => onToggleFillerPhrases(e.target.checked)}
+            className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+        </div>
+      )}
     </div>
   );
 };

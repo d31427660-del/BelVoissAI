@@ -479,6 +479,21 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                         </div>
                         {call.tags && call.tags.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                            {call.greetingVariant && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200">
+                                A/B: {call.greetingVariant}
+                              </span>
+                            )}
+                            {call.bookedSlot && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold border border-emerald-200">
+                                Слот {call.bookedSlot.time} ✓
+                              </span>
+                            )}
+                            {call.callerFollowUpSent && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-semibold border border-blue-200">
+                                SMS клиенту ✓
+                              </span>
+                            )}
                             {call.tags.map((tag) => (
                               <span
                                 key={tag}
@@ -758,6 +773,52 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                     <p className="text-xs text-indigo-950 font-mono bg-white/80 p-2.5 rounded-xl border border-indigo-100 leading-relaxed">
                       «{activeCallDetail.followUpText}»
                     </p>
+                  </div>
+                )}
+
+                {/* Direct Caller SMS/Viber Card & A/B Greeting details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {activeCallDetail.callerFollowUpSent && (
+                    <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-blue-900 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                          <span>SMS-визитка клиенту</span>
+                        </span>
+                        <span className="text-[10px] text-blue-700 font-semibold">Отправлено</span>
+                      </div>
+                      <p className="text-[11px] text-slate-700 leading-relaxed bg-white/90 p-2 rounded-lg border border-blue-100">
+                        {activeCallDetail.callerFollowUpText || activeCallDetail.followUpText || 'Визитка с адресом и ссылкой на карту отправлена на номер абонента.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {activeCallDetail.bookedSlot && (
+                    <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-emerald-900 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Онлайн-слот подтверждён</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-mono font-bold">
+                          {activeCallDetail.bookedSlot.time}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-700 leading-relaxed bg-white/90 p-2 rounded-lg border border-emerald-100">
+                        {activeCallDetail.bookedSlot.date} в {activeCallDetail.bookedSlot.time}. Проверено в онлайн-календаре CRM без конфликтов.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {activeCallDetail.greetingVariant && (
+                  <div className="px-3 py-2 rounded-xl bg-purple-50/60 border border-purple-200/80 flex items-center justify-between text-xs">
+                    <span className="text-purple-900 font-medium">
+                      Вариант приветствия (A/B тест):
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 font-bold text-[11px]">
+                      Вариант {activeCallDetail.greetingVariant}
+                    </span>
                   </div>
                 )}
 

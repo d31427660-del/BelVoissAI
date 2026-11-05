@@ -327,6 +327,89 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
       </div>
 
+      {/* A/B Greeting Split-Test Conversion Card */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-xs border border-purple-200">
+              A/B
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>A/B Сплит-тест приветствий</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  {callLogs.some((c) => c.greetingVariant === 'B') ? 'Тест активен (50/50)' : 'Сплит 50/50'}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Сравнение конверсии первого приветствия бота в подтверждённую запись клиента
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigateTab('agent')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>Настроить фразы приветствия</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {(() => {
+          const callsA = callLogs.filter((c) => c.greetingVariant === 'A' || !c.greetingVariant);
+          const callsB = callLogs.filter((c) => c.greetingVariant === 'B');
+          const leadsA = callsA.filter((c) => c.status === 'lead_captured').length;
+          const leadsB = callsB.filter((c) => c.status === 'lead_captured').length;
+          const convA = callsA.length > 0 ? Math.round((leadsA / callsA.length) * 100) : 0;
+          const convB = callsB.length > 0 ? Math.round((leadsB / callsB.length) * 100) : 0;
+          const isBWinning = convB > convA;
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Variant A */}
+              <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200/90 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] flex items-center justify-center font-bold">A</span>
+                    <span className="text-xs font-bold text-slate-900">Вариант А (Контрольный)</span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-900">{convA}% конверсия</span>
+                </div>
+                <p className="text-[11px] text-slate-600 italic leading-relaxed bg-white p-2 rounded-lg border border-slate-200/70">
+                  «{agent.firstMessage || 'Здравствуйте! Чем я могу вам помочь?'}»
+                </p>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                  <span>Звонков: <strong>{callsA.length}</strong></span>
+                  <span>Заявок: <strong className="text-emerald-700 font-semibold">{leadsA}</strong></span>
+                </div>
+              </div>
+
+              {/* Variant B */}
+              <div className={`p-4 rounded-xl border space-y-2 ${isBWinning ? 'bg-purple-50/50 border-purple-200 shadow-2xs' : 'bg-slate-50/70 border-slate-200/90'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[11px] flex items-center justify-center font-bold">B</span>
+                    <span className="text-xs font-bold text-purple-950">Вариант Б (Тестовый)</span>
+                    {isBWinning && (
+                      <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold uppercase">Лидер</span>
+                    )}
+                  </div>
+                  <span className="text-xs font-mono font-bold text-purple-900">{convB}% конверсия</span>
+                </div>
+                <p className="text-[11px] text-slate-600 italic leading-relaxed bg-white p-2 rounded-lg border border-purple-200/70">
+                  «{agent.greetingB || 'Добрый день! Рады вашему звонку. На какую услугу вас записать?'}»
+                </p>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                  <span>Звонков: <strong>{callsB.length}</strong></span>
+                  <span>Заявок: <strong className="text-emerald-700 font-semibold">{leadsB}</strong></span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
       {/* 2-Columns: Recent Hot Leads & Infrastructure Health */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         

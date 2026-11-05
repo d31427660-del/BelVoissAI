@@ -338,9 +338,19 @@ export const INITIAL_CALL_LOGS: CallLog[] = [
     summary: 'Клиент Максим Ковалёв записан на вечернюю категорию B (Сурганова, 24) с рассрочкой в 4 платежа.',
     sentiment: 'positive',
     tags: ['Запись', 'Категория B', 'Рассрочка', 'Сурганова'],
+    greetingVariant: 'A',
     followUpSent: true,
     followUpChannel: 'sms',
     followUpText: 'Здравствуйте, Максим! Вы записаны в вечернюю группу кат. B на Сурганова, 24 (старт 28.10 в 18:30). Документы для медкомиссии: паспорт, 2 фото 3х4.',
+    callerFollowUpSent: true,
+    callerFollowUpChannel: 'sms',
+    callerFollowUpText: 'Здравствуйте! Вы записаны в Автошкола «Драйв-Минск» (Категория B). Время: 18:30. Адрес: ул. Сурганова, 24. Схема: https://yandex.by/maps/-/CDe1V',
+    bookedSlot: {
+      date: '2026-10-28',
+      time: '18:30',
+      service: 'Категория B (полный курс, механика)',
+      isRealtimeChecked: true
+    },
     capturedData: {
       clientName: 'Максим Ковалёв',
       phone: '+375 (29) 682-14-99',
@@ -376,7 +386,10 @@ export const INITIAL_CALL_LOGS: CallLog[] = [
     summary: 'Запись на 5 занятий по восстановлению навыков вождения на АКПП (пр-т Дзержинского, 104).',
     sentiment: 'positive',
     tags: ['Запись', 'АКПП', 'Восстановление', 'Дзержинского'],
+    greetingVariant: 'B',
     followUpSent: true,
+    callerFollowUpSent: true,
+    callerFollowUpChannel: 'sms',
     followUpChannel: 'telegram',
     followUpText: 'Алина, добрый день! Запись подтверждена: суббота 26.10 в 11:00, пр-т Дзержинского, 104. Инструктор Павел, VW Polo (АКПП).',
     capturedData: {
@@ -412,6 +425,9 @@ export const INITIAL_CALL_LOGS: CallLog[] = [
     summary: 'Запись Дениса Кравцова в группу выходного дня на АКПП и отправка памятки по медкомиссии.',
     sentiment: 'positive',
     tags: ['Запись', 'АКПП', 'Выходные', 'Медкомиссия'],
+    greetingVariant: 'B',
+    callerFollowUpSent: true,
+    callerFollowUpChannel: 'sms',
     followUpSent: true,
     followUpChannel: 'sms',
     followUpText: 'Денис, место в группе выходного дня забронировано (старт 02.11 в 10:00). 24-я поликлиника: ул. Филимонова, 53.',
@@ -809,6 +825,35 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
     }
   ],
   firstMessage: NICHE_TEMPLATES.driving_school.firstMessage,
+  // A/B Testing of Greetings
+  abTestingEnabled: true,
+  greetingA: 'Здравствуйте! Автошкола «Драйв-Минск», меня зовут Анна. Чем могу помочь?',
+  greetingB: 'Добрый день! Автошкола «Драйв-Минск». Набор в вечерние группы на категорию B открыт, меня зовут Анна. Слушаю вас!',
+  greetingSplitPercent: 50,
+  // Conversational Filler Phrases
+  fillerPhrasesEnabled: true,
+  fillerPhrasesDelayMs: 900,
+  // Caller Direct Notification
+  callerNotification: {
+    isEnabled: true,
+    channel: 'sms',
+    provider: 'sms_by',
+    template: 'Здравствуйте! Вы записаны в {КОМПАНИЯ} ({УСЛУГА}). Время: {ВРЕМЯ}. Адрес: {АДРЕС}. Схема проезда: https://yandex.by/maps/-/CDe1V. Тел: +375 (29) 112-44-55',
+    sendMapLink: true,
+    notifyOnlyOnLead: true,
+    senderName: 'Voxi-Drive'
+  },
+  // Website Click-to-Call Widget
+  webWidgetConfig: {
+    isEnabled: true,
+    primaryColor: '#000000',
+    position: 'bottom-right',
+    buttonText: 'Позвонить администратору',
+    welcomeMessage: 'Здравствуйте! Я голосовой ИИ-администратор. Могу ответить на любые вопросы по тарифам, расписанию и записать вас на удобное время.',
+    autoOpenDelaySec: 0,
+    showWaveform: true,
+    accentTitle: 'Звонок администратору 24/7'
+  },
   systemPrompt: '',
   phoneticRules: [
     ...PHONETIC_PRESETS.toponyms.slice(0, 5),
@@ -822,7 +867,10 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
     platform: 'yclients',
     autoBookSlots: true,
     notifyClientSms: true,
-    selectedStaff: 'all'
+    selectedStaff: 'all',
+    liveSlotCheckingEnabled: true,
+    slotDurationMinutes: 60,
+    availableDaysAhead: 14
   },
   isActive: true,
   updatedAt: new Date().toISOString()

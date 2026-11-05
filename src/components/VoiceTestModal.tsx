@@ -85,6 +85,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const callLoggedRef = useRef(false);
   const onCallCompletedRef = useRef(onCallCompleted);
   const handleHangupRef = useRef<() => void>(() => {});
+  const currentGreetingVariantRef = useRef<'A' | 'B'>('A');
 
   useEffect(() => {
     onCallCompletedRef.current = onCallCompleted;
@@ -104,6 +105,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       address: tmpl.address,
       durationSeconds: callDurationRef.current,
       messages: transcriptRef.current,
+      greetingVariant: currentGreetingVariantRef.current,
     });
     if (log) {
       callLoggedRef.current = true;
@@ -229,9 +231,17 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
             pricingAndServices: tmpl.pricingAndServices,
             knowledgeBase: tmpl.knowledgeBase,
             voice: activeVoice,
+            fillerPhrasesEnabled: true,
+            fillerDelayMs: 850,
           },
           priorHistory,
-          controller.signal
+          controller.signal,
+          (fillerText) => {
+            if (callStateRef.current === 'connected' && !controller.signal.aborted) {
+              setBotSpeaking(true);
+              speakBotMessage(fillerText, activeVoice);
+            }
+          }
         );
 
         if (callStateRef.current !== 'connected' || selectedNicheRef.current !== activeNiche || controller.signal.aborted) return;
@@ -374,7 +384,12 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         callStateRef.current = 'connected';
         setCallState('connected');
 
-        const welcome = adaptGreetingForVoice(tmpl.firstMessage, targetVoice, tmpl.companyName, tmpl.companyName);
+        const variant: 'A' | 'B' = Math.random() >= 0.5 ? 'B' : 'A';
+        currentGreetingVariantRef.current = variant;
+        const rawGreeting = variant === 'B'
+          ? tmpl.firstMessage.replace('Здравствуйте!', 'Добрый день! Рады вашему звонку.')
+          : tmpl.firstMessage;
+        const welcome = adaptGreetingForVoice(rawGreeting, targetVoice, tmpl.companyName, tmpl.companyName);
         const firstEntry = [{ speaker: 'assistant' as const, text: welcome, time: '00:01' }];
         transcriptRef.current = firstEntry;
         setTranscript(firstEntry);

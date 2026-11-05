@@ -474,7 +474,30 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               onChange={(nextGreeting) =>
                 setFormData((prev) => ({
                   ...prev,
-                  firstMessage: nextGreeting
+                  firstMessage: nextGreeting,
+                  greetingA: nextGreeting
+                }))
+              }
+              abTestingEnabled={formData.abTestingEnabled}
+              onToggleAbTesting={(enabled) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  abTestingEnabled: enabled,
+                  greetingB: prev.greetingB || prev.firstMessage.replace('Здравствуйте!', 'Добрый день! Рады вашему звонку.')
+                }))
+              }
+              greetingB={formData.greetingB}
+              onChangeGreetingB={(nextB) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  greetingB: nextB
+                }))
+              }
+              fillerPhrasesEnabled={formData.fillerPhrasesEnabled !== false}
+              onToggleFillerPhrases={(enabled) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  fillerPhrasesEnabled: enabled
                 }))
               }
             />

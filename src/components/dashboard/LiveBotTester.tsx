@@ -54,6 +54,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   const callDurationRef = useRef(0);
   const callLoggedRef = useRef(false);
   const onCallCompletedRef = useRef(onCallCompleted);
+  const greetingVariantRef = useRef<'A' | 'B'>('A');
 
   useEffect(() => {
     onCallCompletedRef.current = onCallCompleted;
@@ -72,6 +73,8 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
       address: liveAgent.address,
       durationSeconds: callDurationRef.current,
       messages: messagesRef.current,
+      greetingVariant: greetingVariantRef.current,
+      callerNotification: liveAgent.callerNotification,
     });
     if (log) {
       callLoggedRef.current = true;
@@ -176,7 +179,13 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
           query,
           liveAgent,
           priorHistory,
-          controller.signal
+          controller.signal,
+          (fillerText) => {
+            if (callStatusRef.current === 'connected' && !controller.signal.aborted) {
+              setBotSpeaking(true);
+              speakBotMessage(fillerText, liveAgent.voice);
+            }
+          }
         );
         if (callStatusRef.current !== 'connected' || controller.signal.aborted) return;
 
@@ -302,8 +311,15 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
       setCallStatus('connected');
 
       const latestAgent = agentRef.current;
+      const variant: 'A' | 'B' = latestAgent.abTestingEnabled
+        ? (Math.random() >= 0.5 ? 'B' : 'A')
+        : 'A';
+      greetingVariantRef.current = variant;
+      const chosenGreeting = variant === 'B' && latestAgent.greetingB
+        ? latestAgent.greetingB
+        : (latestAgent.firstMessage || tmpl.firstMessage);
       const welcome = adaptGreetingForVoice(
-        latestAgent.firstMessage || tmpl.firstMessage,
+        chosenGreeting,
         latestAgent.voice,
         latestAgent.companyName,
         tmpl.companyName

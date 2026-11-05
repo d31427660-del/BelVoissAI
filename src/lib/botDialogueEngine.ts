@@ -1,7 +1,9 @@
-import { BusinessNiche, CallLog, KnowledgeDocument } from '../types';
+import { BusinessNiche, CallLog, KnowledgeDocument, CallerNotificationConfig, VoiceId } from '../types';
 import { NICHE_TEMPLATES } from './mockData';
 import { queryKnowledgeDocuments } from './documentParser';
 import { detectCarrierVoicemail, detectWarmTransferRequest, AmdDetectionResult } from './amdDetector';
+import { formatCallerTemplate } from './callerNotificationService';
+import { getFillerPhrase, playSoftKeyboardCue } from './fillerPhrasesService';
 
 export interface DialogueContext {
   niche?: BusinessNiche;
@@ -15,6 +17,11 @@ export interface DialogueContext {
   knowledgeDocuments?: KnowledgeDocument[];
   systemPrompt?: string;
   voice?: string;
+  fillerPhrasesEnabled?: boolean;
+  fillerDelayMs?: number;
+  abTestingEnabled?: boolean;
+  greetingA?: string;
+  greetingB?: string;
   warmTransfer?: {
     enabled: boolean;
     targetPhone?: string;
@@ -222,7 +229,7 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     return `Наш график работы: ${hours}. Принимаем по предварительной записи. Подсказать свободные окна на сегодня или завтра?`;
   }
 
-  // 5. Booking, appointment requests
+  // 5. Booking, appointment requests & Live Slot Availability check
   if (
     q.includes('запис') ||
     q.includes('забронир') ||
@@ -237,17 +244,23 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('подъехать')
   ) {
     const shortAddr = address.split('(')[0].trim();
+
+    // Two-Way Live Conflict check (Live Function Calling simulation)
+    if (q.includes('18:00') || q.includes('12:00') || q.includes('16:00')) {
+      return `Сверяюсь с онлайн-календарем: на это время окно уже занято другим клиентом. Но прямо на эту же дату свободно в 17:30 или в 18:30 (${shortAddr}). Какое время закрепить за вами?`;
+    }
+
     if (niche === 'auto_service') {
-      return `На завтра у мастера свободно окно в 11:30 и 18:30 (${shortAddr}). Какое время вам удобнее забронировать?`;
+      return `Проверила онлайн-запись: на завтра у мастера свободно окно в 11:30 и 18:30 (${shortAddr}). Какое время вам удобнее забронировать?`;
     }
     if (niche === 'beauty_salon') {
-      return `На завтра свободно окно к топ-мастеру на 14:00 и 18:30 (${shortAddr}). На какое время вас зафиксировать?`;
+      return `В системе онлайн-записи свободно окно к топ-мастеру на 14:00 и 18:30 (${shortAddr}). На какое время вас зафиксировать?`;
     }
     if (niche === 'driving_school') {
-      return `Ближайшая группа стартует в понедельник в 18:30 по адресу ${shortAddr}. Подскажите ваше имя, и я отправлю вам бронь места в SMS!`;
+      return `Ближайшая вечерняя группа стартует в понедельник в 18:30 по адресу ${shortAddr}. Подскажите ваше имя, и я отправлю вам бронь места в SMS!`;
     }
     if (niche === 'medical_clinic') {
-      return `Доктор принимает сегодня в 17:00, а также есть окно завтра в 10:30 (${shortAddr}). На какое время вас записать?`;
+      return `Доктор принимает сегодня в 17:00, а также есть свободное окно завтра в 10:30 (${shortAddr}). На какое время вас записать?`;
     }
     return `На завтра свободно окно в 11:30 и 16:30 по адресу ${shortAddr}. Назовите ваше имя и удобное время, я сразу внесу вас в график!`;
   }
@@ -262,6 +275,7 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('хорошо') ||
     q.includes('давай') ||
     q.includes('18:30') ||
+    q.includes('17:30') ||
     q.includes('11:30') ||
     q.includes('14:00') ||
     q.includes('16:30') ||
@@ -270,7 +284,7 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     const isMale = context.voice === 'maxim';
     const sentVerb = isMale ? 'отправил' : 'отправила';
     const notifiedVerb = isMale ? 'уведомил' : 'уведомила';
-    return `Отлично! Время зафиксировано в системе. Я ${sentVerb} вам подтверждение в SMS и ${notifiedVerb} дежурного специалиста. Будем рады видеть вас в ${company}!`;
+    return `Отлично! Слот подтверждён и зафиксирован в системе онлайн-записи. Я ${sentVerb} вам SMS-визитку со схемой проезда и ${notifiedVerb} дежурного специалиста. Будем рады видеть вас в ${company}!`;
   }
 
   // 7. Installments & payment methods
@@ -374,8 +388,9 @@ export async function requestBotReply(
   query: string,
   context: DialogueContext,
   history: DialogueTurn[] = [],
-  signal?: AbortSignal
-): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback' }> {
+  signal?: AbortSignal,
+  onFiller?: (phrase: string) => void
+): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback'; fillerUsed?: string }> {
   const localController = new AbortController();
   const timer = setTimeout(() => localController.abort(), 4500);
   const onParentAbort = () => localController.abort();
@@ -386,6 +401,18 @@ export async function requestBotReply(
     } else {
       signal.addEventListener('abort', onParentAbort, { once: true });
     }
+  }
+
+  let fillerPhrase: string | undefined;
+  let fillerTimer: any;
+
+  if (onFiller && context.fillerPhrasesEnabled !== false) {
+    const delay = context.fillerDelayMs || 850;
+    fillerTimer = setTimeout(() => {
+      fillerPhrase = getFillerPhrase(query, (context.voice as VoiceId) || 'anna');
+      playSoftKeyboardCue();
+      onFiller(fillerPhrase);
+    }, delay);
   }
 
   try {
@@ -407,6 +434,7 @@ export async function requestBotReply(
         return {
           reply: data.reply.trim(),
           provider: 'yandexgpt-lite',
+          fillerUsed: fillerPhrase,
         };
       }
     }
@@ -416,6 +444,7 @@ export async function requestBotReply(
     }
   } finally {
     clearTimeout(timer);
+    if (fillerTimer) clearTimeout(fillerTimer);
     if (signal) {
       signal.removeEventListener('abort', onParentAbort);
     }
@@ -424,6 +453,7 @@ export async function requestBotReply(
   return {
     reply: generateBotReply(query, context),
     provider: 'local-fallback',
+    fillerUsed: fillerPhrase,
   };
 }
 
@@ -467,8 +497,10 @@ export function createCallLogFromDialogue(params: {
   address?: string;
   durationSeconds: number;
   messages: Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>;
+  greetingVariant?: 'A' | 'B';
+  callerNotification?: CallerNotificationConfig;
 }): CallLog | null {
-  const { niche, companyName, address, durationSeconds, messages } = params;
+  const { niche, companyName, address, durationSeconds, messages, greetingVariant, callerNotification } = params;
   const userMessages = messages.filter((m) => m.speaker === 'user');
   if (userMessages.length === 0) return null;
 
@@ -594,6 +626,20 @@ export function createCallLogFromDialogue(params: {
     ? `Здравствуйте, ${finalCallerName}! Ваша запись подтверждена: ${preferredDate || 'согласованное время'}. Адрес: ${address || tmpl.address}. Ждём вас!`
     : undefined;
 
+  const callerFollowUpSent = isLeadCaptured && !amdTriggered && callerNotification?.isEnabled !== false;
+  const callerFollowUpChannel = callerNotification?.channel || 'sms';
+  const callerFollowUpText = callerFollowUpSent
+    ? formatCallerTemplate(callerNotification?.template || '', {
+        clientName: finalCallerName,
+        companyName: companyName || tmpl.companyName,
+        service: firstQuestion.slice(0, 50),
+        date: preferredDate,
+        time: preferredTime,
+        address: address || tmpl.address,
+        contactPhone: extractedPhone.replace(' (Тест)', '')
+      })
+    : undefined;
+
   const finalStatus: CallLog['status'] = amdTriggered
     ? 'voicemail_detected'
     : transferTriggered
@@ -603,6 +649,8 @@ export function createCallLogFromDialogue(params: {
     : 'consultation';
 
   const finalCostByn = amdTriggered ? 0.00 : Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100);
+
+  const finalGreetingVariant: 'A' | 'B' = greetingVariant || (Math.random() >= 0.5 ? 'B' : 'A');
 
   return {
     id: `call-live-${Date.now()}`,
@@ -618,9 +666,21 @@ export function createCallLogFromDialogue(params: {
     summary: oneSentenceSummary,
     sentiment: amdTriggered ? 'neutral' : sentiment,
     tags,
+    greetingVariant: finalGreetingVariant,
     followUpSent,
     followUpChannel,
     followUpText,
+    callerFollowUpSent,
+    callerFollowUpChannel,
+    callerFollowUpText,
+    bookedSlot: isLeadCaptured
+      ? {
+          date: preferredDate || 'Ближайшая дата',
+          time: preferredTime || '18:30',
+          service: firstQuestion.slice(0, 50),
+          isRealtimeChecked: true,
+        }
+      : undefined,
     transferDetails: transferTriggered
       ? {
           targetPhone: '+375 (29) 700-11-22',

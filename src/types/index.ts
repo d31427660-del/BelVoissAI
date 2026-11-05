@@ -22,10 +22,34 @@ export interface YclientsSlotConfig {
   isEnabled: boolean;
   companyId: string;
   partnerToken: string;
-  platform: 'none' | 'yclients' | 'altegio' | 'dikidi' | 'bitrix24';
+  platform: 'none' | 'yclients' | 'altegio' | 'dikidi' | 'bitrix24' | 'google_calendar';
   autoBookSlots: boolean;
   notifyClientSms: boolean;
   selectedStaff?: string;
+  liveSlotCheckingEnabled?: boolean;
+  slotDurationMinutes?: number;
+  availableDaysAhead?: number;
+}
+
+export interface CallerNotificationConfig {
+  isEnabled: boolean;
+  channel: 'sms' | 'viber' | 'telegram';
+  provider: 'sms_by' | 'rocketsms' | 'viber_business' | 'mock';
+  template: string;
+  sendMapLink: boolean;
+  notifyOnlyOnLead: boolean;
+  senderName?: string;
+}
+
+export interface WebWidgetConfig {
+  isEnabled: boolean;
+  primaryColor: string;
+  position: 'bottom-right' | 'bottom-left';
+  buttonText: string;
+  welcomeMessage: string;
+  autoOpenDelaySec?: number;
+  showWaveform: boolean;
+  accentTitle?: string;
 }
 
 export interface KnowledgeDocument {
@@ -59,6 +83,18 @@ export interface AgentConfig {
   knowledgeBase: string;
   knowledgeDocuments?: KnowledgeDocument[];
   firstMessage: string;
+  // A/B Testing of Greetings (Priority 1)
+  abTestingEnabled?: boolean;
+  greetingA?: string;
+  greetingB?: string;
+  greetingSplitPercent?: number; // 50 means 50% A, 50% B
+  // Conversational Filler Phrases (Priority 1)
+  fillerPhrasesEnabled?: boolean;
+  fillerPhrasesDelayMs?: number; // default 900ms
+  // Direct Caller Notifications (Priority 1)
+  callerNotification?: CallerNotificationConfig;
+  // WebRTC Website Click-to-Call Widget (Priority 1)
+  webWidgetConfig?: WebWidgetConfig;
   systemPrompt: string;
   phoneticRules?: PhoneticRule[];
   vapiAssistantId?: string;
@@ -171,9 +207,19 @@ export interface CallLog {
   summary: string;
   sentiment?: CallSentiment;
   tags?: string[];
+  greetingVariant?: 'A' | 'B';
   followUpSent?: boolean;
   followUpChannel?: 'telegram' | 'sms' | 'none';
   followUpText?: string;
+  callerFollowUpSent?: boolean;
+  callerFollowUpChannel?: 'sms' | 'viber' | 'telegram';
+  callerFollowUpText?: string;
+  bookedSlot?: {
+    date: string;
+    time: string;
+    service?: string;
+    isRealtimeChecked: boolean;
+  };
   transferDetails?: {
     targetPhone: string;
     reason: 'human_request' | 'conflict' | 'complex_query';
