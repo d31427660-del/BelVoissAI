@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build:client": "tsc -b && vite build",
+    "prerender": "node scripts/prerender.mjs",
+    "build": "tsc -b && vite build && node scripts/prerender.mjs",
     "pack:ispmanager": "npm run build && rm -f voxi-ispmanager.zip && (cd dist && zip -r -q ../voxi-ispmanager.zip . -x '*.DS_Store')",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:features": "npx tsx scripts/verify_new_features.ts",
+    "test:hydration": "node scripts/test_hydration.mjs",
+    "test": "npx tsx scripts/verify_new_features.ts && node scripts/test_hydration.mjs"
   },
   "dependencies": {
     "@oddbird/popover-polyfill": "^0.7.3",

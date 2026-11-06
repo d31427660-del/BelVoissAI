@@ -109,7 +109,7 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             <h1 className="apple-heading text-4xl sm:text-5xl lg:text-[58px] text-[#1d1d1f] tracking-tight leading-[1.06]">
-              ИИ-администратор,{' '}
+              {'ИИ-администратор, '}
               <span className="bg-gradient-to-r from-[#2563eb] via-[#4f46e5] to-emerald-500 bg-clip-text text-transparent">
                 который отвечает на звонки 24/7.
               </span>

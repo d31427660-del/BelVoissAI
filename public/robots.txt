@@ -10,4 +10,4 @@ Disallow: /api/
 Clean-param: payment&minutes /
 
 Sitemap: https://voxi.by/sitemap.xml
-Host: https://voxi.by
+Host: voxi.by

@@ -336,10 +336,17 @@ export function App() {
       return;
     }
 
-    document.title =
-      currentView === 'dashboard'
-        ? `Личный кабинет — ${user?.companyName || 'Voxi.by'}`
-        : 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
+    let pageTitle = 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
+    if (currentView === 'dashboard') {
+      pageTitle = `Личный кабинет — ${user?.companyName || 'Voxi.by'}`;
+    } else if (externalLegalDoc === 'offer') {
+      pageTitle = 'Публичный договор (оферта) — Voxi.by';
+    } else if (externalLegalDoc === 'privacy') {
+      pageTitle = 'Политика конфиденциальности (Закон РБ № 99-З) — Voxi.by';
+    } else if (externalLegalDoc === 'sla') {
+      pageTitle = 'Соглашение об уровне сервиса (SLA 99.9%) — Voxi.by';
+    }
+    document.title = pageTitle;
 
     const targetPath = currentView === 'dashboard' ? '/dashboard' : '/';
     if (
@@ -348,7 +355,7 @@ export function App() {
     ) {
       window.history.pushState({ view: currentView }, '', targetPath);
     }
-  }, [currentView, user]);
+  }, [currentView, user, externalLegalDoc]);
 
   useEffect(() => {
     const onPopState = () => {
