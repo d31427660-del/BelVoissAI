@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Widget5Icon as LayoutDashboard,
   CpuBoltIcon as Bot,
@@ -15,7 +15,8 @@ import {
   GraphNewUpIcon as TrendingUp,
   WalletMoneyIcon as Wallet,
   DocumentTextIcon as FileText,
-  CallChatIcon as CallTransfer
+  CallChatIcon as CallTransfer,
+  ChatRoundDotsIcon
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession } from '../../types';
 import { SimpleOverviewTab } from './SimpleOverviewTab';
@@ -26,7 +27,9 @@ import { CallLogsTab } from './CallLogsTab';
 import { MysteryCallerTab } from './MysteryCallerTab';
 import { KnowledgeBaseTab } from './KnowledgeBaseTab';
 import { SipSettingsTab } from './SipSettingsTab';
+import { LiveChatTab } from './LiveChatTab';
 import { GuideModal } from './GuideModal';
+import { liveChatService } from '../../lib/liveChatService';
 
 interface DashboardLayoutProps {
   user: UserSession;
@@ -67,10 +70,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onExitToLanding,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'analytics' | 'integrations' | 'sip' | 'knowledge' | 'mystery'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'analytics' | 'integrations' | 'sip' | 'knowledge' | 'mystery' | 'livechat'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
+
+  useEffect(() => {
+    return liveChatService.subscribe((convs) => {
+      const unread = convs.reduce((sum, c) => sum + (c.unreadByAdmin || 0), 0);
+      setUnreadChatCount(unread);
+    });
+  }, []);
 
   const displayCallLogs = user.isMock
     ? callLogs.filter((c) => !c.niche || c.niche === agent.niche)
@@ -94,6 +105,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       subtitle: 'Статус бота и быстрые шаги',
       icon: <LayoutDashboard className="w-4 h-4 shrink-0" />,
       badge: undefined
+    },
+    {
+      id: 'livechat' as const,
+      label: 'Чат поддержки',
+      subtitle: 'Переписка с клиентами Live',
+      icon: <ChatRoundDotsIcon className="w-4 h-4 shrink-0" />,
+      badge: unreadChatCount > 0 ? `${unreadChatCount}` : undefined
     },
     {
       id: 'agent' as const,
@@ -427,6 +445,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               onToggleActive={() => onSaveAgent({ ...agent, isActive: !agent.isActive })}
               onOpenTopUp={onOpenTopUp}
             />
+          )}
+
+          {activeTab === 'livechat' && (
+            <LiveChatTab onOpenVoiceTest={onOpenVoiceTest} />
           )}
 
           {activeTab === 'agent' && (

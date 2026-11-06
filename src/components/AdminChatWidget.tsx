@@ -6,8 +6,12 @@ import {
   CheckCircleIcon,
   ShieldCheckIcon,
   PhoneCallingRoundedIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  BellIcon,
+  BellOffIcon
 } from '@solar-icons/react/bold-duotone';
+import { liveChatService } from '../lib/liveChatService';
+import { LiveChatMessage } from '../types';
 
 interface Message {
   id: string;
@@ -103,17 +107,58 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [visitorContact, setVisitorContact] = useState('');
+  const [contactSaved, setContactSaved] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const conversationIdRef = useRef<string>('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
+    // Initialize live chat subscription
+    const session = liveChatService.getVisitorSession();
+    conversationIdRef.current = session.conversationId;
+    if (session.contact) {
+      setVisitorContact(session.contact);
+      setContactSaved(true);
+    }
+    setSoundEnabled(liveChatService.getIsSoundEnabled());
+
+    const unsubscribeChat = liveChatService.subscribe((convs, visitorConv) => {
+      if (visitorConv && visitorConv.messages.length > 0) {
+        const formatted: Message[] = visitorConv.messages.map((m) => ({
+          id: m.id,
+          sender: m.sender === 'visitor' ? 'user' : 'admin',
+          text: m.text,
+          time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          action: m.action,
+        }));
+        setMessages(formatted);
+      }
+    });
+
+    const unsubscribeTyping = liveChatService.subscribeTyping((event) => {
+      if (event.conversationId === conversationIdRef.current && event.sender === 'admin') {
+        setIsTyping(event.isTyping);
+      }
+    });
+
+    return () => {
+      unsubscribeChat();
+      unsubscribeTyping();
+    };
+  }, []);
+
+  useEffect(() => {
     if (isOpen) {
       setHasUnread(false);
+      liveChatService.markConversationRead(conversationIdRef.current, 'visitor');
       setTimeout(() => {
         inputRef.current?.focus();
         scrollToBottom();
@@ -131,11 +176,20 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
     const text = (textToSend || inputValue).trim();
     if (!text) return;
 
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Send via liveChatService for real-time synchronization with Admin dashboard & Telegram
+    liveChatService.sendMessage({
+      conversationId: conversationIdRef.current,
+      sender: 'visitor',
+      text,
+    });
+
     const userMessage: Message = {
       id: `u-${Date.now()}`,
       sender: 'user',
       text,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: timeStr,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -153,6 +207,16 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         action: reply.action,
       };
+
+      // Also record in service so admin sees bot assist responses in real-time
+      liveChatService.sendMessage({
+        conversationId: conversationIdRef.current,
+        sender: 'admin',
+        senderName: 'Администратор Voxi',
+        text: reply.text,
+        action: reply.action,
+      });
+
       setMessages((prev) => [...prev, adminMessage]);
       setIsTyping(false);
     }, delay);
@@ -162,6 +226,26 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    liveChatService.setTyping(conversationIdRef.current, 'visitor');
+  };
+
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    liveChatService.setSoundEnabled(next);
+  };
+
+  const handleSaveContact = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (visitorContact.trim()) {
+      liveChatService.updateVisitorContact('Клиент с сайта', visitorContact);
+      setContactSaved(true);
+      setShowContactForm(false);
     }
   };
 
@@ -217,7 +301,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
         <div
           role="dialog"
           aria-label="Чат с дежурным администратором Voxi.by"
-          className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[390px] h-[540px] max-h-[85vh] bg-[#ffffff] border border-slate-200/90 rounded-[28px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[390px] h-[550px] max-h-[85vh] bg-[#ffffff] border border-slate-200/90 rounded-[28px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-4 py-3.5 flex items-center justify-between shrink-0 shadow-sm">
@@ -241,8 +325,18 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
               </div>
             </div>
 
-            {/* Actions: Telegram & Close */}
+            {/* Actions: Sound, Telegram & Close */}
             <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleToggleSound}
+                aria-label={soundEnabled ? 'Отключить звук' : 'Включить звук'}
+                title={soundEnabled ? 'Звук включен' : 'Звук выключен'}
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                {soundEnabled ? <BellIcon size={16} className="text-emerald-400" /> : <BellOffIcon size={16} />}
+              </button>
+
               <a
                 href="https://t.me/voxi_support"
                 target="_blank"
@@ -270,6 +364,56 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
               <span>Официальная поддержка в Беларуси (УНП 193991846)</span>
             </div>
           </div>
+
+          {/* Optional Quick Contact Reminder */}
+          {!contactSaved ? (
+            showContactForm ? (
+              <form onSubmit={handleSaveContact} className="p-2.5 bg-slate-100 border-b border-slate-200 flex items-center gap-2 text-xs">
+                <input
+                  type="text"
+                  placeholder="+375 (29) ... или @telegram"
+                  value={visitorContact}
+                  onChange={(e) => setVisitorContact(e.target.value)}
+                  className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  type="submit"
+                  className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                >
+                  OK
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowContactForm(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <div className="px-4 py-1 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                <span>Переписка сохраняется в реальном времени</span>
+                <button
+                  type="button"
+                  onClick={() => setShowContactForm(true)}
+                  className="text-blue-600 hover:underline font-medium"
+                >
+                  Оставить телефон
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="px-4 py-0.5 bg-emerald-50/80 border-b border-emerald-100 text-[10px] text-emerald-700 flex items-center justify-between">
+              <span>Контакт сохранен: {visitorContact}</span>
+              <button
+                type="button"
+                onClick={() => setShowContactForm(true)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                изменить
+              </button>
+            </div>
+          )}
 
           {/* Messages Body */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs bg-slate-50/50">
@@ -368,7 +512,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
               ref={inputRef}
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Задайте вопрос администратору..."
               className="flex-1 bg-slate-100/80 focus:bg-white text-xs px-3.5 py-2.5 rounded-full border border-slate-200 focus:border-[#2563eb] focus:outline-none transition-colors text-slate-900 placeholder:text-slate-400"

@@ -258,3 +258,32 @@ export interface MysteryAuditItem {
   aiDemoAudioText: string;
   pitchMessage: string;
 }
+
+export interface LiveChatMessage {
+  id: string;
+  conversationId: string;
+  sender: 'admin' | 'visitor' | 'system';
+  senderName?: string;
+  text: string;
+  createdAt: string;
+  action?: 'voice_test' | 'telegram' | 'auth' | 'calculator';
+  readByAdmin?: boolean;
+  readByVisitor?: boolean;
+}
+
+export interface LiveChatConversation {
+  id: string;
+  visitorId: string;
+  visitorName: string;
+  visitorContact?: string;
+  visitorCity?: string;
+  visitorPage?: string;
+  startedAt: string;
+  lastMessageAt: string;
+  lastMessageText: string;
+  unreadByAdmin: number;
+  unreadByVisitor: number;
+  isVisitorOnline: boolean;
+  isAdminOnline: boolean;
+  messages: LiveChatMessage[];
+}
