@@ -347,6 +347,31 @@ async function runHydrationSuite() {
       console.warn('    Кнопка открытия модального окна не найдена');
     }
 
+    // 2.4 Интерактивность чата с администратором (AdminChatWidget)
+    console.log('\n2.4 Проверка работы виджета «Чат с администратором»:');
+    const chatBtn = await page.$('button[aria-label*="чат с дежурным администратором"]');
+    assert(chatBtn !== null, 'Плавающая кнопка «Чат с администратором» найдена в правом нижнем углу');
+
+    if (chatBtn) {
+      await chatBtn.click();
+      await new Promise((r) => setTimeout(r, 400));
+
+      const chatDialog = await page.$('div[role="dialog"][aria-label*="Чат с дежурным администратором"]');
+      assert(chatDialog !== null, 'Окно чата успешно открылось по клику');
+
+      const adminTitle = await page.$eval('div[role="dialog"]', (el) => el.textContent || '');
+      assert(adminTitle.includes('Администратор Voxi'), 'Шапка содержит имя администратора Voxi');
+
+      // Close chat
+      const closeChatBtn = await page.$('button[aria-label="Закрыть чат"]');
+      if (closeChatBtn) {
+        await closeChatBtn.click();
+        await new Promise((r) => setTimeout(r, 300));
+        const isChatClosed = (await page.$('div[role="dialog"][aria-label*="Чат с дежурным администратором"]')) === null;
+        assert(isChatClosed, 'Окно чата успешно закрылось по кнопке закрытия');
+      }
+    }
+
     await page.close();
 
     // =========================================================================
