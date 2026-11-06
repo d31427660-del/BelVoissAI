@@ -200,6 +200,13 @@ export const Footer: React.FC<FooterProps> = ({
             <button type="button" onClick={() => setInternalDocModal('sla')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
               SLA 99.9%
             </button>
+            <a
+              href="#admin"
+              className="text-[#86868b] hover:text-[#1d1d1f] transition-colors cursor-pointer"
+              title="Вход в мастер-панель управления платформой Voxi.by"
+            >
+              Панель администратора
+            </a>
           </div>
         </div>
       </div>

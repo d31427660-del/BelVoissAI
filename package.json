@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test:features": "npx tsx scripts/verify_new_features.ts",
     "test:hydration": "node scripts/test_hydration.mjs",
-    "test": "npx tsx scripts/verify_new_features.ts && node scripts/test_hydration.mjs && node scripts/test_realtime_livechat.mjs"
+    "test": "npx tsx scripts/verify_new_features.ts && node scripts/test_hydration.mjs && node scripts/test_realtime_livechat.mjs && node scripts/test_admin_panel.mjs"
   },
   "dependencies": {
     "@oddbird/popover-polyfill": "^0.7.3",

@@ -49,9 +49,15 @@ const AuthModal = lazy(() =>
 const TopUpModal = lazy(() =>
   import('./components/dashboard/TopUpModal').then((m) => ({ default: m.TopUpModal }))
 );
+const AdminPanel = lazy(() =>
+  import('./components/admin/AdminPanel').then((m) => ({ default: m.AdminPanel }))
+);
 
-function getInitialViewFromLocation(): 'landing' | 'dashboard' {
+function getInitialViewFromLocation(): 'landing' | 'dashboard' | 'admin' {
   if (typeof window === 'undefined') return 'landing';
+  if (window.location.pathname.startsWith('/admin') || window.location.hash === '#admin') {
+    return 'admin';
+  }
   if (window.location.pathname.startsWith('/dashboard') || window.location.hash === '#dashboard') {
     return 'dashboard';
   }
@@ -68,7 +74,18 @@ function getInitialLegalDocFromLocation(): LegalDocType | null {
 }
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>(getInitialViewFromLocation);
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'admin'>(getInitialViewFromLocation);
+
+  useEffect(() => {
+    const handleHash = () => {
+      const h = window.location.hash;
+      if (h === '#admin') setCurrentView('admin');
+      else if (h === '#dashboard') setCurrentView('dashboard');
+      else if (!h && window.location.pathname === '/') setCurrentView('landing');
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isVoiceTestModalOpen, setIsVoiceTestModalOpen] = useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
@@ -848,6 +865,30 @@ export function App() {
               }
 
               setCurrentView('dashboard');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* Master Administrator Platform Panel */}
+      {currentView === 'admin' && (
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-sm">
+              Загрузка панели управления Voxi.by...
+            </div>
+          }
+        >
+          <AdminPanel
+            onExitToLanding={() => {
+              setCurrentView('landing');
+              window.location.hash = '';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onNavigateToUserDashboard={() => {
+              setCurrentView('dashboard');
+              window.location.hash = '#dashboard';
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
