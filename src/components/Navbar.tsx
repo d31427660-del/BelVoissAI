@@ -171,6 +171,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           <div className="pt-2 flex flex-col gap-2">
+            {onOpenVoiceTest && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenVoiceTest();
+                }}
+                className="w-full py-3 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Поговорить с Voxi</span>
+              </button>
+            )}
             {!user && (
               <button
                 onClick={() => {

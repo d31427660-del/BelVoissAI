@@ -1,11 +1,13 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard
+Disallow: /admin
 Disallow: /api/
 
 User-agent: Yandex
 Allow: /
 Disallow: /dashboard
+Disallow: /admin
 Disallow: /api/
 Clean-param: payment&minutes /
 

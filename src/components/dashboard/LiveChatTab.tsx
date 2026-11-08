@@ -31,19 +31,29 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectedConvIdRef = useRef<string>('');
+
+  useEffect(() => {
+    selectedConvIdRef.current = selectedConvId;
+    setIsVisitorTyping(false);
+  }, [selectedConvId]);
 
   useEffect(() => {
     setSoundEnabled(liveChatService.getIsSoundEnabled());
 
     const unsubscribeChat = liveChatService.subscribe((convs) => {
       setConversations([...convs]);
-      if (!selectedConvId && convs.length > 0) {
+      if (!selectedConvIdRef.current && convs.length > 0) {
+        selectedConvIdRef.current = convs[0].id;
         setSelectedConvId(convs[0].id);
       }
     });
 
     const unsubscribeTyping = liveChatService.subscribeTyping((event) => {
-      if (event.sender === 'visitor') {
+      if (
+        event.sender === 'visitor' &&
+        (!selectedConvIdRef.current || event.conversationId === selectedConvIdRef.current)
+      ) {
         setIsVisitorTyping(event.isTyping);
       }
     });
@@ -52,7 +62,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
       unsubscribeChat();
       unsubscribeTyping();
     };
-  }, [selectedConvId]);
+  }, []);
 
   useEffect(() => {
     if (selectedConvId) {
@@ -229,6 +239,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
               <MagnifierIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
+                aria-label="Поиск по имени, номеру или тексту диалога"
                 placeholder="Поиск по имени, номеру, тексту..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -422,6 +433,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
                 <input
                   ref={inputRef}
                   type="text"
+                  aria-label="Ответить посетителю в реальном времени"
                   placeholder="Ответить посетителю в реальном времени... (Enter для отправки)"
                   value={inputText}
                   onChange={handleInputChange}

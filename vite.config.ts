@@ -154,11 +154,25 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            motion: ['framer-motion'],
-            icons: ['@solar-icons/react'],
-            supabase: ['@supabase/supabase-js'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (
+                id.includes('/node_modules/react/') ||
+                id.includes('/node_modules/react-dom/') ||
+                id.includes('/node_modules/scheduler/')
+              ) {
+                return 'vendor';
+              }
+              if (id.includes('/node_modules/framer-motion/')) {
+                return 'motion';
+              }
+              if (id.includes('/node_modules/@solar-icons/')) {
+                return 'icons';
+              }
+              if (id.includes('/node_modules/@supabase/')) {
+                return 'supabase';
+              }
+            }
           },
         },
       },

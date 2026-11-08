@@ -125,7 +125,18 @@ function voxi_is_db_configured(array $cfg): bool
 {
     $dbName = trim((string)($cfg['db_name'] ?? ''));
     $dbUser = trim((string)($cfg['db_user'] ?? ''));
-    return $dbName !== '' && $dbUser !== '' && !str_contains($dbName, 'your_');
+    $dbPass = (string)($cfg['db_pass'] ?? '');
+    if ($dbName === '' || $dbUser === '' || str_contains($dbName, 'your_')) {
+        return false;
+    }
+    if ($dbName === 'voxitest' && $dbUser === 'voxiadmin' && $dbPass === '') {
+        $envDbName = voxi_env(['DB_NAME', 'DB_DATABASE', 'MYSQL_DATABASE'], '');
+        $envDbPass = voxi_env(['DB_PASS', 'DB_PASSWORD', 'MYSQL_PASSWORD', 'DB_PWD'], '');
+        if ($envDbName === '' && $envDbPass === '') {
+            return false;
+        }
+    }
+    return true;
 }
 
 function voxi_ensure_schema(PDO $pdo, string $dbName): void

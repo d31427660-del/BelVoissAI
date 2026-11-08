@@ -192,12 +192,9 @@ export const KnowledgeBaseUploader: React.FC<KnowledgeBaseUploaderProps> = ({
             <span className="text-[11px] text-slate-400">до 15 МБ</span>
           </div>
 
-          <button
-            type="button"
-            className="mt-1 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 text-xs font-semibold shadow-2xs transition-colors"
-          >
-            Выбрать файлы на компьютере
-          </button>
+          <span className="mt-1 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 text-xs font-semibold shadow-2xs transition-colors">
+            Выбрать файл с компьютера
+          </span>
         </div>
       </div>
 

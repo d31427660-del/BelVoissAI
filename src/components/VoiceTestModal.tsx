@@ -75,6 +75,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const transcriptRef = useRef<Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const connectTimerRef = useRef<number | null>(null);
+  const amdHangupTimerRef = useRef<number | null>(null);
   const ringtoneStopRef = useRef<(() => void) | null>(null);
   const lastBotMessageRef = useRef('');
   const callStateRef = useRef<CallState>('ready');
@@ -147,6 +148,10 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     if (connectTimerRef.current) {
       window.clearTimeout(connectTimerRef.current);
       connectTimerRef.current = null;
+    }
+    if (amdHangupTimerRef.current) {
+      window.clearTimeout(amdHangupTimerRef.current);
+      amdHangupTimerRef.current = null;
     }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -273,7 +278,11 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         speakBotMessage(cleanReply, activeVoice);
 
         if (isAmd) {
-          window.setTimeout(() => {
+          if (amdHangupTimerRef.current) {
+            window.clearTimeout(amdHangupTimerRef.current);
+          }
+          amdHangupTimerRef.current = window.setTimeout(() => {
+            amdHangupTimerRef.current = null;
             handleHangupRef.current();
           }, 2400);
         }
@@ -896,20 +905,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   >
                     Отправить ⏎
                   </button>
-                </div>
-              )}
-
-              {/* AMD & Transfer Status Banners */}
-              {amdBanner && (
-                <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 text-xs flex items-center gap-2 text-left shadow-2xs">
-                  <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span className="font-medium">{amdBanner}</span>
-                </div>
-              )}
-              {transferBanner && (
-                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-center gap-2 text-left shadow-2xs">
-                  <Phone className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span className="font-medium">{transferBanner}</span>
                 </div>
               )}
 

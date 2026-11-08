@@ -49,8 +49,8 @@ export const KnowledgeBaseTab: React.FC<KnowledgeBaseTabProps> = ({
     setTimeout(() => setSavedNotice(false), 3000);
   };
 
-  const handleTestSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTestSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!testQuery.trim()) return;
     const res = queryKnowledgeDocuments(testQuery, documents);
     setTestResult(res);
@@ -161,12 +161,18 @@ export const KnowledgeBaseTab: React.FC<KnowledgeBaseTabProps> = ({
             type="text"
             value={testQuery}
             onChange={(e) => setTestQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleTestSearch();
+              }
+            }}
             placeholder="Например: Какая стоимость категории B и есть ли рассрочка?"
             className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
           />
           <button
             type="button"
-            onClick={handleTestSearch}
+            onClick={() => handleTestSearch()}
             className="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5 text-indigo-600" />

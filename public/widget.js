@@ -14,11 +14,25 @@
   const scriptTag = document.currentScript || document.querySelector('script[src*="widget.js"]');
   const dataset = scriptTag ? scriptTag.dataset : {};
 
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function sanitizeColor(color) {
+    const val = String(color || '#000000').trim();
+    return /^#[0-9a-fA-F]{3,8}$|^(rgb|hsl)a?\([0-9.,%\s]+\)$|^[a-zA-Z]{3,20}$/.test(val) ? val : '#000000';
+  }
+
   const CONFIG = {
     assistantName: dataset.name || 'ИИ-Администратор',
     companyName: dataset.company || 'Voxi.by',
-    primaryColor: dataset.color || '#000000',
-    position: dataset.position || 'bottom-right',
+    primaryColor: sanitizeColor(dataset.color),
+    position: dataset.position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
     buttonText: dataset.buttonText || 'Позвонить администратору',
     welcomeMessage: dataset.welcome || 'Здравствуйте! Я голосовой ИИ-администратор. Чем могу помочь?',
   };
@@ -176,7 +190,7 @@
       <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
       <line x1="12" x2="12" y1="19" y2="22"></line>
     </svg>
-    <span>${CONFIG.buttonText}</span>
+    <span>${escapeHtml(CONFIG.buttonText)}</span>
   `;
   document.body.appendChild(btn);
 
@@ -187,8 +201,8 @@
     <div class="voxi-modal-card">
       <div class="voxi-modal-header">
         <div>
-          <div style="font-weight:700;font-size:15px;">${CONFIG.assistantName}</div>
-          <div style="font-size:11px;opacity:0.7;">${CONFIG.companyName} • Онлайн 24/7</div>
+          <div style="font-weight:700;font-size:15px;">${escapeHtml(CONFIG.assistantName)}</div>
+          <div style="font-size:11px;opacity:0.7;">${escapeHtml(CONFIG.companyName)} • Онлайн 24/7</div>
         </div>
         <button id="voxi-close-btn" style="background:transparent;border:none;color:#ffffff;cursor:pointer;font-size:20px;padding:4px;">✕</button>
       </div>

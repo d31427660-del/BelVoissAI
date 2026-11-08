@@ -91,7 +91,22 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-    const { webhookUrl, secretKey, sendFormat = 'json_standard', lead = {}, isTest = false } = body;
+    const { action, webhookUrl, secretKey, sendFormat = 'json_standard', lead = {}, isTest = false } = body;
+
+    if (action === 'caller_notification' && (!webhookUrl || typeof webhookUrl !== 'string' || !/^https?:\/\//i.test(webhookUrl))) {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(
+        JSON.stringify({
+          ok: true,
+          status: 200,
+          deliveryStatus: 'simulated',
+          channel: body.channel || 'sms',
+          recipient: body.recipient || '',
+        })
+      );
+      return;
+    }
 
     if (!webhookUrl || typeof webhookUrl !== 'string' || !/^https?:\/\//i.test(webhookUrl)) {
       res.statusCode = 400;
@@ -187,6 +202,7 @@ export default async function handler(req: any, res: any) {
       method: 'POST',
       headers,
       body: JSON.stringify(outboundPayload),
+      redirect: 'error',
       signal: controller.signal,
     }).finally(() => clearTimeout(timeoutId));
 

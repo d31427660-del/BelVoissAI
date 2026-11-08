@@ -49,11 +49,22 @@ function voxi_validate_webhook_safety(string $url): ?string
 }
 
 $body = voxi_read_json_body();
+$action = trim((string)($body['action'] ?? ''));
 $webhookUrl = trim((string)($body['webhookUrl'] ?? ''));
 $secretKey = trim((string)($body['secretKey'] ?? ''));
 $sendFormat = (string)($body['sendFormat'] ?? 'json_standard');
 $lead = isset($body['lead']) && is_array($body['lead']) ? $body['lead'] : [];
 $isTest = !empty($body['isTest']);
+
+if ($action === 'caller_notification' && ($webhookUrl === '' || !preg_match('/^https?:\/\//i', $webhookUrl))) {
+    voxi_json([
+        'ok' => true,
+        'status' => 200,
+        'deliveryStatus' => 'simulated',
+        'channel' => (string)($body['channel'] ?? 'sms'),
+        'recipient' => (string)($body['recipient'] ?? ''),
+    ], 200);
+}
 
 if ($webhookUrl === '' || !preg_match('/^https?:\/\//i', $webhookUrl)) {
     voxi_json(['error' => 'Укажите корректный URL-адрес обработчика (начинающийся с https:// или http://)'], 400);
@@ -123,6 +134,7 @@ $ch = curl_init($webhookUrl);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_FOLLOWLOCATION => false,
     CURLOPT_TIMEOUT_MS => 6500,
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_POSTFIELDS => json_encode($outboundPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),

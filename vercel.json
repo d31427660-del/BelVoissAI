@@ -1,7 +1,19 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/|voices/|assets/|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|widget\\.js|og-image\\.svg|og-image\\.png|icon\\.svg|voxi-avatar\\.png|voxi-favicon\\.png).*)",
+      "source": "/offer",
+      "destination": "/offer/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy/index.html"
+    },
+    {
+      "source": "/sla",
+      "destination": "/sla/index.html"
+    },
+    {
+      "source": "/((?!api/|voices/|assets/|offer|privacy|sla|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|widget\\.js|og-image\\.svg|og-image\\.png|icon\\.svg|voxi-avatar\\.png|voxi-favicon\\.png).*)",
       "destination": "/index.html"
     }
   ],

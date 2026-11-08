@@ -153,7 +153,12 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   const handleSendMessage = useCallback(
     async (customQuery?: string) => {
       const query = (customQuery ?? inputText).trim();
-      if (!query || callStatusRef.current !== 'connected' || isBotSpeakingRef.current) return;
+      if (!query || callStatusRef.current !== 'connected') return;
+
+      // Barge-in: stop any active bot playback when user sends input or clicks a prompt chip
+      VoiceSimulator.stop();
+      isBotSpeakingRef.current = false;
+      setIsBotSpeaking(false);
 
       if (lastBotMessageRef.current && query.length >= 25 && lastBotMessageRef.current === query.toLowerCase()) {
         return;
@@ -189,12 +194,22 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
         );
         if (callStatusRef.current !== 'connected' || controller.signal.aborted) return;
 
+        let cleanReply = reply.replace(/\[(AMD_VOICEMAIL_DETECTED|WARM_TRANSFER_TRIGGERED)[^\]]*\]\s*/g, '').trim();
+        if (!cleanReply) {
+          if (reply.includes('[WARM_TRANSFER_TRIGGERED:')) {
+            cleanReply = 'Перевожу вас на старшего администратора, секунду...';
+          } else if (reply.includes('[AMD_VOICEMAIL_DETECTED:')) {
+            const carrier = reply.match(/\[AMD_VOICEMAIL_DETECTED:(.*?)\]/)?.[1] || 'МТС / А1';
+            cleanReply = `Обнаружен автоответчик сотового оператора (${carrier}). Вызов завершён без списания баланса.`;
+          }
+        }
+
         setAiProvider(provider);
         setIsBotThinking(false);
         const aiTime = formatCallTime(callDuration + 1);
 
-        setMessages((prev) => [...prev, { speaker: 'assistant', text: reply, time: aiTime }]);
-        speakBotMessage(reply, liveAgent.voice);
+        setMessages((prev) => [...prev, { speaker: 'assistant', text: cleanReply, time: aiTime }]);
+        speakBotMessage(cleanReply, liveAgent.voice);
       } catch {
         if (controller.signal.aborted) {
           // Newer user speech already started; do not clobber active bot thinking/speaking flags

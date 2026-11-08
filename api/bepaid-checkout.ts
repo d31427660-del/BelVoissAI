@@ -77,7 +77,13 @@ export default async function handler(req: any, res: any) {
 
     const amountKopecks = Math.round(amountByn * 100);
     const isTest = process.env.BEPAID_TEST_MODE !== 'false';
-    const siteUrl = (process.env.PUBLIC_SITE_URL || `https://${req.headers?.host || 'voxi.by'}`).replace(/\/$/, '');
+    const ALLOWED_HOSTS = new Set(['voxi.by', 'www.voxi.by', 'localhost', '127.0.0.1']);
+    const rawHost = String(req.headers?.host || 'voxi.by').trim();
+    const hostWithoutPort = rawHost.split(':')[0].toLowerCase();
+    const safeSiteUrl = ALLOWED_HOSTS.has(hostWithoutPort)
+      ? `${hostWithoutPort === 'localhost' || hostWithoutPort === '127.0.0.1' ? 'http' : 'https'}://${rawHost}`
+      : 'https://voxi.by';
+    const siteUrl = (process.env.PUBLIC_SITE_URL || safeSiteUrl).replace(/\/$/, '');
     const trackingId = `${userId || 'guest'}:${minutes}:${Date.now()}`;
     const eripServiceNo = process.env.BEPAID_ERIP_SERVICE_NO || '99999999';
 

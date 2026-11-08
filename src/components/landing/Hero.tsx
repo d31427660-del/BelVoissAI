@@ -19,7 +19,7 @@ interface QuickQuestion {
   id: string;
   question: string;
   answerAnna: string;
-  answerDmitry: string;
+  answerMaxim: string;
 }
 
 const QUICK_QUESTIONS: QuickQuestion[] = [
@@ -27,19 +27,19 @@ const QUICK_QUESTIONS: QuickQuestion[] = [
     id: 'price',
     question: 'Сколько стоит услуга и есть ли рассрочка?',
     answerAnna: 'Полный курс обучения стоит тысячу пятьдесят белорусских рублей. Мы оформляем беспроцентную рассрочку на четыре платежа без справок о доходах.',
-    answerDmitry: 'Комплексная диагностика стоит тридцать пять рублей, но при ремонте в нашем автосервисе она полностью бесплатна. Оплата возможна картой рассрочки.'
+    answerMaxim: 'Стоимость диагностики и обслуживания в нашем СТО — от тридцати пяти белорусских рублей, а при ремонте диагностика бесплатна. Есть беспроцентная рассрочка по карте Халва до трёх месяцев.'
   },
   {
     id: 'booking',
     question: 'Можно записаться на сегодня после 18:00?',
     answerAnna: 'Да, конечно! Сегодня в восемнадцать тридцать есть свободное место на вводное занятие. Подскажите ваше имя, и я сразу отправлю пропуск вам в Телеграм.',
-    answerDmitry: 'Да, сегодня на восемнадцать тридцать свободен второй бокс. Назовите марку автомобиля, и я забронирую время за вами.'
+    answerMaxim: 'Да, конечно! Сегодня после восемнадцати ноль-ноль свободен второй бокс на восемнадцать тридцать. Назовите марку автомобиля и ваше имя, я сразу забронирую время за вами.'
   },
   {
     id: 'location',
     question: 'Где вы находитесь и работаете ли в выходные?',
     answerAnna: 'Мы находимся в Минске на улице Сурганова двадцать четыре, в двух минутах от метро Академия Наук. Работаем ежедневно с девяти утра до девяти вечера, включая выходные.',
-    answerDmitry: 'Наш сервис находится на улице Тимирязева сто двадцать один, удобный заезд со стороны МКАД. Работаем без выходных с девяти утра до восьми вечера.'
+    answerMaxim: 'Мы находимся в Минске на улице Тимирязева сто двадцать один, удобный съезд с МКАД. Работаем ежедневно с девяти утра до восьми вечера, включая субботу и воскресенье.'
   }
 ];
 
@@ -58,11 +58,11 @@ export const Hero: React.FC<HeroProps> = ({
   }, []);
 
   const currentItem = QUICK_QUESTIONS.find((q) => q.id === activeQuestionId) || QUICK_QUESTIONS[0];
-  const currentAnswerText = selectedVoice === 'maxim' ? currentItem.answerDmitry : currentItem.answerAnna;
+  const currentAnswerText = selectedVoice === 'maxim' ? currentItem.answerMaxim : currentItem.answerAnna;
 
   const playQuestionAnswer = (questionObj: QuickQuestion, voiceOverride?: VoiceId) => {
     const targetVoice = voiceOverride || selectedVoice;
-    const textToSpeak = targetVoice === 'maxim' ? questionObj.answerDmitry : questionObj.answerAnna;
+    const textToSpeak = targetVoice === 'maxim' ? questionObj.answerMaxim : questionObj.answerAnna;
 
     setActiveQuestionId(questionObj.id);
     VoiceSimulator.stop();

@@ -19,13 +19,26 @@ function getLiveChatData(string $filePath): array {
     if (!is_file($filePath)) {
         return [];
     }
-    $raw = @file_get_contents($filePath);
+    $fp = @fopen($filePath, 'rb');
+    if (!$fp) {
+        return [];
+    }
+    @flock($fp, LOCK_SH);
+    $raw = @stream_get_contents($fp);
+    @flock($fp, LOCK_UN);
+    @fclose($fp);
     if (!$raw) return [];
     $data = json_decode($raw, true);
     return is_array($data) ? $data : [];
 }
 
 function saveLiveChatData(string $filePath, array $data): void {
+    if (count($data) > 200) {
+        uasort($data, function ($a, $b) {
+            return strcmp($b['lastMessageAt'] ?? '', $a['lastMessageAt'] ?? '');
+        });
+        $data = array_slice($data, 0, 200, true);
+    }
     @file_put_contents($filePath, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
 }
 
@@ -39,18 +52,17 @@ function notifyTelegram(array $message, array $conv, array $voxiConfig): void {
 
     $contact = !empty($conv['visitorContact']) ? "\n📞 Контакт: " . $conv['visitorContact'] : '';
     $city = !empty($conv['visitorCity']) ? " [" . $conv['visitorCity'] . "]" : '';
-    $text = "💬 *Новое сообщение в онлайн-чате Voxi.by!*\n" .
-            "👤 *От:* " . ($conv['visitorName'] ?? 'Посетитель') . "{$city}{$contact}\n" .
-            "🆔 *Диалог:* `" . ($conv['id'] ?? '') . "`\n\n" .
-            "📝 *Сообщение:*\n" . ($message['text'] ?? '') . "\n\n" .
+    $text = "💬 Новое сообщение в онлайн-чате Voxi.by!\n" .
+            "👤 От: " . ($conv['visitorName'] ?? 'Посетитель') . "{$city}{$contact}\n" .
+            "🆔 Диалог: " . ($conv['id'] ?? '') . "\n\n" .
+            "📝 Сообщение:\n" . ($message['text'] ?? '') . "\n\n" .
             "👉 Ответить из панели: https://voxi.by/ (раздел «Чат поддержки»)";
 
     $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
     $payload = json_encode([
         'chat_id' => $chatId,
         'text' => $text,
-        'parse_mode' => 'Markdown',
-    ]);
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [

@@ -71,7 +71,7 @@ export const IntegrationsStrip: React.FC = () => {
   ];
 
   return (
-    <section className="pb-16 pt-2 bg-[#ffffff]">
+    <section id="integrations" className="pb-16 pt-2 bg-[#ffffff] scroll-mt-20">
       <div className="max-w-[1080px] mx-auto px-4 sm:px-6">
         <div className="rounded-[44px] bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] border border-slate-200/80 p-6 sm:p-8 shadow-apple-card">
           

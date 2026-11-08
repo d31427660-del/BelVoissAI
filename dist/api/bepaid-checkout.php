@@ -69,8 +69,13 @@ if ($packageId !== '' && isset($packages[$packageId])) {
 
 $amountKopecks = (int)round($amountByn * 100);
 $isTest = (bool)($VOXI_CONFIG['bepaid_test_mode'] ?? true);
-$host = (string)($_SERVER['HTTP_HOST'] ?? 'voxi.by');
-$siteUrl = rtrim((string)($VOXI_CONFIG['public_site_url'] ?: "https://{$host}"), '/');
+$rawHost = trim((string)($_SERVER['HTTP_HOST'] ?? 'voxi.by'));
+$hostWithoutPort = strtolower((string)explode(':', $rawHost)[0]);
+$allowedHosts = ['voxi.by', 'www.voxi.by', 'localhost', '127.0.0.1'];
+$safeSiteUrl = in_array($hostWithoutPort, $allowedHosts, true)
+    ? (($hostWithoutPort === 'localhost' || $hostWithoutPort === '127.0.0.1') ? "http://{$rawHost}" : "https://{$rawHost}")
+    : 'https://voxi.by';
+$siteUrl = rtrim((string)($VOXI_CONFIG['public_site_url'] ?: $safeSiteUrl), '/');
 $trackingId = "{$userId}:{$minutes}:" . round(microtime(true) * 1000);
 $eripServiceNo = (string)($VOXI_CONFIG['bepaid_erip_service_no'] ?: '99999999');
 

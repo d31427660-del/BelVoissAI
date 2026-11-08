@@ -317,6 +317,7 @@ export function App() {
 
   // Handle bePaid return query params (?payment=success&minutes=...)
   useEffect(() => {
+    if (isRestoringSession) return;
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment');
     if (!paymentStatus) return;
@@ -343,7 +344,7 @@ export function App() {
     window.history.replaceState({}, '', cleanUrl);
     const timer = setTimeout(() => setPaymentToast(null), 6500);
     return () => clearTimeout(timer);
-  }, [user]);
+  }, [user, isRestoringSession]);
 
   // Sync URL path & document title for SPA navigation & browser Back button
   useEffect(() => {
@@ -593,7 +594,7 @@ export function App() {
       {paymentToast && (
         <div
           role="status"
-          className="fixed bottom-5 right-5 z-[60] max-w-sm rounded-2xl bg-[#1d1d1f] text-white px-5 py-3.5 text-xs font-medium shadow-2xl flex items-center justify-between gap-3"
+          className="fixed top-20 right-5 z-[60] max-w-sm rounded-2xl bg-[#1d1d1f] text-white px-5 py-3.5 text-xs font-medium shadow-2xl flex items-center justify-between gap-3"
         >
           <span>{paymentToast}</span>
           <button
@@ -688,13 +689,12 @@ export function App() {
                     email: 'admin@voxi.by',
                     companyName: agent.companyName || 'Автошкола «Драйв-Минск»',
                     balanceMinutes: 145,
-                    ratePerMinute: 0.35,
+                    ratePerMinute: 0.45,
                     spentMinutes: 12,
                     isMock: true,
                   });
                 }
                 setCurrentView('dashboard');
-                window.location.hash = '#dashboard';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             />

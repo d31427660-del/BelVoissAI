@@ -37,13 +37,39 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [crmSyncToast, setCrmSyncToast] = useState(false);
   const playbackRunRef = useRef(0);
+  const playingCallIdRef = useRef<string | null>(null);
+
+  const stopCallPlayback = () => {
+    playbackRunRef.current += 1;
+    playingCallIdRef.current = null;
+    VoiceSimulator.stop();
+    setPlayingCallId(null);
+    setActiveTurnIdx(null);
+  };
+
+  const handleCloseCallDetail = () => {
+    stopCallPlayback();
+    setActiveCallDetail(null);
+  };
 
   useEffect(() => {
     return () => {
       playbackRunRef.current += 1;
+      playingCallIdRef.current = null;
       VoiceSimulator.stop();
     };
   }, []);
+
+  useEffect(() => {
+    if (!activeCallDetail) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseCallDetail();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [activeCallDetail]);
 
   const filteredLogs = callLogs.filter((log) => {
     const query = (searchQuery || '').toLowerCase();
@@ -73,16 +99,14 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
 
   const handlePlayAudio = async (call: CallLog, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (playingCallId === call.id) {
-      playbackRunRef.current += 1;
-      VoiceSimulator.stop();
-      setPlayingCallId(null);
-      setActiveTurnIdx(null);
+    if (playingCallIdRef.current === call.id) {
+      stopCallPlayback();
       return;
     }
 
     const runId = ++playbackRunRef.current;
     VoiceSimulator.stop();
+    playingCallIdRef.current = call.id;
     setPlayingCallId(call.id);
 
     const botVoice: VoiceId = agent?.voice === 'maxim' ? 'maxim' : 'anna';
@@ -93,7 +117,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
         : [{ speaker: 'assistant' as const, text: call.summary || 'Запись разговора', time: '0:01' }];
 
     for (let idx = 0; idx < turns.length; idx++) {
-      if (playbackRunRef.current !== runId) return;
+      if (playbackRunRef.current !== runId || playingCallIdRef.current !== call.id) return;
       setActiveTurnIdx(idx);
       const turn = turns[idx];
       const turnVoice = turn.speaker === 'assistant' ? botVoice : callerVoice;
@@ -106,7 +130,8 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
       );
     }
 
-    if (playbackRunRef.current === runId) {
+    if (playbackRunRef.current === runId && playingCallIdRef.current === call.id) {
+      playingCallIdRef.current = null;
       setPlayingCallId(null);
       setActiveTurnIdx(null);
     }
@@ -442,8 +467,16 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   return (
                     <tr
                       key={call.id}
+                      tabIndex={0}
                       onClick={() => setActiveCallDetail(call)}
-                      className={`cursor-pointer transition-colors ${
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setActiveCallDetail(call);
+                        }
+                      }}
+                      className={`cursor-pointer transition-colors focus:outline-none focus:bg-blue-50/70 ${
                         isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50/80'
                       }`}
                     >
@@ -578,7 +611,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setActiveCallDetail(null)}
+              onClick={handleCloseCallDetail}
               className="fixed inset-0 bg-slate-900/20 backdrop-blur-xs transition-opacity"
             />
 
@@ -619,7 +652,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   {getStatusBadge(activeCallDetail.status)}
                   <button
                     type="button"
-                    onClick={() => setActiveCallDetail(null)}
+                    onClick={handleCloseCallDetail}
                     aria-label="Закрыть карточку звонка"
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                   >
@@ -919,7 +952,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
 
                 <button
                   type="button"
-                  onClick={() => setActiveCallDetail(null)}
+                  onClick={handleCloseCallDetail}
                   className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold transition-colors"
                 >
                   Закрыть

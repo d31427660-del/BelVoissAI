@@ -169,7 +169,6 @@ if ($action === 'status') {
             'configured' => true,
             'connected' => false,
             'error' => 'Ошибка подключения к MySQL в ISPmanager. Проверьте DB_NAME, DB_USER и DB_PASS в .env.',
-            'detail' => $e->getMessage(),
         ], 503);
     }
 }
@@ -332,11 +331,17 @@ if ($action === 'reset_password') {
             'UPDATE users SET reset_token_hash = ?, reset_token_expires_at = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?'
         )->execute([$resetHash, $userRow['id']]);
 
-        $host = preg_replace('/[^a-zA-Z0-9.-]/', '', (string)($_SERVER['HTTP_HOST'] ?? 'voxi.by')) ?: 'voxi.by';
-        $resetUrl = "https://{$host}/?reset_token={$rawReset}&email=" . urlencode($email);
+        $rawHost = trim((string)($_SERVER['HTTP_HOST'] ?? 'voxi.by'));
+        $hostWithoutPort = strtolower((string)explode(':', $rawHost)[0]);
+        $allowedHosts = ['voxi.by', 'www.voxi.by', 'localhost', '127.0.0.1'];
+        $safeHost = in_array($hostWithoutPort, $allowedHosts, true) ? $hostWithoutPort : 'voxi.by';
+        $safeBaseUrl = in_array($hostWithoutPort, $allowedHosts, true)
+            ? (($hostWithoutPort === 'localhost' || $hostWithoutPort === '127.0.0.1') ? "http://{$rawHost}" : "https://{$rawHost}")
+            : 'https://voxi.by';
+        $resetUrl = "{$safeBaseUrl}/?reset_token={$rawReset}&email=" . urlencode($email);
         $subject = '=?UTF-8?B?' . base64_encode('Восстановление пароля Voxi.by') . '?=';
         $mailBody = "Здравствуйте!\n\nДля смены пароля в личном кабинете Voxi.by перейдите по ссылке (действует 1 час):\n{$resetUrl}\n\nЕсли вы не запрашивали сброс пароля, просто проигнорируйте это письмо.";
-        $headers = "From: Voxi.by <noreply@{$host}>\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+        $headers = "From: Voxi.by <noreply@{$safeHost}>\r\nContent-Type: text/plain; charset=UTF-8\r\n";
         @mail($email, $subject, $mailBody, $headers);
     }
 

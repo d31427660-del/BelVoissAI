@@ -104,6 +104,120 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTimeout(() => setActionNotice(null), 3000);
   };
 
+  const handleOpenCompletionAct = (tx: PlatformTransaction) => {
+    const esc = (val: string) =>
+      String(val || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const safeClientName = esc(tx.clientName);
+    const safeUnp = esc(tx.unp);
+    const safeInvoice = esc(tx.invoiceNumber);
+    const safeDate = esc(tx.createdAt.split(',')[0] || new Date().toLocaleDateString('ru-RU'));
+    const unitRate = tx.minutesAdded > 0 ? (tx.amountByn / tx.minutesAdded).toFixed(2) : '0.45';
+
+    const actHtml = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Акт сдачи-приёмки оказанных услуг по счёту ${safeInvoice}</title>
+<style>
+  body { font-family: Arial, "Helvetica Neue", sans-serif; font-size: 10pt; line-height: 1.4; color: #111; margin: 30px; }
+  h1 { font-size: 13pt; margin: 0 0 10px 0; text-align: center; text-transform: uppercase; }
+  .sub { text-align: center; font-size: 9.5pt; color: #444; margin-bottom: 18px; }
+  .meta { margin-bottom: 14px; font-size: 10pt; }
+  table.act-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 9.5pt; }
+  table.act-table th, table.act-table td { border: 1px solid #333; padding: 6px 8px; }
+  table.act-table th { background: #f2f2f2; text-align: center; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .signs { width: 100%; margin-top: 32px; border-collapse: collapse; }
+  .signs td { width: 50%; vertical-align: top; padding-right: 16px; font-size: 9.5pt; }
+  @media print { body { margin: 10mm; } }
+</style>
+</head>
+<body>
+  <h1>АКТ сдачи-приёмки оказанных услуг № ${safeInvoice}</h1>
+  <div class="sub">г. Минск • Дата составления: ${safeDate} г.</div>
+
+  <div class="meta">
+    <p><strong>Исполнитель:</strong> Индивидуальный предприниматель Беляков Кирилл Олегович, УНП 193991846, 220045, Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58, р/с BY88ALFA30132G19399184600000 в ЗАО «Альфа-Банк», БИК ALFABY2X.</p>
+    <p><strong>Заказчик:</strong> ${safeClientName}, УНП ${safeUnp}.</p>
+    <p><strong>Основание:</strong> Публичный договор (оферта) возмездного оказания услуг Voxi.by, счёт № ${safeInvoice}.</p>
+  </div>
+
+  <table class="act-table">
+    <thead>
+      <tr>
+        <th style="width: 6%;">№</th>
+        <th>Наименование оказанных услуг</th>
+        <th style="width: 10%;">Кол-во</th>
+        <th style="width: 8%;">Ед.</th>
+        <th style="width: 15%;">Цена (BYN)</th>
+        <th style="width: 16%;">Сумма (BYN)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-center">1</td>
+        <td>Предоставление доступа к облачной платформе голосовых ИИ-ассистентов Voxi.by (пакет ${tx.minutesAdded} минут телефонных диалогов)</td>
+        <td class="text-center">${tx.minutesAdded}</td>
+        <td class="text-center">мин.</td>
+        <td class="text-right">${unitRate}</td>
+        <td class="text-right"><strong>${tx.amountByn.toFixed(2)}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="text-right"><strong>Итого оказано услуг на сумму: ${tx.amountByn.toFixed(2)} BYN (Без НДС, гл. 32 НК РБ).</strong></p>
+  <p style="font-size: 9pt; color: #333;">Услуги оказаны в полном объёме, в установленные сроки. Заказчик претензий по объёму, качеству и срокам оказания услуг не имеет. Первичный учётный документ составлен единолично в соответствии с постановлением Министерства финансов Республики Беларусь № 13.</p>
+
+  <table class="signs">
+    <tr>
+      <td>
+        <strong>ИСПОЛНИТЕЛЬ:</strong><br>
+        ИП Беляков Кирилл Олегович<br>
+        УНП 193991846<br><br>
+        _______________________ / К.О. Беляков /
+      </td>
+      <td>
+        <strong>ЗАКАЗЧИК:</strong><br>
+        ${safeClientName}<br>
+        УНП ${safeUnp}<br><br>
+        _______________________ / ________________ /
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(actHtml);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => {
+        try {
+          printWin.print();
+        } catch {}
+      }, 300);
+    } else {
+      const blob = new Blob(['\uFEFF' + actHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Akt_${tx.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+    showToast(`Акт выполненных работ ${tx.invoiceNumber} сформирован`);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Master PIN or admin password
@@ -405,7 +519,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -650,7 +764,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
               {/* Quick Refill Modal */}
               {selectedClientForRefill && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Начисление минут клиенту"
+                  className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+                >
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-white text-sm">Начисление минут клиенту</h3>
@@ -783,7 +902,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <td className="px-4 py-3.5 text-right">
                             <button
                               type="button"
-                              onClick={() => showToast(`Акт выполненных работ ${tx.invoiceNumber} скачан (PDF)`)}
+                              onClick={() => handleOpenCompletionAct(tx)}
                               className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ml-auto"
                             >
                               <DocumentTextIcon size={14} />
@@ -933,7 +1052,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

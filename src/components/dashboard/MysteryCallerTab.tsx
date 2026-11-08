@@ -62,7 +62,7 @@ export const MysteryCallerTab: React.FC<MysteryCallerTabProps> = ({ currentVoice
   const selectedLead = leads.find((l) => l.id === selectedLeadId) || leads[0];
 
   const resolveLeadVoice = (lead: MysteryAuditItem): VoiceId => {
-    if (lead.aiDemoAudioText.includes('Максим') || lead.aiDemoAudioText.includes('Дмитрий')) return 'maxim';
+    if (lead.aiDemoAudioText.includes('Максим')) return 'maxim';
     return currentVoice || (lead.niche === 'auto_service' ? 'maxim' : 'anna');
   };
 

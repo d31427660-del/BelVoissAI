@@ -115,6 +115,8 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const conversationIdRef = useRef<string>('');
+  const botReplyTimerRef = useRef<number | null>(null);
+  const hasLiveOperatorRepliedRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,6 +134,18 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
 
     const unsubscribeChat = liveChatService.subscribe((convs, visitorConv) => {
       if (visitorConv && visitorConv.messages.length > 0) {
+        const hasHumanOperator = visitorConv.messages.some(
+          (m) => m.sender === 'admin' && !m.id.startsWith('init_') && m.senderName === 'Администратор Voxi'
+        );
+        if (hasHumanOperator) {
+          hasLiveOperatorRepliedRef.current = true;
+          if (botReplyTimerRef.current) {
+            window.clearTimeout(botReplyTimerRef.current);
+            botReplyTimerRef.current = null;
+            setIsTyping(false);
+          }
+        }
+
         const formatted: Message[] = visitorConv.messages.map((m) => ({
           id: m.id,
           sender: m.sender === 'visitor' ? 'user' : 'admin',
@@ -145,15 +159,34 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
 
     const unsubscribeTyping = liveChatService.subscribeTyping((event) => {
       if (event.conversationId === conversationIdRef.current && event.sender === 'admin') {
+        if (event.isTyping && botReplyTimerRef.current) {
+          window.clearTimeout(botReplyTimerRef.current);
+          botReplyTimerRef.current = null;
+        }
         setIsTyping(event.isTyping);
       }
     });
 
     return () => {
+      if (botReplyTimerRef.current) {
+        window.clearTimeout(botReplyTimerRef.current);
+        botReplyTimerRef.current = null;
+      }
       unsubscribeChat();
       unsubscribeTyping();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -176,8 +209,6 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
     const text = (textToSend || inputValue).trim();
     if (!text) return;
 
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
     // 1. Send via liveChatService for real-time synchronization with Admin dashboard & Telegram
     liveChatService.sendMessage({
       conversationId: conversationIdRef.current,
@@ -185,39 +216,39 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
       text,
     });
 
-    const userMessage: Message = {
-      id: `u-${Date.now()}`,
-      sender: 'user',
-      text,
-      time: timeStr,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+
+    // If a live human operator has already replied in this conversation, do not interrupt with template bot replies
+    if (hasLiveOperatorRepliedRef.current) {
+      return;
+    }
+
     setIsTyping(true);
+
+    if (botReplyTimerRef.current) {
+      window.clearTimeout(botReplyTimerRef.current);
+    }
 
     const delay = Math.min(800, 350 + text.length * 10);
 
-    setTimeout(() => {
-      const reply = getBotReply(text);
-      const adminMessage: Message = {
-        id: `a-${Date.now()}`,
-        sender: 'admin',
-        text: reply.text,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: reply.action,
-      };
+    botReplyTimerRef.current = window.setTimeout(() => {
+      botReplyTimerRef.current = null;
+      if (hasLiveOperatorRepliedRef.current) {
+        setIsTyping(false);
+        return;
+      }
 
-      // Also record in service so admin sees bot assist responses in real-time
+      const reply = getBotReply(text);
+
+      // Record in service so both visitor and admin see assist response in real-time via subscription
       liveChatService.sendMessage({
         conversationId: conversationIdRef.current,
         sender: 'admin',
-        senderName: 'Администратор Voxi',
+        senderName: 'Автопомощник Voxi',
         text: reply.text,
         action: reply.action,
       });
 
-      setMessages((prev) => [...prev, adminMessage]);
       setIsTyping(false);
     }, delay);
   };
@@ -300,6 +331,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
       {isOpen && (
         <div
           role="dialog"
+          aria-modal="true"
           aria-label="Чат с дежурным администратором Voxi.by"
           className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[390px] h-[550px] max-h-[85vh] bg-[#ffffff] border border-slate-200/90 rounded-[28px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         >
@@ -371,6 +403,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
               <form onSubmit={handleSaveContact} className="p-2.5 bg-slate-100 border-b border-slate-200 flex items-center gap-2 text-xs">
                 <input
                   type="text"
+                  aria-label="Ваш телефон или Telegram"
                   placeholder="+375 (29) ... или @telegram"
                   value={visitorContact}
                   onChange={(e) => setVisitorContact(e.target.value)}
@@ -511,6 +544,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
             <input
               ref={inputRef}
               type="text"
+              aria-label="Текст сообщения"
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}

@@ -15,6 +15,15 @@ import {
 import { MINUTE_PACKAGES } from '../../lib/mockData';
 import { MinutePackage, UserSession } from '../../types';
 
+function escapeHtml(value: string): string {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function generateInvoiceHtml(params: {
   invoiceNo: string;
   invoiceDate: string;
@@ -26,12 +35,17 @@ function generateInvoiceHtml(params: {
   totalByn: number;
 }): string {
   const { invoiceNo, invoiceDate, companyName, unp, userEmail, minutes, ratePerMinute, totalByn } = params;
+  const safeInvoiceNo = escapeHtml(invoiceNo);
+  const safeInvoiceDate = escapeHtml(invoiceDate);
+  const safeCompanyName = escapeHtml(companyName);
+  const safeUnp = unp ? escapeHtml(unp) : '';
+  const safeUserEmail = userEmail ? escapeHtml(userEmail) : '';
 
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Счёт на оплату № ${invoiceNo}</title>
+<title>Счёт на оплату № ${safeInvoiceNo}</title>
 <style>
   body { font-family: Arial, "Helvetica Neue", sans-serif; font-size: 10pt; line-height: 1.35; color: #111; margin: 30px; }
   .header-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 9.5pt; }
@@ -80,11 +94,11 @@ function generateInvoiceHtml(params: {
   </tr>
 </table>
 
-<h1>СЧЁТ НА ОПЛАТУ № ${invoiceNo} от ${invoiceDate} г.</h1>
+<h1>СЧЁТ НА ОПЛАТУ № ${safeInvoiceNo} от ${safeInvoiceDate} г.</h1>
 <hr style="border: 0; border-top: 2px solid #2563eb; margin-bottom: 12px;">
 
 <div class="meta-line"><strong>Поставщик (Исполнитель):</strong> ИП Беляков Кирилл Олегович, УНП 193991846, 220045, Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58</div>
-<div class="meta-line"><strong>Покупатель (Заказчик):</strong> ${companyName}${unp ? `, УНП: ${unp}` : ''}${userEmail ? `, email: ${userEmail}` : ''}</div>
+<div class="meta-line"><strong>Покупатель (Заказчик):</strong> ${safeCompanyName}${safeUnp ? `, УНП: ${safeUnp}` : ''}${safeUserEmail ? `, email: ${safeUserEmail}` : ''}</div>
 <div class="meta-line"><strong>Основание:</strong> Публичный договор (оферта) возмездного оказания услуг Voxi.by (ОКЭД 62010)</div>
 
 <table class="goods-table">
@@ -124,7 +138,7 @@ function generateInvoiceHtml(params: {
   <strong>Условия оплаты и поставки:</strong><br>
   1. Оплата данного счёта означает согласие с условиями Публичного договора (оферты), размещённого на сайте https://voxi.by/offer.<br>
   2. Срок оплаты — в течение 5 (пяти) банковских дней с даты выставления.<br>
-  3. Назначение платежа: <em>«Оплата по счёту № ${invoiceNo} от ${invoiceDate} за пакет минут Voxi.by без НДС»</em>.<br>
+  3. Назначение платежа: <em>«Оплата по счёту № ${safeInvoiceNo} от ${safeInvoiceDate} за пакет минут Voxi.by без НДС»</em>.<br>
   4. По факту оказания услуг первичный учётный документ (акт) составляется единолично Исполнителем (постановление Минфина РБ № 13) и направляется через сервис электронного документооборота ЭДиН либо на email Заказчика.
 </div>
 

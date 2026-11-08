@@ -56,11 +56,11 @@ Options -Indexes
   RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1) [NC]
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Запрет доступа к служебным файлам исходников (.git, src, node_modules)
-  RewriteRule ^(\.git|src|node_modules|database|\.env|\.env\.example|package\.json|tsconfig\.json|vite\.config\.ts) - [F,L]
-
   # Запросы к API -> dist/api/<file>.php
-  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook)/?$ dist/api/$1.php [QSA,L]
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|live-chat)/?$ dist/api/$1.php [QSA,L]
+
+  # Запрет доступа к служебным файлам исходников (.git, src, node_modules, api, scripts и архивам)
+  RewriteRule ^(\.git|src|node_modules|database|api|scripts|\.env|\.env\.example|package\.json|package-lock\.json|tsconfig\.json|vite\.config\.ts|voxi-ispmanager\.zip) - [F,L]
 
   # Если запрос уже идет к файлу внутри dist/
   RewriteCond %{REQUEST_URI} ^/dist/

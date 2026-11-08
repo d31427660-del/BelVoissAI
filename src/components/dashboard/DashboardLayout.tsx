@@ -433,7 +433,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         )}
 
         {/* Tab Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           {activeTab === 'overview' && (
             <SimpleOverviewTab
               user={user}
@@ -513,7 +513,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               currentVoice={agent.voice}
             />
           )}
-        </main>
+        </div>
       </div>
 
       {/* Guide Modal */}

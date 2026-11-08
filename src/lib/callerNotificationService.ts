@@ -96,11 +96,12 @@ export async function sendCallerFollowUpNotification(payload: CallerNotification
     });
 
     if (res.ok) {
+      const data = await res.json().catch(() => null);
       return {
         ok: true,
         channel: config.channel,
         formattedMessage: messageText,
-        deliveryStatus: 'sent',
+        deliveryStatus: data?.deliveryStatus === 'simulated' ? 'simulated' : 'sent',
       };
     }
   } catch {

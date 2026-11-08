@@ -25,7 +25,19 @@ interface StoredConversation {
 }
 
 // Global in-memory storage for serverless runtime (resilient across hot invocations)
+const MAX_CONVERSATIONS = 200;
 const conversations = new Map<string, StoredConversation>();
+
+function enforceConversationLimit() {
+  if (conversations.size <= MAX_CONVERSATIONS) return;
+  const sorted = Array.from(conversations.entries()).sort(
+    (a, b) => new Date(a[1].lastMessageAt).getTime() - new Date(b[1].lastMessageAt).getTime()
+  );
+  const toDelete = sorted.length - MAX_CONVERSATIONS;
+  for (let i = 0; i < toDelete; i++) {
+    conversations.delete(sorted[i][0]);
+  }
+}
 
 async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConversation) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.VOXI_TELEGRAM_BOT_TOKEN;
@@ -38,10 +50,10 @@ async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConvers
   const contactInfo = conv.visitorContact ? `\n📞 Контакт: ${conv.visitorContact}` : '';
   const cityInfo = conv.visitorCity ? ` [${conv.visitorCity}]` : '';
   const text = [
-    `💬 *Новое сообщение в онлайн-чате Voxi.by!*`,
-    `👤 *От:* ${conv.visitorName}${cityInfo}${contactInfo}`,
-    `🆔 *Диалог:* \`${conv.id}\``,
-    `\n📝 *Сообщение:*`,
+    `💬 Новое сообщение в онлайн-чате Voxi.by!`,
+    `👤 От: ${conv.visitorName}${cityInfo}${contactInfo}`,
+    `🆔 Диалог: ${conv.id}`,
+    `\n📝 Сообщение:`,
     message.text,
     `\n👉 Ответить из панели: https://voxi.by/ (раздел «Чат поддержки»)`,
   ].join('\n');
@@ -53,7 +65,6 @@ async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConvers
       body: JSON.stringify({
         chat_id: adminChatId,
         text,
-        parse_mode: 'Markdown',
       }),
     });
   } catch (err) {
@@ -97,6 +108,7 @@ export default async function handler(req: any, res: any) {
             messages: [],
           };
           conversations.set(conversationId, conv);
+          enforceConversationLimit();
         }
 
         const storedMsg: StoredMessage = {
