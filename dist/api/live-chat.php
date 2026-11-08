@@ -42,11 +42,151 @@ function saveLiveChatData(string $filePath, array $data): void {
     @file_put_contents($filePath, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
 }
 
-function notifyTelegram(array $message, array $conv, array $voxiConfig): void {
-    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: ''));
+function resolveTelegramAdminChatId(string $botToken, array $voxiConfig): string {
     $chatId = trim((string)($voxiConfig['telegram_admin_chat_id'] ?? getenv('TELEGRAM_ADMIN_CHAT_ID') ?: getenv('TELEGRAM_CHAT_ID') ?: ''));
+    if ($chatId !== '') {
+        return $chatId;
+    }
 
-    if ($botToken === '' || $chatId === '') {
+    $cacheFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_tg_admin_chat_id.txt';
+    if (is_file($cacheFile)) {
+        $cached = trim((string)@file_get_contents($cacheFile));
+        if ($cached !== '') {
+            return $cached;
+        }
+    }
+
+    $ch = curl_init("https://api.telegram.org/bot{$botToken}/getUpdates?limit=30");
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 3,
+    ]);
+    $raw = curl_exec($ch);
+    curl_close($ch);
+    if (!$raw) return '';
+
+    $decoded = json_decode((string)$raw, true);
+    if (is_array($decoded) && !empty($decoded['ok']) && !empty($decoded['result']) && is_array($decoded['result'])) {
+        for ($i = count($decoded['result']) - 1; $i >= 0; $i--) {
+            $upd = $decoded['result'][$i];
+            $foundId = $upd['message']['chat']['id'] ?? ($upd['edited_message']['chat']['id'] ?? null);
+            if ($foundId) {
+                $foundStr = (string)$foundId;
+                @file_put_contents($cacheFile, $foundStr, LOCK_EX);
+                return $foundStr;
+            }
+        }
+    }
+    return '';
+}
+
+function syncTelegramAdminReplies(string $filePath, array $voxiConfig): void {
+    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U'));
+    if ($botToken === '') return;
+
+    $offsetFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_tg_last_update_id.txt';
+    $lastUpdateId = is_file($offsetFile) ? (int)trim((string)@file_get_contents($offsetFile)) : 0;
+    $offsetQuery = $lastUpdateId > 0 ? '&offset=' . ($lastUpdateId + 1) : '';
+
+    $ch = curl_init("https://api.telegram.org/bot{$botToken}/getUpdates?limit=30{$offsetQuery}");
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 3,
+    ]);
+    $raw = curl_exec($ch);
+    curl_close($ch);
+    if (!$raw) return;
+
+    $decoded = json_decode((string)$raw, true);
+    if (!is_array($decoded) || empty($decoded['ok']) || empty($decoded['result']) || !is_array($decoded['result'])) {
+        return;
+    }
+
+    $allData = getLiveChatData($filePath);
+    $changed = false;
+    $chatCacheFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_tg_admin_chat_id.txt';
+
+    foreach ($decoded['result'] as $upd) {
+        $updId = (int)($upd['update_id'] ?? 0);
+        if ($updId > $lastUpdateId) {
+            $lastUpdateId = $updId;
+        }
+        $msg = $upd['message'] ?? null;
+        if (!is_array($msg) || empty($msg['text']) || !empty($msg['from']['is_bot'])) {
+            continue;
+        }
+        if (!empty($msg['chat']['id'])) {
+            @file_put_contents($chatCacheFile, (string)$msg['chat']['id'], LOCK_EX);
+        }
+
+        $rawText = trim((string)$msg['text']);
+        if ($rawText === '/start' || empty($allData)) {
+            continue;
+        }
+
+        $targetConvId = '';
+        $repliedText = (string)($msg['reply_to_message']['text'] ?? '');
+        if (preg_match('/Диалог:\s*([^\s\n]+)/u', $repliedText, $m)) {
+            $candidate = trim($m[1]);
+            if (isset($allData[$candidate])) {
+                $targetConvId = $candidate;
+            }
+        }
+        if ($targetConvId === '') {
+            uasort($allData, function ($a, $b) {
+                return strcmp($b['lastMessageAt'] ?? '', $a['lastMessageAt'] ?? '');
+            });
+            $firstKey = array_key_first($allData);
+            if ($firstKey) {
+                $targetConvId = (string)$firstKey;
+            }
+        }
+        if ($targetConvId === '' || !isset($allData[$targetConvId])) {
+            continue;
+        }
+
+        $tgMsgId = 'tg_reply_' . (string)($msg['message_id'] ?? time());
+        $exists = false;
+        foreach (($allData[$targetConvId]['messages'] ?? []) as $existingMsg) {
+            if (($existingMsg['id'] ?? '') === $tgMsgId) {
+                $exists = true;
+                break;
+            }
+        }
+        if (!$exists) {
+            $createdAt = !empty($msg['date']) ? date('c', (int)$msg['date']) : date('c');
+            $storedMsg = [
+                'id' => $tgMsgId,
+                'conversationId' => $targetConvId,
+                'sender' => 'admin',
+                'senderName' => 'Администратор Voxi',
+                'text' => mb_substr($rawText, 0, 2000),
+                'createdAt' => $createdAt,
+                'action' => null,
+            ];
+            $allData[$targetConvId]['messages'][] = $storedMsg;
+            $allData[$targetConvId]['lastMessageAt'] = $createdAt;
+            $allData[$targetConvId]['lastMessageText'] = $storedMsg['text'];
+            $changed = true;
+        }
+    }
+
+    if ($lastUpdateId > 0) {
+        @file_put_contents($offsetFile, (string)$lastUpdateId, LOCK_EX);
+    }
+    if ($changed) {
+        saveLiveChatData($filePath, $allData);
+    }
+}
+
+function notifyTelegram(array $message, array $conv, array $voxiConfig): void {
+    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U'));
+    if ($botToken === '') {
+        return;
+    }
+
+    $chatId = resolveTelegramAdminChatId($botToken, $voxiConfig);
+    if ($chatId === '') {
         return;
     }
 
@@ -56,7 +196,7 @@ function notifyTelegram(array $message, array $conv, array $voxiConfig): void {
             "👤 От: " . ($conv['visitorName'] ?? 'Посетитель') . "{$city}{$contact}\n" .
             "🆔 Диалог: " . ($conv['id'] ?? '') . "\n\n" .
             "📝 Сообщение:\n" . ($message['text'] ?? '') . "\n\n" .
-            "👉 Ответить из панели: https://voxi.by/ (раздел «Чат поддержки»)";
+            "💡 Ответьте (Reply) прямо на это сообщение в Telegram — ваш ответ мгновенно появится у клиента на сайте!";
 
     $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
     $payload = json_encode([
@@ -169,6 +309,7 @@ if ($method === 'POST') {
 }
 
 if ($method === 'GET') {
+    syncTelegramAdminReplies($dataFile, $VOXI_CONFIG);
     if ($action === 'list') {
         $allData = getLiveChatData($dataFile);
         $list = array_values($allData);

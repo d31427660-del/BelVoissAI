@@ -21,6 +21,7 @@ class LiveChatService {
   private typingListeners: Set<TypingListener> = new Set();
   private isSoundEnabled: boolean = true;
   private typingTimeouts: Map<string, any> = new Map();
+  private serverPollTimer: any = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -40,6 +41,12 @@ class LiveChatService {
           this.notifyListeners();
         }
       });
+
+      this.serverPollTimer = setInterval(() => {
+        if (this.chatListeners.size > 0) {
+          this.pullRemoteConversations();
+        }
+      }, 4500);
     }
   }
 
@@ -409,6 +416,85 @@ class LiveChatService {
     const convs = this.getAllConversations();
     const visitorConv = this.getVisitorConversation();
     this.chatListeners.forEach((fn) => fn(convs, visitorConv));
+  }
+
+  private async pullRemoteConversations(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    try {
+      const res = await fetch('/api/live-chat?action=list', {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) return;
+      const contentType = (res.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.includes('application/json')) return;
+      const data = await res.json();
+      if (!data?.success || !Array.isArray(data.conversations)) return;
+
+      const localConvs = this.getAllConversations();
+      let updated = false;
+      let hasNewIncomingMessage = false;
+
+      for (const remoteConv of data.conversations) {
+        if (!remoteConv || !remoteConv.id || !Array.isArray(remoteConv.messages)) continue;
+        let local = localConvs.find((c) => c.id === remoteConv.id);
+        if (!local) {
+          local = {
+            id: String(remoteConv.id),
+            visitorId: String(remoteConv.visitorId || 'guest'),
+            visitorName: String(remoteConv.visitorName || 'Посетитель'),
+            visitorContact: String(remoteConv.visitorContact || ''),
+            visitorCity: String(remoteConv.visitorCity || 'Минск'),
+            visitorPage: '/',
+            startedAt: String(remoteConv.startedAt || new Date().toISOString()),
+            lastMessageAt: String(remoteConv.lastMessageAt || new Date().toISOString()),
+            lastMessageText: String(remoteConv.lastMessageText || ''),
+            unreadByAdmin: 1,
+            unreadByVisitor: 0,
+            isVisitorOnline: true,
+            isAdminOnline: true,
+            messages: [],
+          };
+          localConvs.unshift(local);
+          updated = true;
+        }
+
+        const existingIds = new Set(local.messages.map((m) => m.id));
+        for (const rMsg of remoteConv.messages) {
+          if (!rMsg || !rMsg.id || existingIds.has(rMsg.id)) continue;
+          local.messages.push({
+            id: String(rMsg.id),
+            conversationId: local.id,
+            sender: rMsg.sender === 'admin' ? 'admin' : 'visitor',
+            senderName: String(rMsg.senderName || (rMsg.sender === 'admin' ? 'Администратор Voxi' : local.visitorName)),
+            text: String(rMsg.text || ''),
+            createdAt: String(rMsg.createdAt || new Date().toISOString()),
+            action: rMsg.action,
+            readByAdmin: rMsg.sender === 'admin',
+            readByVisitor: rMsg.sender === 'visitor',
+          });
+          local.lastMessageAt = String(rMsg.createdAt || local.lastMessageAt);
+          local.lastMessageText = String(rMsg.text || local.lastMessageText);
+          if (rMsg.sender === 'admin') {
+            local.unreadByVisitor = (local.unreadByVisitor || 0) + 1;
+          } else {
+            local.unreadByAdmin = (local.unreadByAdmin || 0) + 1;
+          }
+          updated = true;
+          hasNewIncomingMessage = true;
+        }
+      }
+
+      if (updated) {
+        this.saveAllConversations(localConvs);
+        if (hasNewIncomingMessage) {
+          this.playNotificationSound();
+        }
+        this.notifyListeners();
+      }
+    } catch {
+      // ignore offline or static preview
+    }
   }
 
   private async syncMessageToServer(message: LiveChatMessage, conv: LiveChatConversation): Promise<void> {

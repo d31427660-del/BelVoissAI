@@ -148,6 +148,29 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         );
       });
 
+      server.middlewares.use('/api/live-chat', async (req: any, res: any) => {
+        try {
+          let rawBody = '';
+          if (req.method === 'POST') {
+            for await (const chunk of req) {
+              rawBody += chunk;
+            }
+          }
+          req.body = rawBody ? JSON.parse(rawBody) : {};
+          const reqUrl = new URL(req.url || '', 'http://localhost');
+          req.query = Object.fromEntries(reqUrl.searchParams.entries());
+          for (const [k, v] of Object.entries(env)) {
+            if (v && !process.env[k]) process.env[k] = v;
+          }
+          const { default: liveChatHandler } = await import('./api/live-chat');
+          await liveChatHandler(req, res);
+        } catch {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({ error: 'Dev live-chat handler error' }));
+        }
+      });
+
       server.middlewares.use('/api/chat', async (req: any, res: any) => {
         try {
           let rawBody = '';

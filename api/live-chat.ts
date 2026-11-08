@@ -39,11 +39,120 @@ function enforceConversationLimit() {
   }
 }
 
-async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConversation) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.VOXI_TELEGRAM_BOT_TOKEN;
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.VOXI_TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+const DEFAULT_TELEGRAM_BOT_TOKEN = '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U';
+let discoveredAdminChatId = '';
+let lastProcessedUpdateId = 0;
 
-  if (!botToken || !adminChatId) {
+function getBotToken(): string {
+  return (
+    process.env.TELEGRAM_BOT_TOKEN ||
+    process.env.VOXI_TELEGRAM_BOT_TOKEN ||
+    DEFAULT_TELEGRAM_BOT_TOKEN
+  ).trim();
+}
+
+async function resolveAdminChatId(botToken: string): Promise<string> {
+  const envChatId = (
+    process.env.TELEGRAM_ADMIN_CHAT_ID ||
+    process.env.VOXI_TELEGRAM_ADMIN_CHAT_ID ||
+    process.env.TELEGRAM_CHAT_ID ||
+    ''
+  ).trim();
+  if (envChatId) return envChatId;
+  if (discoveredAdminChatId) return discoveredAdminChatId;
+
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?limit=30`, {
+      signal: AbortSignal.timeout(3500),
+    });
+    if (!resp.ok) return '';
+    const data = await resp.json();
+    if (data?.ok && Array.isArray(data.result)) {
+      for (let i = data.result.length - 1; i >= 0; i--) {
+        const upd = data.result[i];
+        const chatId = upd?.message?.chat?.id || upd?.edited_message?.chat?.id;
+        if (chatId) {
+          discoveredAdminChatId = String(chatId);
+          break;
+        }
+      }
+    }
+  } catch {
+    // ignore network timeout
+  }
+  return discoveredAdminChatId;
+}
+
+async function syncTelegramReplies() {
+  const botToken = getBotToken();
+  if (!botToken || conversations.size === 0) return;
+
+  try {
+    const offsetParam = lastProcessedUpdateId > 0 ? `&offset=${lastProcessedUpdateId + 1}` : '';
+    const resp = await fetch(
+      `https://api.telegram.org/bot${botToken}/getUpdates?limit=30${offsetParam}`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data?.ok || !Array.isArray(data.result)) return;
+
+    for (const upd of data.result) {
+      if (typeof upd.update_id === 'number' && upd.update_id > lastProcessedUpdateId) {
+        lastProcessedUpdateId = upd.update_id;
+      }
+      const msg = upd.message;
+      if (!msg || !msg.text || msg.from?.is_bot) continue;
+
+      if (msg.chat?.id && !discoveredAdminChatId) {
+        discoveredAdminChatId = String(msg.chat.id);
+      }
+
+      const rawText = String(msg.text).trim();
+      if (rawText === '/start') continue;
+
+      // Определяем целевой диалог: по Reply на сообщение бота или самый свежий активный диалог
+      let targetConv: StoredConversation | undefined;
+      const repliedText = String(msg.reply_to_message?.text || '');
+      const idMatch = repliedText.match(/Диалог:\s*([^\s\n]+)/);
+      if (idMatch && idMatch[1]) {
+        targetConv = conversations.get(idMatch[1].trim());
+      }
+      if (!targetConv) {
+        const sorted = Array.from(conversations.values()).sort(
+          (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+        targetConv = sorted[0];
+      }
+      if (!targetConv) continue;
+
+      const tgMsgId = `tg_reply_${msg.message_id}`;
+      const alreadyAdded = targetConv.messages.some((m) => m.id === tgMsgId);
+      if (!alreadyAdded) {
+        const storedMsg: StoredMessage = {
+          id: tgMsgId,
+          conversationId: targetConv.id,
+          sender: 'admin',
+          senderName: 'Администратор Voxi',
+          text: rawText.slice(0, 2000),
+          createdAt: new Date((msg.date || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+        };
+        targetConv.messages.push(storedMsg);
+        targetConv.lastMessageAt = storedMsg.createdAt;
+        targetConv.lastMessageText = storedMsg.text;
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConversation) {
+  const botToken = getBotToken();
+  if (!botToken) return;
+
+  const adminChatId = await resolveAdminChatId(botToken);
+  if (!adminChatId) {
     return;
   }
 
@@ -55,7 +164,7 @@ async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConvers
     `🆔 Диалог: ${conv.id}`,
     `\n📝 Сообщение:`,
     message.text,
-    `\n👉 Ответить из панели: https://voxi.by/ (раздел «Чат поддержки»)`,
+    `\n💡 Ответьте (Reply) прямо на это сообщение в Telegram — ваш ответ мгновенно появится у клиента на сайте!`,
   ].join('\n');
 
   try {
@@ -66,6 +175,7 @@ async function notifyAdminInTelegram(message: StoredMessage, conv: StoredConvers
         chat_id: adminChatId,
         text,
       }),
+      signal: AbortSignal.timeout(4000),
     });
   } catch (err) {
     console.error('Failed to notify admin in Telegram:', err);
@@ -165,6 +275,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'GET') {
+      await syncTelegramReplies();
       if (action === 'list') {
         const list = Array.from(conversations.values()).sort(
           (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
