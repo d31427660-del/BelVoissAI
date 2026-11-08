@@ -44,14 +44,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [pinError, setPinError] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'livechat' | 'billing' | 'telephony' | 'settings'>('overview');
-  const [clients, setClients] = useState<PlatformClient[]>(INITIAL_PLATFORM_CLIENTS);
-  const [transactions, setTransactions] = useState<PlatformTransaction[]>(INITIAL_TRANSACTIONS);
+  const [clients, setClients] = useState<PlatformClient[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxi_admin_clients_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_PLATFORM_CLIENTS;
+  });
+  const [transactions, setTransactions] = useState<PlatformTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxi_admin_transactions_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_TRANSACTIONS;
+  });
   const [telephonyLogs] = useState<PlatformTelephonyLog[]>(INITIAL_TELEPHONY_LOGS);
   const [clientSearch, setClientSearch] = useState<string>('');
   const [selectedClientForRefill, setSelectedClientForRefill] = useState<PlatformClient | null>(null);
   const [refillAmountMinutes, setRefillAmountMinutes] = useState<number>(50);
   const [unreadLiveChats, setUnreadLiveChats] = useState<number>(0);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [tariffSettings, setTariffSettings] = useState<{
+    starterRate: string;
+    wholesaleRate: string;
+    freeDemoLimit: string;
+  }>(() => {
+    try {
+      const saved = localStorage.getItem('voxi_admin_settings_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      starterRate: '0.45',
+      wholesaleRate: '0.35',
+      freeDemoLimit: '15 минут',
+    };
+  });
 
   useEffect(() => {
     return liveChatService.subscribe((convs) => {
@@ -59,6 +86,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setUnreadLiveChats(unread);
     });
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxi_admin_clients_v1', JSON.stringify(clients));
+    } catch {}
+  }, [clients]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxi_admin_transactions_v1', JSON.stringify(transactions));
+    } catch {}
+  }, [transactions]);
 
   const showToast = (msg: string) => {
     setActionNotice(msg);
@@ -84,16 +123,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleQuickAddMinutes = (clientId: string, minutes: number) => {
+    const safeMinutes = Math.max(1, Math.round(Number(minutes) || 0));
+    const targetClient = clients.find((c) => c.id === clientId);
     setClients((prev) =>
       prev.map((c) => {
         if (c.id === clientId) {
-          const nextBal = c.balanceMinutes + minutes;
+          const nextBal = c.balanceMinutes + safeMinutes;
           return { ...c, balanceMinutes: nextBal };
         }
         return c;
       })
     );
-    showToast(`Начислено +${minutes} минут клиенту!`);
+    if (targetClient) {
+      const amountByn = Number((safeMinutes * targetClient.ratePerMinute).toFixed(2));
+      const newTx: PlatformTransaction = {
+        id: `tx_${Date.now()}`,
+        clientId: targetClient.id,
+        clientName: targetClient.companyName,
+        unp: targetClient.unp,
+        amountByn,
+        minutesAdded: safeMinutes,
+        paymentMethod: 'bank_transfer_act',
+        status: 'successful',
+        invoiceNumber: `СЧ-${new Date().getFullYear()}/${String(transactions.length + 101)}`,
+        createdAt: new Date().toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }),
+        actGenerated: true,
+      };
+      setTransactions((prev) => [newTx, ...prev]);
+    }
+    showToast(`Начислено +${safeMinutes} минут клиенту!`);
     setSelectedClientForRefill(null);
   };
 
@@ -218,7 +276,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Global Action Notices */}
         {actionNotice && (
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium animate-in fade-in">
+          <div className="fixed bottom-4 right-4 z-50 sm:static sm:inline-flex flex items-center gap-1.5 px-3 py-1.5 sm:py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium shadow-lg sm:shadow-none backdrop-blur-md">
             <CheckCircleIcon size={14} />
             <span>{actionNotice}</span>
           </div>
@@ -229,7 +287,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <button
               type="button"
               onClick={onNavigateToUserDashboard}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
             >
               <span>Кабинет клиента</span>
             </button>
@@ -463,7 +521,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </button>
                 </div>
 
-                <div className="divide-y divide-slate-850">
+                <div className="divide-y divide-slate-800/80">
                   {telephonyLogs.slice(0, 3).map((log) => (
                     <div key={log.id} className="py-3 flex items-start justify-between gap-3 text-xs">
                       <div>
@@ -471,7 +529,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div className="text-slate-400 text-[11px]">
                           Клиент: <span className="text-slate-300">{log.callerPhone}</span> • Транк: {log.sipTrunk}
                         </div>
-                        <p className="text-slate-400 text-[11px] mt-1 bg-slate-950/60 p-2 rounded-lg border border-slate-850">
+                        <p className="text-slate-400 text-[11px] mt-1 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
                           {log.transcriptSnippet}
                         </p>
                       </div>
@@ -526,9 +584,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <th className="px-4 py-3 text-right">Действия</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-850">
+                    <tbody className="divide-y divide-slate-800/80">
                       {filteredClients.map((client) => (
-                        <tr key={client.id} className="hover:bg-slate-850/40 transition-colors">
+                        <tr key={client.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="px-4 py-3.5">
                             <div className="font-semibold text-white">{client.companyName}</div>
                             <div className="text-[11px] text-slate-400">
@@ -625,7 +683,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             className={`py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                               refillAmountMinutes === m
                                 ? 'bg-blue-600 border-blue-500 text-white'
-                                : 'bg-slate-850 border-slate-750 text-slate-300 hover:bg-slate-800'
+                                : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
                             }`}
                           >
                             +{m} мин
@@ -696,9 +754,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <th className="px-4 py-3 text-right">Первичный акт</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-850">
+                    <tbody className="divide-y divide-slate-800/80">
                       {transactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-850/40 transition-colors">
+                        <tr key={tx.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="px-4 py-3.5">
                             <div className="font-semibold text-white">{tx.clientName}</div>
                             <div className="text-[11px] text-slate-400 font-mono">УНП: {tx.unp}</div>
@@ -751,7 +809,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </p>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl divide-y divide-slate-850">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl divide-y divide-slate-800/80">
                 {telephonyLogs.map((log) => (
                   <div key={log.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
                     <div className="space-y-1">
@@ -765,7 +823,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <div className="text-slate-300">
                         Звонок от: <span className="font-semibold text-white">{log.callerPhone}</span> • Транк: {log.sipTrunk} • Длительность: {log.durationSeconds} сек
                       </div>
-                      <p className="text-slate-400 text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-850 mt-2">
+                      <p className="text-slate-400 text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-800 mt-2">
                         «{log.transcriptSnippet}»
                       </p>
                     </div>
@@ -836,7 +894,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <label className="text-slate-400 block mb-1">Стартовый тариф за минуту (BYN):</label>
                     <input
                       type="text"
-                      defaultValue="0.45"
+                      value={tariffSettings.starterRate}
+                      onChange={(e) => setTariffSettings((prev) => ({ ...prev, starterRate: e.target.value }))}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
                     />
                   </div>
@@ -844,7 +903,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <label className="text-slate-400 block mb-1">Оптовый тариф за минуту (BYN):</label>
                     <input
                       type="text"
-                      defaultValue="0.35"
+                      value={tariffSettings.wholesaleRate}
+                      onChange={(e) => setTariffSettings((prev) => ({ ...prev, wholesaleRate: e.target.value }))}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
                     />
                   </div>
@@ -852,14 +912,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <label className="text-slate-400 block mb-1">Бесплатный демо-лимит при регистрации:</label>
                     <input
                       type="text"
-                      defaultValue="15 минут"
+                      value={tariffSettings.freeDemoLimit}
+                      onChange={(e) => setTariffSettings((prev) => ({ ...prev, freeDemoLimit: e.target.value }))}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
                     />
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => showToast('Настройки тарифов сохранены')}
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('voxi_admin_settings_v1', JSON.stringify(tariffSettings));
+                    } catch {}
+                    showToast('Настройки тарифов сохранены');
+                  }}
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition-colors cursor-pointer"
                 >
                   Сохранить тарифы

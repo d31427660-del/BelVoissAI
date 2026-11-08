@@ -355,7 +355,9 @@ export function App() {
     }
 
     let pageTitle = 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
-    if (currentView === 'dashboard') {
+    if (currentView === 'admin') {
+      pageTitle = 'Мастер-панель администратора — Voxi.by';
+    } else if (currentView === 'dashboard') {
       pageTitle = `Личный кабинет — ${user?.companyName || 'Voxi.by'}`;
     } else if (externalLegalDoc === 'offer') {
       pageTitle = 'Публичный договор (оферта) — Voxi.by';
@@ -366,6 +368,13 @@ export function App() {
     }
     document.title = pageTitle;
 
+    if (currentView === 'admin') {
+      if (window.location.hash !== '#admin' && !window.location.pathname.startsWith('/admin')) {
+        window.history.pushState({ view: 'admin' }, '', '/#admin');
+      }
+      return;
+    }
+
     const targetPath = currentView === 'dashboard' ? '/dashboard' : '/';
     if (
       window.location.pathname !== targetPath &&
@@ -373,14 +382,16 @@ export function App() {
     ) {
       window.history.pushState({ view: currentView }, '', targetPath);
     }
-  }, [currentView, user, externalLegalDoc]);
+  }, [currentView, user, externalLegalDoc, isRestoringSession]);
 
   useEffect(() => {
     const onPopState = () => {
       const nextDoc = getInitialLegalDocFromLocation();
       setExternalLegalDoc(nextDoc);
       const nextView = getInitialViewFromLocation();
-      if (nextView === 'dashboard' && user) {
+      if (nextView === 'admin') {
+        setCurrentView('admin');
+      } else if (nextView === 'dashboard' && user) {
         setCurrentView('dashboard');
       } else {
         setCurrentView('landing');
@@ -656,6 +667,38 @@ export function App() {
               onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
             />
           </>
+        ) : currentView === 'admin' ? (
+          <Suspense
+            fallback={
+              <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-sm">
+                Загрузка панели управления Voxi.by...
+              </div>
+            }
+          >
+            <AdminPanel
+              onExitToLanding={() => {
+                setCurrentView('landing');
+                window.location.hash = '';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onNavigateToUserDashboard={() => {
+                if (!user) {
+                  setUser({
+                    id: 'demo-admin-workspace',
+                    email: 'admin@voxi.by',
+                    companyName: agent.companyName || 'Автошкола «Драйв-Минск»',
+                    balanceMinutes: 145,
+                    ratePerMinute: 0.35,
+                    spentMinutes: 12,
+                    isMock: true,
+                  });
+                }
+                setCurrentView('dashboard');
+                window.location.hash = '#dashboard';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </Suspense>
         ) : (
           user && (
             <Suspense
@@ -865,30 +908,6 @@ export function App() {
               }
 
               setCurrentView('dashboard');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        </Suspense>
-      )}
-
-      {/* Master Administrator Platform Panel */}
-      {currentView === 'admin' && (
-        <Suspense
-          fallback={
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-sm">
-              Загрузка панели управления Voxi.by...
-            </div>
-          }
-        >
-          <AdminPanel
-            onExitToLanding={() => {
-              setCurrentView('landing');
-              window.location.hash = '';
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onNavigateToUserDashboard={() => {
-              setCurrentView('dashboard');
-              window.location.hash = '#dashboard';
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />

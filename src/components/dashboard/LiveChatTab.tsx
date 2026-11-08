@@ -244,7 +244,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
           </div>
 
           {/* List of dialogs */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-850 max-h-[560px]">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/80 max-h-[560px]">
             {filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500">
                 Диалогов не найдено
@@ -262,7 +262,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
                     className={`w-full text-left p-3.5 flex items-start gap-3 transition-colors ${
                       isSelected
                         ? 'bg-sky-500/10 border-l-2 border-sky-400'
-                        : 'hover:bg-slate-850/50'
+                        : 'hover:bg-slate-800/50'
                     }`}
                   >
                     <div className="relative shrink-0">
@@ -351,7 +351,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[380px] max-h-[460px]">
               {/* Trust Badge */}
               <div className="text-center my-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-850/80 border border-slate-800 text-[11px] text-slate-400">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-800 text-[11px] text-slate-400">
                   <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-400" />
                   Сессия защищена шифрованием TLS • Прямой канал Voxi.by
                 </span>
@@ -409,7 +409,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({ onOpenVoiceTest }) => 
                   key={idx}
                   type="button"
                   onClick={() => handleSendMessage(undefined, tmpl.text)}
-                  className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-750 border border-slate-700/80 transition-colors"
+                  className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800/90 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700/80 transition-colors"
                 >
                   {tmpl.title}
                 </button>
