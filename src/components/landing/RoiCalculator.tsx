@@ -66,7 +66,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
         </div>
 
         {/* Main Calculator Bento Card (Ultra-Rounded) */}
-        <div className="rounded-[44px] sm:rounded-[52px] bg-gradient-to-b from-slate-50 to-blue-50/30 border border-slate-200/80 p-7 sm:p-10">
+        <div className="rounded-[36px] sm:rounded-[52px] bg-gradient-to-b from-slate-50 to-blue-50/30 border border-slate-200/80 p-5 sm:p-10">
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
@@ -80,7 +80,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenAuth }) => {
                 <div className="p-3.5 sm:p-4 rounded-2xl border border-[#2563eb] bg-blue-50/70 flex items-center justify-between gap-3 shadow-2xs">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb] animate-pulse shrink-0" />
-                    <span className="text-xs sm:text-sm font-bold text-[#2563eb] truncate">
+                    <span className="text-xs sm:text-sm font-bold text-[#2563eb] leading-snug">
                       Замена штатного администратора
                     </span>
                   </div>

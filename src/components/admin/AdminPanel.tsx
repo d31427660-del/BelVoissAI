@@ -252,34 +252,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* Main Layout: Sidebar + Workspace */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Navigation Sidebar */}
-        <aside className="w-full md:w-64 bg-slate-900/60 border-b md:border-b-0 md:border-r border-slate-800/80 p-3 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1 overflow-x-auto">
+        <aside className="w-full md:w-64 bg-slate-900/60 border-b md:border-b-0 md:border-r border-slate-800/80 p-3 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1.5 md:gap-1 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
             }`}
           >
-            <DashboardIcon size={18} />
+            <DashboardIcon size={18} className="shrink-0" />
             <span>Сводка платформы</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('clients')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'clients'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <UsersIcon size={18} />
+            <div className="flex items-center gap-2.5 md:gap-3">
+              <UsersIcon size={18} className="shrink-0" />
               <span>Клиенты и балансы</span>
             </div>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300">
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 shrink-0">
               {clients.length}
             </span>
           </button>
@@ -287,61 +287,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('livechat')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'livechat'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <ChatRoundDotsIcon size={18} />
+            <div className="flex items-center gap-2.5 md:gap-3">
+              <ChatRoundDotsIcon size={18} className="shrink-0" />
               <span>Чат с посетителями</span>
             </div>
             {unreadLiveChats > 0 ? (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold animate-pulse">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold animate-pulse shrink-0">
                 +{unreadLiveChats}
               </span>
             ) : (
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
             )}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('billing')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'billing'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
             }`}
           >
-            <WalletIcon size={18} />
+            <WalletIcon size={18} className="shrink-0" />
             <span>Финансы и акты РБ</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('telephony')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'telephony'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
             }`}
           >
-            <TelephonyIcon size={18} />
+            <TelephonyIcon size={18} className="shrink-0" />
             <span>Мониторинг звонков</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'settings'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
             }`}
           >
-            <SettingsIcon size={18} />
+            <SettingsIcon size={18} className="shrink-0" />
             <span>Настройки платформы</span>
           </button>
         </aside>
