@@ -38,7 +38,8 @@ return [
     'bepaid_erip_service_no' => $fnEnv ? voxi_env(['BEPAID_ERIP_SERVICE_NO'], '99999999') : (getenv('BEPAID_ERIP_SERVICE_NO') ?: '99999999'),
     'public_site_url'        => $fnEnv ? voxi_env(['PUBLIC_SITE_URL']) : (getenv('PUBLIC_SITE_URL') ?: ''),
 
-    // --- 4. Уведомления администратора в Telegram (онлайн-чат и лиды) ---
+    // --- 4. Уведомления администратора в Telegram (онлайн-чат и лиды) и доступ в #admin ---
+    'admin_master_pin'       => $fnEnv ? voxi_env(['ADMIN_MASTER_PIN', 'VOXI_ADMIN_PIN'], '7788') : (getenv('ADMIN_MASTER_PIN') ?: '7788'),
     'telegram_bot_token'     => $fnEnv ? voxi_env('TELEGRAM_BOT_TOKEN', voxi_env('VOXI_TELEGRAM_BOT_TOKEN', '')) : (getenv('TELEGRAM_BOT_TOKEN') ?: (getenv('VOXI_TELEGRAM_BOT_TOKEN') ?: '')),
     'telegram_admin_chat_id' => $fnEnv ? voxi_env('TELEGRAM_ADMIN_CHAT_ID', voxi_env('VOXI_TELEGRAM_CHAT_ID', '')) : (getenv('TELEGRAM_ADMIN_CHAT_ID') ?: (getenv('VOXI_TELEGRAM_CHAT_ID') ?: '')),
 

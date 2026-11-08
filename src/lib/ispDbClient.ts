@@ -253,3 +253,98 @@ export async function ispRecordCall(callLog: CallLog): Promise<UserSession | nul
   }
   return null;
 }
+
+export async function ispAdminLogin(pin: string): Promise<{
+  ok: boolean;
+  adminToken?: string;
+  dbConfigured?: boolean;
+  serverResponded: boolean;
+}> {
+  try {
+    const { isJson, data } = await callIspDb('admin_login', {
+      method: 'POST',
+      body: { pin },
+    });
+    if (!isJson || !data || typeof data !== 'object') {
+      return { ok: false, serverResponded: false };
+    }
+    return {
+      ok: Boolean(data.ok),
+      adminToken: data.adminToken ? String(data.adminToken) : undefined,
+      dbConfigured: Boolean(data.dbConfigured),
+      serverResponded: true,
+    };
+  } catch {
+    return { ok: false, serverResponded: false };
+  }
+}
+
+export async function ispFetchAdminData(adminToken: string): Promise<{
+  dbConnected: boolean;
+  clients: any[];
+  transactions: any[];
+  telephonyLogs: any[];
+} | null> {
+  try {
+    const { isJson, data } = await callIspDb('admin_data', {
+      method: 'POST',
+      body: { adminToken },
+    });
+    if (!isJson || !data?.ok || !data?.dbConnected) {
+      return null;
+    }
+    return {
+      dbConnected: true,
+      clients: Array.isArray(data.clients) ? data.clients : [],
+      transactions: Array.isArray(data.transactions) ? data.transactions : [],
+      telephonyLogs: Array.isArray(data.telephonyLogs) ? data.telephonyLogs : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function ispAdminAddMinutes(
+  adminToken: string,
+  clientId: string,
+  minutes: number
+): Promise<{
+  ok: boolean;
+  newBalanceMinutes?: number;
+  amountByn?: number;
+  transactionId?: string;
+}> {
+  try {
+    const { isJson, data } = await callIspDb('admin_add_minutes', {
+      method: 'POST',
+      body: { adminToken, clientId, minutes },
+    });
+    if (isJson && data?.ok) {
+      return {
+        ok: true,
+        newBalanceMinutes: Number(data.newBalanceMinutes),
+        amountByn: Number(data.amountByn),
+        transactionId: data.transactionId ? String(data.transactionId) : undefined,
+      };
+    }
+    return { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function ispAdminToggleClient(
+  adminToken: string,
+  clientId: string,
+  isActive: boolean
+): Promise<boolean> {
+  try {
+    const { isJson, data } = await callIspDb('admin_toggle_client', {
+      method: 'POST',
+      body: { adminToken, clientId, isActive },
+    });
+    return Boolean(isJson && data?.ok);
+  } catch {
+    return false;
+  }
+}

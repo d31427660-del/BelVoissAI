@@ -26,6 +26,14 @@ import {
 } from '../../lib/adminData';
 import { LiveChatTab } from '../dashboard/LiveChatTab';
 import { liveChatService } from '../../lib/liveChatService';
+import {
+  ispAdminLogin,
+  ispFetchAdminData,
+  ispAdminAddMinutes,
+  ispAdminToggleClient,
+} from '../../lib/ispDbClient';
+
+const DEMO_AUTH_USER_KEY = 'voxi_demo_auth_user';
 
 interface AdminPanelProps {
   onExitToLanding: () => void;
@@ -58,7 +66,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     } catch {}
     return INITIAL_TRANSACTIONS;
   });
-  const [telephonyLogs] = useState<PlatformTelephonyLog[]>(INITIAL_TELEPHONY_LOGS);
+  const [telephonyLogs, setTelephonyLogs] = useState<PlatformTelephonyLog[]>(INITIAL_TELEPHONY_LOGS);
+  const [adminToken, setAdminToken] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('voxi_admin_token') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(false);
   const [clientSearch, setClientSearch] = useState<string>('');
   const [selectedClientForRefill, setSelectedClientForRefill] = useState<PlatformClient | null>(null);
   const [refillAmountMinutes, setRefillAmountMinutes] = useState<number>(50);
@@ -98,6 +114,97 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       localStorage.setItem('voxi_admin_transactions_v1', JSON.stringify(transactions));
     } catch {}
   }, [transactions]);
+
+  // Синхронизация реальных клиентов из MySQL (ISPmanager) и локальной сессии браузера
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // 1. Подтягиваем локально зарегистрированного пользователя браузера (если есть)
+    try {
+      const rawLocalUser = localStorage.getItem(DEMO_AUTH_USER_KEY);
+      if (rawLocalUser) {
+        const localUser = JSON.parse(rawLocalUser);
+        if (localUser && localUser.id && localUser.email) {
+          setClients((prev) => {
+            const exists = prev.some((c) => c.id === localUser.id || c.email === localUser.email);
+            if (exists) {
+              return prev.map((c) =>
+                c.id === localUser.id || c.email === localUser.email
+                  ? {
+                      ...c,
+                      id: localUser.id,
+                      companyName: localUser.companyName || c.companyName,
+                      balanceMinutes: Number(localUser.balanceMinutes ?? c.balanceMinutes),
+                      spentMinutesTotal: Number(localUser.spentMinutesTotal ?? c.spentMinutesTotal),
+                      ratePerMinute: Number(localUser.ratePerMinute ?? c.ratePerMinute),
+                    }
+                  : c
+              );
+            }
+            const newClient: PlatformClient = {
+              id: String(localUser.id),
+              name: String(localUser.email),
+              companyName: String(localUser.companyName || 'Компания клиента РБ'),
+              unp: '193847561',
+              phone: '+375 (29) 111-22-33',
+              email: String(localUser.email),
+              niche: (localUser.niche || 'driving_school') as PlatformClient['niche'],
+              city: 'Минск',
+              balanceMinutes: Number(localUser.balanceMinutes ?? 15),
+              spentMinutesTotal: Number(localUser.spentMinutesTotal ?? 0),
+              spentBynTotal: Number(localUser.spentTotalByn ?? 0),
+              ratePerMinute: Number(localUser.ratePerMinute ?? 0.45),
+              sipProvider: 'mts',
+              sipStatus: 'connected',
+              isActive: true,
+              createdAt: new Date().toLocaleDateString('ru-RU'),
+              contractNumber: 'ДГ-2026/LIVE',
+            };
+            return [newClient, ...prev];
+          });
+        }
+      }
+    } catch {}
+
+    // 2. Подтягиваем реальные данные из БД MySQL ISPmanager (/api/db?action=admin_data)
+    let cancelled = false;
+    ispFetchAdminData(adminToken || '7788').then((remote) => {
+      if (cancelled || !remote || !remote.dbConnected) return;
+      setIsDbConnected(true);
+      if (remote.clients.length > 0) {
+        setClients((prev) => {
+          const remoteIds = new Set(remote.clients.map((rc: PlatformClient) => rc.id));
+          const merged = [
+            ...(remote.clients as PlatformClient[]),
+            ...prev.filter((c) => !remoteIds.has(c.id)),
+          ];
+          return merged;
+        });
+      }
+      if (remote.transactions.length > 0) {
+        setTransactions((prev) => {
+          const remoteTxIds = new Set(remote.transactions.map((rt: PlatformTransaction) => rt.id));
+          return [
+            ...(remote.transactions as PlatformTransaction[]),
+            ...prev.filter((t) => !remoteTxIds.has(t.id)),
+          ];
+        });
+      }
+      if (remote.telephonyLogs.length > 0) {
+        setTelephonyLogs((prev) => {
+          const remoteLogIds = new Set(remote.telephonyLogs.map((rl: PlatformTelephonyLog) => rl.id));
+          return [
+            ...(remote.telephonyLogs as PlatformTelephonyLog[]),
+            ...prev.filter((l) => !remoteLogIds.has(l.id)),
+          ];
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, adminToken]);
 
   const showToast = (msg: string) => {
     setActionNotice(msg);
@@ -218,12 +325,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     showToast(`Акт выполненных работ ${tx.invoiceNumber} сформирован`);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Master PIN or admin password
-    if (pinInput.trim() === '7788' || pinInput.trim() === 'admin2026' || pinInput.trim() === 'voxi') {
+    const trimmed = pinInput.trim();
+    if (!trimmed) {
+      setPinError(true);
+      return;
+    }
+
+    // Проверяем через серверный API (/api/db?action=admin_login) с резервным локальным фоллбэком
+    const serverAuth = await ispAdminLogin(trimmed);
+    const localMatch = trimmed === '7788' || trimmed === 'admin2026' || trimmed === 'voxi';
+
+    if (serverAuth.ok || (!serverAuth.serverResponded && localMatch)) {
+      const tokenToStore = serverAuth.adminToken || trimmed;
+      setAdminToken(tokenToStore);
       setIsAuthenticated(true);
       sessionStorage.setItem('voxi_admin_auth', 'true');
+      sessionStorage.setItem('voxi_admin_token', tokenToStore);
       setPinError(false);
     } else {
       setPinError(true);
@@ -232,11 +351,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleLogout = () => {
     sessionStorage.removeItem('voxi_admin_auth');
+    sessionStorage.removeItem('voxi_admin_token');
     setIsAuthenticated(false);
+    setAdminToken('');
     setPinInput('');
   };
 
-  const handleQuickAddMinutes = (clientId: string, minutes: number) => {
+  const handleQuickAddMinutes = async (clientId: string, minutes: number) => {
     const safeMinutes = Math.max(1, Math.round(Number(minutes) || 0));
     const targetClient = clients.find((c) => c.id === clientId);
     setClients((prev) =>
@@ -248,6 +369,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         return c;
       })
     );
+
+    // Синхронизируем баланс с локальной сессией клиента (если это его аккаунт в этом браузере)
+    try {
+      const rawLocalUser = localStorage.getItem(DEMO_AUTH_USER_KEY);
+      if (rawLocalUser) {
+        const parsedUser = JSON.parse(rawLocalUser);
+        if (
+          parsedUser &&
+          (parsedUser.id === clientId || (targetClient && parsedUser.email === targetClient.email))
+        ) {
+          parsedUser.balanceMinutes = Number(parsedUser.balanceMinutes || 0) + safeMinutes;
+          localStorage.setItem(DEMO_AUTH_USER_KEY, JSON.stringify(parsedUser));
+        }
+      }
+    } catch {}
+
+    // Отправляем реальное начисление в MySQL (если БД ISPmanager подключена)
+    if (adminToken) {
+      ispAdminAddMinutes(adminToken, clientId, safeMinutes).catch(() => {});
+    }
+
     if (targetClient) {
       const amountByn = Number((safeMinutes * targetClient.ratePerMinute).toFixed(2));
       const newTx: PlatformTransaction = {
@@ -270,15 +412,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleToggleClientActive = (clientId: string) => {
+    let nextState = true;
     setClients((prev) =>
       prev.map((c) => {
         if (c.id === clientId) {
-          const nextActive = !c.isActive;
-          return { ...c, isActive: nextActive };
+          nextState = !c.isActive;
+          return { ...c, isActive: nextState };
         }
         return c;
       })
     );
+    if (adminToken) {
+      ispAdminToggleClient(adminToken, clientId, nextState).catch(() => {});
+    }
     showToast('Статус клиента обновлен');
   };
 
@@ -384,6 +530,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
               MASTER ADMIN
+            </span>
+            <span
+              className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                isDbConnected
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  : 'bg-slate-800 text-slate-300 border-slate-700'
+              }`}
+              title={
+                isDbConnected
+                  ? 'Подключено к боевой БД MySQL (ISPmanager)'
+                  : 'Локальная синхронизация + готовность к MySQL (/api/db)'
+              }
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isDbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'
+                }`}
+              />
+              {isDbConnected ? 'MySQL: Онлайн' : 'БД: Live Sync'}
             </span>
           </div>
         </div>

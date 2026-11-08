@@ -111,9 +111,33 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         }
       });
 
-      server.middlewares.use('/api/db', async (_req: any, res: any) => {
-        res.statusCode = 200;
+      server.middlewares.use('/api/db', async (req: any, res: any) => {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        const reqUrl = new URL(req.url || '', 'http://localhost');
+        const action = (reqUrl.searchParams.get('action') || '').toLowerCase();
+
+        if (action === 'admin_login' && req.method === 'POST') {
+          let rawBody = '';
+          for await (const chunk of req) {
+            rawBody += chunk;
+          }
+          const body = rawBody ? JSON.parse(rawBody) : {};
+          const pin = String(body.pin || '').trim();
+          const masterPin = String(env.ADMIN_MASTER_PIN || '7788').trim();
+          const isValid =
+            pin !== '' &&
+            (pin === masterPin || (masterPin === '7788' && (pin === 'admin2026' || pin === 'voxi')));
+          if (!isValid) {
+            res.statusCode = 401;
+            res.end(JSON.stringify({ ok: false, error: 'Неверный PIN-код' }));
+            return;
+          }
+          res.statusCode = 200;
+          res.end(JSON.stringify({ ok: true, adminToken: 'dev-admin-token', dbConfigured: false }));
+          return;
+        }
+
+        res.statusCode = 200;
         res.end(
           JSON.stringify({
             ok: true,
