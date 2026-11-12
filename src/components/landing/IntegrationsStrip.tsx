@@ -78,7 +78,7 @@ export const IntegrationsStrip: React.FC = () => {
   ];
 
   return (
-    <section id="integrations" className="py-14 bg-[#ffffff] border-y border-black/[0.06] scroll-mt-20">
+    <section id="integrations" className="py-14 bg-transparent border-y border-black/[0.06] scroll-mt-20">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
         
         {/* ElevenLabs-Style Section Header Row */}

@@ -41,7 +41,7 @@ export const FaqSection: React.FC = () => {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-[#ffffff] border-t border-black/[0.06] scroll-mt-20">
+    <section id="faq" className="py-24 bg-transparent border-t border-black/[0.06] scroll-mt-20">
       <div className="max-w-[820px] mx-auto px-4 sm:px-6">
         
         {/* Section Header */}

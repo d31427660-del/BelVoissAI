@@ -105,7 +105,7 @@ export const VoiceComparison: React.FC = () => {
   const currentMilestone = CALL_TIMELINE[activeTimelineIdx] || CALL_TIMELINE[0];
 
   return (
-    <section id="benchmark" className="py-24 bg-[#ffffff] border-y border-black/[0.06] scroll-mt-20">
+    <section id="benchmark" className="py-24 bg-transparent border-y border-black/[0.06] scroll-mt-20">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-20">
         
         {/* PART 1: Audio Benchmark Comparison */}

@@ -95,7 +95,7 @@ export const FeatureShowcase: React.FC = () => {
   ];
 
   return (
-    <section id="features" className="py-24 bg-[#ffffff] relative scroll-mt-20">
+    <section id="features" className="py-24 bg-transparent relative scroll-mt-20">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-24">
         
         {/* ================================================================= */}

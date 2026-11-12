@@ -8,7 +8,7 @@ interface CtaSectionProps {
 
 export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenAuth, onOpenVoiceTest }) => {
   return (
-    <section className="py-20 bg-white border-t border-black/[0.06]">
+    <section className="py-20 bg-transparent border-t border-black/[0.06]">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-12">
         
         {/* Main Obsidian Editorial Card with Liquid Glass (16px radius) */}

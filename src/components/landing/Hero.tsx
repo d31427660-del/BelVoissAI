@@ -289,19 +289,19 @@ export const Hero: React.FC<HeroProps> = ({
   };
 
   return (
-    <section className="relative overflow-hidden pt-10 pb-20 md:pt-16 md:pb-24 bg-[#ffffff]">
+    <section className="relative overflow-hidden pt-10 pb-20 md:pt-16 md:pb-24 bg-transparent">
       {/* Subtle Hardware-accelerated Radial Ambiance (Zero blur raster overhead) */}
       <div
-        className="pointer-events-none absolute -top-36 right-[8%] w-[520px] h-[520px] rounded-full"
+        className="pointer-events-none absolute -top-36 right-[8%] w-[580px] h-[580px] rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(99,102,241,0.035) 0%, rgba(161,161,170,0.02) 45%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255, 142, 84, 0.16) 0%, rgba(251, 146, 60, 0.06) 45%, transparent 70%)',
           transform: 'translateZ(0)'
         }}
       />
       <div
-        className="pointer-events-none absolute top-1/2 -left-36 w-[440px] h-[440px] rounded-full"
+        className="pointer-events-none absolute top-1/2 -left-36 w-[480px] h-[480px] rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(212,212,216,0.04) 0%, rgba(99,102,241,0.02) 45%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, rgba(126, 178, 163, 0.08) 45%, transparent 70%)',
           transform: 'translateZ(0)'
         }}
       />

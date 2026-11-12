@@ -627,26 +627,37 @@ export function App() {
       {/* Main Landmark */}
       <main id="main-content" className="flex-1">
         {currentView === 'landing' ? (
-          <div className="relative overflow-hidden overflow-x-clip bg-white w-full">
-            {/* Zero-cost Hardware Radial Ambient Refraction Meshes (No blur filter overhead) */}
+          <div
+            className="relative overflow-hidden overflow-x-clip w-full"
+            style={{
+              backgroundColor: '#FAF7F2',
+              backgroundImage: `
+                radial-gradient(1300px 750px at 18% 6%, rgba(255, 142, 84, 0.22) 0%, transparent 60%),
+                radial-gradient(1000px 650px at 85% 16%, rgba(251, 191, 36, 0.16) 0%, transparent 55%),
+                radial-gradient(1200px 800px at 82% 46%, rgba(126, 178, 163, 0.15) 0%, transparent 55%),
+                radial-gradient(1100px 750px at 15% 72%, rgba(255, 118, 62, 0.18) 0%, transparent 60%)
+              `
+            }}
+          >
+            {/* Luminous Warm Ambient Orbs */}
             <div
-              className="pointer-events-none absolute top-[10%] -left-[10%] w-[550px] h-[550px] rounded-full overflow-hidden"
+              className="pointer-events-none absolute top-[2%] -left-[10%] w-[700px] h-[700px] rounded-full overflow-hidden"
               style={{
-                background: 'radial-gradient(circle, rgba(99,102,241,0.035) 0%, rgba(148,163,184,0.015) 45%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(255, 142, 84, 0.18) 0%, rgba(251, 146, 60, 0.08) 45%, transparent 70%)',
                 transform: 'translateZ(0)'
               }}
             />
             <div
-              className="pointer-events-none absolute top-[42%] -right-[10%] w-[650px] h-[650px] rounded-full overflow-hidden"
+              className="pointer-events-none absolute top-[38%] -right-[10%] w-[700px] h-[700px] rounded-full overflow-hidden"
               style={{
-                background: 'radial-gradient(circle, rgba(161,161,170,0.03) 0%, rgba(99,102,241,0.02) 45%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(126, 178, 163, 0.16) 0%, rgba(255, 150, 95, 0.08) 45%, transparent 70%)',
                 transform: 'translateZ(0)'
               }}
             />
             <div
-              className="pointer-events-none absolute top-[72%] -left-[10%] w-[600px] h-[600px] rounded-full overflow-hidden"
+              className="pointer-events-none absolute top-[70%] -left-[10%] w-[680px] h-[680px] rounded-full overflow-hidden"
               style={{
-                background: 'radial-gradient(circle, rgba(168,85,247,0.025) 0%, rgba(16,185,129,0.015) 45%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(255, 118, 62, 0.16) 0%, rgba(251, 191, 36, 0.10) 50%, transparent 70%)',
                 transform: 'translateZ(0)'
               }}
             />

@@ -91,7 +91,7 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer className="bg-[#f8fafc] text-[#6e6e73] text-xs border-t border-slate-200/80">
+    <footer className="bg-[#F5F2EC]/80 text-[#6e6e73] text-xs border-t border-black/[0.05]">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-14 pb-24 sm:py-14">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
           

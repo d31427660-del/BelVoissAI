@@ -52,7 +52,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onOpenAuth }) => {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-white scroll-mt-20">
+    <section id="how-it-works" className="py-24 bg-transparent scroll-mt-20">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-16">
         
         {/* PART 1: 3-Step Launch Architecture with Liquid Glass */}
