@@ -12,7 +12,6 @@ import { Pricing } from './components/landing/Pricing';
 import { FaqSection } from './components/landing/FaqSection';
 import { CtaSection } from './components/landing/CtaSection';
 import { Footer, LegalDocType } from './components/Footer';
-import { AdminChatWidget } from './components/AdminChatWidget';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { 
   DEFAULT_AGENT_CONFIG, 
@@ -631,51 +630,78 @@ export function App() {
       {/* Main Landmark */}
       <main id="main-content" className="flex-1">
         {currentView === 'landing' ? (
-          <>
-            <Hero
-              onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-              onOpenAuth={() => {
-                if (user) setCurrentView('dashboard');
-                else setIsAuthModalOpen(true);
+          <div className="relative overflow-hidden overflow-x-clip bg-white w-full">
+            {/* Zero-cost Hardware Radial Ambient Refraction Meshes (No blur filter overhead) */}
+            <div
+              className="pointer-events-none absolute top-[10%] -left-[10%] w-[550px] h-[550px] rounded-full overflow-hidden"
+              style={{
+                background: 'radial-gradient(circle, rgba(99,102,241,0.035) 0%, rgba(148,163,184,0.015) 45%, transparent 70%)',
+                transform: 'translateZ(0)'
+              }}
+            />
+            <div
+              className="pointer-events-none absolute top-[42%] -right-[10%] w-[650px] h-[650px] rounded-full overflow-hidden"
+              style={{
+                background: 'radial-gradient(circle, rgba(161,161,170,0.03) 0%, rgba(99,102,241,0.02) 45%, transparent 70%)',
+                transform: 'translateZ(0)'
+              }}
+            />
+            <div
+              className="pointer-events-none absolute top-[72%] -left-[10%] w-[600px] h-[600px] rounded-full overflow-hidden"
+              style={{
+                background: 'radial-gradient(circle, rgba(168,85,247,0.025) 0%, rgba(16,185,129,0.015) 45%, transparent 70%)',
+                transform: 'translateZ(0)'
               }}
             />
 
-            <IntegrationsStrip />
+            <div className="relative z-10 w-full">
+              <Hero
+                onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
+                onOpenAuth={() => {
+                  if (user) setCurrentView('dashboard');
+                  else setIsAuthModalOpen(true);
+                }}
+              />
 
-            <WhoIsItFor onSelectNiche={handleSelectNicheFromLanding} />
+              <IntegrationsStrip />
 
-            <VoiceComparison />
+              <WhoIsItFor onSelectNiche={handleSelectNicheFromLanding} />
 
-            <HowItWorks onOpenAuth={() => {
-              if (user) setCurrentView('dashboard');
-              else setIsAuthModalOpen(true);
-            }} />
+              <VoiceComparison />
 
-            <RoiCalculator onOpenAuth={() => {
-              if (user) setCurrentView('dashboard');
-              else setIsAuthModalOpen(true);
-            }} />
+              <FeatureShowcase />
 
-            <FeatureShowcase />
+              <RoiCalculator
+                onOpenAuth={() => {
+                  if (user) setCurrentView('dashboard');
+                  else setIsAuthModalOpen(true);
+                }}
+              />
 
-            <Pricing 
-              onOpenAuth={() => {
+              <Pricing
+                onSelectPackage={handleSelectPackage}
+                onOpenAuth={() => {
+                  if (user) setCurrentView('dashboard');
+                  else setIsAuthModalOpen(true);
+                }}
+              />
+
+              <HowItWorks onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
                 else setIsAuthModalOpen(true);
-              }}
-              onSelectPackage={handleSelectPackage}
-            />
+              }} />
 
-            <FaqSection />
+              <FaqSection />
 
-            <CtaSection
-              onOpenAuth={() => {
-                if (user) setCurrentView('dashboard');
-                else setIsAuthModalOpen(true);
-              }}
-              onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-            />
-          </>
+              <CtaSection
+                onOpenAuth={() => {
+                  if (user) setCurrentView('dashboard');
+                  else setIsAuthModalOpen(true);
+                }}
+                onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
+              />
+            </div>
+          </div>
         ) : currentView === 'admin' ? (
           <Suspense
             fallback={
@@ -929,13 +955,6 @@ export function App() {
         </Suspense>
       )}
 
-      {/* Floating Live Admin Chat Widget */}
-      {currentView === 'landing' && (
-        <AdminChatWidget
-          onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
-        />
-      )}
 
       {isVoiceTestModalOpen && (
         <Suspense fallback={null}>

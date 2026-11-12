@@ -42,11 +42,8 @@ class LiveChatService {
         }
       });
 
-      this.serverPollTimer = setInterval(() => {
-        if (this.chatListeners.size > 0) {
-          this.pullRemoteConversations();
-        }
-      }, 4500);
+      // Background polling disabled
+      this.serverPollTimer = null;
     }
   }
 

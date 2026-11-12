@@ -24,8 +24,6 @@ import {
   PlatformTransaction,
   PlatformTelephonyLog
 } from '../../lib/adminData';
-import { LiveChatTab } from '../dashboard/LiveChatTab';
-import { liveChatService } from '../../lib/liveChatService';
 import {
   ispAdminLogin,
   ispFetchAdminData,
@@ -51,7 +49,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'livechat' | 'billing' | 'telephony' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'billing' | 'telephony' | 'settings'>('overview');
   const [clients, setClients] = useState<PlatformClient[]>(() => {
     try {
       const saved = localStorage.getItem('voxi_admin_clients_v1');
@@ -78,7 +76,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [clientSearch, setClientSearch] = useState<string>('');
   const [selectedClientForRefill, setSelectedClientForRefill] = useState<PlatformClient | null>(null);
   const [refillAmountMinutes, setRefillAmountMinutes] = useState<number>(50);
-  const [unreadLiveChats, setUnreadLiveChats] = useState<number>(0);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [tariffSettings, setTariffSettings] = useState<{
     starterRate: string;
@@ -95,13 +92,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       freeDemoLimit: '15 минут',
     };
   });
-
-  useEffect(() => {
-    return liveChatService.subscribe((convs) => {
-      const unread = convs.reduce((sum, c) => sum + (c.unreadByAdmin || 0), 0);
-      setUnreadLiveChats(unread);
-    });
-  }, []);
 
   useEffect(() => {
     try {
@@ -447,23 +437,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // If not authenticated, render master admin PIN screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md liquid-glass-dark border border-white/10 rounded-[16px] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-20 -right-20 w-44 h-44 rounded-full bg-white/5 blur-3xl" />
 
           <div className="text-center space-y-2 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mx-auto text-white shadow-xl shadow-blue-500/20">
+            <div className="w-14 h-14 rounded-[12px] bg-white text-black flex items-center justify-center mx-auto shadow-md">
               <ShieldCheckIcon size={32} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-white">Панель управления Voxi.by</h1>
-            <p className="text-xs text-slate-400">
+            <h1 className="text-xl font-medium tracking-tight text-white">Панель управления Voxi.by</h1>
+            <p className="text-xs text-[#777169]">
               Вход для оператора платформы (ИП Беляков К. О. • УНП 193991846)
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-normal text-zinc-300 mb-1.5">
                 Мастер PIN-код или пароль администратора
               </label>
               <input
@@ -475,30 +465,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   setPinInput(e.target.value);
                   setPinError(false);
                 }}
-                className={`w-full bg-slate-950 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                className={`w-full bg-black/60 border rounded-[12px] px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors ${
                   pinError
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-slate-800 focus:border-blue-500'
+                    ? 'border-rose-500 focus:border-rose-500'
+                    : 'border-white/10 focus:border-white/30'
                 }`}
               />
               {pinError && (
-                <p className="text-xs text-red-400 mt-1">Неверный PIN-код (используйте 7788)</p>
+                <p className="text-xs text-rose-400 mt-1">Неверный PIN-код (используйте 7788)</p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-blue-500/25 cursor-pointer"
+              className="w-full py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-normal text-sm transition-all shadow-sm cursor-pointer"
             >
               Войти в панель администратора
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
             <button
               type="button"
               onClick={onExitToLanding}
-              className="text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeftIcon size={14} />
               Вернуться на сайт
@@ -525,17 +515,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-base font-extrabold tracking-tight text-white">
-              Voxi<span className="text-blue-500">.by</span>
+            <span className="text-base font-semibold tracking-tight text-white">
+              Voxi<span className="text-[#777169] font-mono font-normal">.by</span>
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-normal bg-white/10 text-white border border-white/15">
               MASTER ADMIN
             </span>
             <span
-              className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-normal border ${
                 isDbConnected
                   ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                  : 'bg-slate-800 text-slate-300 border-slate-700'
+                  : 'bg-white/5 text-zinc-300 border-white/10'
               }`}
               title={
                 isDbConnected
@@ -545,7 +535,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  isDbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'
+                  isDbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'
                 }`}
               />
               {isDbConnected ? 'MySQL: Онлайн' : 'БД: Live Sync'}
@@ -555,7 +545,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Global Action Notices */}
         {actionNotice && (
-          <div className="fixed bottom-4 right-4 z-50 sm:static sm:inline-flex flex items-center gap-1.5 px-3 py-1.5 sm:py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium shadow-lg sm:shadow-none backdrop-blur-md">
+          <div className="fixed bottom-4 right-4 z-50 sm:static sm:inline-flex flex items-center gap-1.5 px-3 py-1.5 sm:py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-normal shadow-lg sm:shadow-none backdrop-blur-md">
             <CheckCircleIcon size={14} />
             <span>{actionNotice}</span>
           </div>
@@ -566,18 +556,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <button
               type="button"
               onClick={onNavigateToUserDashboard}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full liquid-glass-dark hover:bg-white/10 text-zinc-300 hover:text-white text-xs font-normal transition-colors cursor-pointer"
             >
               <span>Кабинет клиента</span>
             </button>
           )}
 
-          <div className="h-4 w-px bg-slate-800 hidden md:block" />
+          <div className="h-4 w-px bg-white/10 hidden md:block" />
 
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-normal transition-colors cursor-pointer"
             title="Выйти из админки"
           >
             <Logout2Icon size={14} />
@@ -589,14 +579,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {/* Main Layout: Sidebar + Workspace */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Navigation Sidebar */}
-        <aside className="w-full md:w-64 bg-slate-900/60 border-b md:border-b-0 md:border-r border-slate-800/80 p-3 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1.5 md:gap-1 overflow-x-auto no-scrollbar">
+        <aside className="w-full md:w-64 bg-black/60 border-b md:border-b-0 md:border-r border-white/10 p-3 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1.5 md:gap-1 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'overview'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                ? 'bg-white text-black shadow-sm font-medium'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <DashboardIcon size={18} className="shrink-0" />
@@ -606,50 +596,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('clients')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'clients'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                ? 'bg-white text-black shadow-sm font-medium'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-2.5 md:gap-3">
               <UsersIcon size={18} className="shrink-0" />
               <span>Клиенты и балансы</span>
             </div>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 shrink-0">
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 ${
+              activeTab === 'clients' ? 'bg-black/10 text-black' : 'bg-white/10 text-zinc-300'
+            }`}>
               {clients.length}
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('livechat')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'livechat'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 md:gap-3">
-              <ChatRoundDotsIcon size={18} className="shrink-0" />
-              <span>Чат с посетителями</span>
-            </div>
-            {unreadLiveChats > 0 ? (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold animate-pulse shrink-0">
-                +{unreadLiveChats}
-              </span>
-            ) : (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            )}
-          </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('billing')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'billing'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                ? 'bg-white text-black shadow-sm font-medium'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <WalletIcon size={18} className="shrink-0" />
@@ -659,10 +630,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('telephony')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'telephony'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                ? 'bg-white text-black shadow-sm font-medium'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <TelephonyIcon size={18} className="shrink-0" />
@@ -672,10 +643,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'settings'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                ? 'bg-white text-black shadow-sm font-medium'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <SettingsIcon size={18} className="shrink-0" />
@@ -915,7 +886,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 setSelectedClientForRefill(client);
                                 setRefillAmountMinutes(50);
                               }}
-                              className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition-colors cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
                             >
                               + Минуты
                             </button>
@@ -935,27 +906,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   aria-label="Начисление минут клиенту"
                   className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
                 >
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+                  <div className="bg-black border border-white/10 rounded-[16px] p-6 max-w-sm w-full space-y-4 shadow-2xl">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-white text-sm">Начисление минут клиенту</h3>
+                      <h3 className="font-medium text-white text-sm">Начисление минут клиенту</h3>
                       <button
                         type="button"
                         onClick={() => setSelectedClientForRefill(null)}
-                        className="text-slate-400 hover:text-white"
+                        className="text-zinc-400 hover:text-white"
                       >
                         ✕
                       </button>
                     </div>
 
-                    <div className="text-xs text-slate-300">
+                    <div className="text-xs text-zinc-300">
                       Компания: <span className="font-semibold text-white">{selectedClientForRefill.companyName}</span>
-                      <div className="text-slate-400 mt-0.5">
+                      <div className="text-zinc-400 mt-0.5">
                         Текущий баланс: {selectedClientForRefill.balanceMinutes} мин
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      <label className="block text-xs font-normal text-zinc-300 mb-1.5">
                         Сколько минут начислить:
                       </label>
                       <div className="grid grid-cols-3 gap-2 mb-3">
@@ -964,10 +935,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             key={m}
                             type="button"
                             onClick={() => setRefillAmountMinutes(m)}
-                            className={`py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                            className={`py-1.5 rounded-lg text-xs font-normal border transition-colors cursor-pointer ${
                               refillAmountMinutes === m
-                                ? 'bg-blue-600 border-blue-500 text-white'
-                                : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                                ? 'bg-white border-white text-black font-medium'
+                                : 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
                             }`}
                           >
                             +{m} мин
@@ -980,7 +951,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         min="1"
                         value={refillAmountMinutes}
                         onChange={(e) => setRefillAmountMinutes(Number(e.target.value))}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
                       />
                     </div>
 
@@ -988,14 +959,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <button
                         type="button"
                         onClick={() => handleQuickAddMinutes(selectedClientForRefill.id, refillAmountMinutes)}
-                        className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+                        className="flex-1 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
                       >
                         Подтвердить начисление
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedClientForRefill(null)}
-                        className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs cursor-pointer"
+                        className="px-4 py-2.5 rounded-full bg-white/10 text-zinc-300 hover:text-white text-xs cursor-pointer"
                       >
                         Отмена
                       </button>
@@ -1003,13 +974,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* TAB 3: LIVE CHAT (SUPPORT) */}
-          {activeTab === 'livechat' && (
-            <div className="space-y-4">
-              <LiveChatTab onOpenVoiceTest={() => showToast('Тест голосового ассистента')} />
             </div>
           )}
 
@@ -1210,7 +1174,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     } catch {}
                     showToast('Настройки тарифов сохранены');
                   }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs transition-colors cursor-pointer"
+                  className="px-5 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
                 >
                   Сохранить тарифы
                 </button>

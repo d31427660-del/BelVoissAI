@@ -19,30 +19,30 @@ export const WebCallFloatingWidget: React.FC<WebCallFloatingWidgetProps> = ({ on
         type="button"
         onClick={onOpenVoiceTest}
         aria-label="Поговорить с живым голосовым ИИ Voxi.by прямо сейчас без ввода номера телефона"
-        className="group relative flex items-center gap-3.5 pl-3.5 pr-4 py-2.5 sm:py-3 rounded-full bg-slate-900/95 hover:bg-slate-950 text-white shadow-2xl shadow-blue-900/35 border border-white/20 backdrop-blur-xl transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
+        className="group relative flex items-center gap-3 pl-3 pr-4 py-2 sm:py-2.5 rounded-full liquid-glass-dark text-white transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
       >
-        {/* Animated Green Online Waveform Aura */}
-        <div className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-[#2563eb] to-emerald-400 text-white shrink-0 shadow-md shadow-blue-500/30">
-          <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+        {/* White Live Icon Circle */}
+        <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full liquid-glass-pill text-black shrink-0">
+          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400 border-2 border-slate-900" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 border-2 border-black" />
           </span>
-          <PhoneCallingRoundedIcon size={20} className="group-hover:rotate-12 transition-transform duration-300" />
+          <PhoneCallingRoundedIcon size={18} className="group-hover:rotate-12 transition-transform duration-300" />
         </div>
 
         {/* Text and Badges */}
         <div className="text-left">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
+            <span className="text-xs sm:text-sm font-medium text-white tracking-tight">
               Поговорить с Voxi
             </span>
-            <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/70 border border-emerald-500/30 px-1.5 py-0.2 rounded-full">
+            <span className="text-[10px] font-normal text-white/80 bg-white/15 px-1.5 py-0.5 rounded-full">
               LIVE
             </span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-300 font-normal">
-            <SoundwaveCircleIcon size={13} className="text-emerald-400 shrink-0" />
-            <span>В 1 клик через микрофон • Без номера</span>
+          <div className="flex items-center gap-1 text-[11px] text-white/70 font-normal">
+            <SoundwaveCircleIcon size={12} className="text-white/80 shrink-0" />
+            <span>Через микрофон • Без номера</span>
           </div>
         </div>
       </button>

@@ -314,15 +314,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       aria-labelledby="auth-modal-title"
       onClose={onClose}
       onClick={handleBackdropClick}
-      className="w-[calc(100%-1.5rem)] max-w-md rounded-[32px] sm:rounded-[40px] bg-[#ffffff] border border-[#e5e5ea] overflow-hidden shadow-2xl p-0 text-[#1d1d1f] backdrop:bg-black/50 backdrop:backdrop-blur-md open:animate-fadeIn m-auto"
+      className="w-[calc(100%-1.5rem)] max-w-md rounded-[16px] liquid-glass-card shadow-2xl p-0 text-black backdrop:bg-black/40 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
     >
       {/* Header */}
-      <div className="px-7 py-5 border-b border-[#e5e5ea] flex items-center justify-between bg-[#ffffff]">
+      <div className="px-7 py-5 border-b border-black/[0.06] flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium text-[#6e6e73] mb-0.5">
+          <p className="text-xs font-normal text-[#777169] mb-0.5">
             Voxi Studio
           </p>
-          <h2 id="auth-modal-title" className="text-lg font-semibold tracking-tight text-[#1d1d1f]">
+          <h2 id="auth-modal-title" className="text-lg font-medium tracking-tight text-black">
             {mode === 'signup'
               ? 'Регистрация (+15 мин в подарок)'
               : mode === 'reset'
@@ -336,7 +336,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           type="button"
           aria-label="Закрыть окно входа"
           onClick={onClose}
-          className="w-9 h-9 rounded-full bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f] flex items-center justify-center transition-colors"
+          className="w-9 h-9 rounded-full liquid-glass-pill text-[#777169] hover:text-black flex items-center justify-center transition-colors cursor-pointer"
         >
           <CloseCircleIcon size={18} />
         </button>
@@ -346,13 +346,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="p-7 space-y-5 max-h-[82vh] overflow-y-auto">
 
         {/* Quick 1-Click Demo Login Banner */}
-        <div className="p-4 rounded-[28px] bg-blue-50/80 border border-blue-100 space-y-2.5">
+        <div className="p-4 rounded-[12px] liquid-glass-cream space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-[#2563eb] font-semibold text-xs">
-              <BoltCircleIcon size={16} className="text-[#2563eb]" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-black font-medium text-xs">
+              <BoltCircleIcon size={16} className="text-black" aria-hidden="true" />
               <span>Ознакомительный демо-стенд</span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white text-[#2563eb] border border-blue-200">
+            <span className="text-[10px] font-normal uppercase tracking-wide px-2 py-0.5 rounded-full liquid-glass-pill text-black">
               Без пароля
             </span>
           </div>
@@ -360,14 +360,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={() => handleDemoLogin('Автошкола "Драйв-Минск"')}
-              className="px-3 py-2.5 rounded-full bg-[#ffffff] hover:bg-[#2563eb] hover:text-[#ffffff] text-[#2563eb] border border-blue-200 font-semibold text-xs text-center transition-all"
+              className="px-3 py-2 rounded-full liquid-glass-pill text-black font-normal text-xs text-center transition-all hover:bg-white cursor-pointer"
             >
               Автошкола (Минск)
             </button>
             <button
               type="button"
               onClick={() => handleDemoLogin('СТО "Минск-Моторс"')}
-              className="px-3 py-2.5 rounded-full bg-[#ffffff] hover:bg-[#2563eb] hover:text-[#ffffff] text-[#2563eb] border border-blue-200 font-semibold text-xs text-center transition-all"
+              className="px-3 py-2 rounded-full liquid-glass-pill text-black font-normal text-xs text-center transition-all hover:bg-white cursor-pointer"
             >
               СТО и Сервис
             </button>
@@ -375,20 +375,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         <div className="relative flex items-center justify-center">
-          <div className="border-t border-[#e5e5ea] w-full"></div>
-          <span className="bg-[#ffffff] px-3 text-xs text-[#6e6e73] shrink-0">
+          <div className="border-t border-black/[0.06] w-full"></div>
+          <span className="bg-[#FAF8F5] px-3 text-xs text-[#777169] shrink-0">
             или аккаунт компании
           </span>
         </div>
 
         {errorMessage && (
-          <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 font-medium text-xs">
+          <div role="alert" className="p-3.5 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-900 font-normal text-xs">
             {errorMessage}
           </div>
         )}
 
         {infoMessage && (
-          <div role="status" className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium text-xs">
+          <div role="status" className="p-3.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-900 font-normal text-xs">
             {infoMessage}
           </div>
         )}
@@ -396,11 +396,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {mode === 'signup' && (
             <div>
-              <label htmlFor="auth-company" className="block text-xs font-medium text-[#1d1d1f] mb-1.5">
+              <label htmlFor="auth-company" className="block text-xs font-normal text-black mb-1.5">
                 Название компании или ИП
               </label>
               <div className="relative">
-                <Buildings2Icon size={17} className="text-[#6e6e73] absolute left-4 top-3.5 pointer-events-none" aria-hidden="true" />
+                <Buildings2Icon size={17} className="text-[#777169] absolute left-4 top-3.5 pointer-events-none" aria-hidden="true" />
                 <input
                   id="auth-company"
                   name="organization"
@@ -410,18 +410,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="Стоматология «Дент», СТО"
-                  className="w-full pl-11 pr-4 py-3 rounded-full bg-[#f5f5f7] border border-transparent text-[#1d1d1f] text-sm focus:outline-none focus:bg-[#ffffff] focus:border-[#1d1d1f] transition-colors"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label htmlFor="auth-email" className="block text-xs font-medium text-[#1d1d1f] mb-1.5">
+            <label htmlFor="auth-email" className="block text-xs font-normal text-black mb-1.5">
               Корпоративный Email
             </label>
             <div className="relative">
-              <LetterIcon size={17} className="text-[#6e6e73] absolute left-4 top-3.5 pointer-events-none" aria-hidden="true" />
+              <LetterIcon size={17} className="text-[#777169] absolute left-4 top-3.5 pointer-events-none" aria-hidden="true" />
               <input
                 id="auth-email"
                 name="email"
@@ -432,7 +432,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@company.by"
-                className="w-full pl-11 pr-4 py-3 rounded-full bg-[#f5f5f7] border border-transparent text-[#1d1d1f] text-sm focus:outline-none focus:bg-[#ffffff] focus:border-[#1d1d1f] transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors"
               />
             </div>
           </div>
@@ -440,26 +440,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode !== 'reset' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="auth-password" className="block text-xs font-medium text-[#1d1d1f]">
+                <label htmlFor="auth-password" className="block text-xs font-normal text-black">
                   Пароль
                 </label>
                 {mode === 'signin' && (
                   <button
                     type="button"
                     onClick={() => setMode('reset')}
-                    className="text-[11px] text-[#2563eb] hover:underline font-medium"
+                    className="text-[11px] text-black hover:underline font-normal cursor-pointer"
                   >
                     Забыли пароль?
                   </button>
                 )}
               </div>
               {mode === 'signup' && (
-                <span id="auth-password-hint" className="block text-[11px] text-[#6e6e73] mb-1.5">
+                <span id="auth-password-hint" className="block text-[11px] text-[#777169] mb-1.5 font-normal">
                   Минимум 6 символов
                 </span>
               )}
               <div className="relative">
-                <LockKeyholeMinimalisticIcon size={17} className="text-[#6e6e73] absolute left-4 top-3.5 pointer-events-none" aria-hidden="true" />
+                <LockKeyholeMinimalisticIcon size={17} className="text-[#777169] absolute left-4 top-3.5 pointer-events-none" aria-hidden="true" />
                 <input
                   id="auth-password"
                   name="password"
@@ -471,13 +471,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-11 py-3 rounded-full bg-[#f5f5f7] border border-transparent text-[#1d1d1f] text-sm focus:outline-none focus:bg-[#ffffff] focus:border-[#1d1d1f] transition-colors"
+                  className="w-full pl-11 pr-11 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors"
                 />
                 <button
                   type="button"
                   aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-[#6e6e73] hover:text-[#1d1d1f] p-0.5 rounded-full"
+                  className="absolute right-3.5 top-2.5 text-[#777169] hover:text-black p-0.5 rounded-full cursor-pointer"
                 >
                   {showPassword ? <EyeClosedIcon size={17} /> : <EyeIcon size={17} />}
                 </button>
@@ -493,14 +493,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 checked={consentAccepted}
                 onChange={(e) => setConsentAccepted(e.target.checked)}
                 required
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] shrink-0"
+                className="mt-0.5 h-4 w-4 rounded border-black/20 text-black focus:ring-black shrink-0 accent-black"
               />
-              <label htmlFor="auth-consent-99z" className="text-[11px] text-[#6e6e73] leading-snug">
+              <label htmlFor="auth-consent-99z" className="text-[11px] text-[#777169] leading-snug">
                 Я принимаю условия{' '}
                 <button
                   type="button"
                   onClick={() => onOpenLegalDoc?.('offer')}
-                  className="text-[#2563eb] hover:underline font-medium"
+                  className="text-black hover:underline font-medium cursor-pointer"
                 >
                   публичной оферты
                 </button>{' '}
@@ -508,7 +508,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenLegalDoc?.('privacy')}
-                  className="text-[#2563eb] hover:underline font-medium"
+                  className="text-black hover:underline font-medium cursor-pointer"
                 >
                   Политикой (Закон РБ № 99‑З)
                 </button>.
@@ -519,7 +519,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
+            className="w-full h-11 rounded-full liquid-glass-btn-primary text-white font-normal text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer active:scale-[0.98]"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-label="Загрузка"></div>
@@ -540,7 +540,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </form>
 
-        <div className="flex items-center justify-between text-xs text-[#6e6e73] pt-1">
+        <div className="flex items-center justify-between text-xs text-[#777169] pt-1">
           <span>
             {mode === 'signup'
               ? 'Уже есть аккаунт?'
@@ -551,14 +551,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="button"
             onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="text-[#1d1d1f] hover:underline font-medium"
+            className="text-black hover:underline font-medium cursor-pointer"
           >
             {mode === 'signin' ? 'Создать аккаунт' : 'Войти по паролю'}
           </button>
         </div>
 
-        <div className="text-center text-xs text-[#6e6e73] flex items-center justify-center gap-1.5">
-          <ShieldCheckIcon size={15} className="text-[#1d1d1f]" aria-hidden="true" />
+        <div className="text-center text-xs text-[#777169] flex items-center justify-center gap-1.5">
+          <ShieldCheckIcon size={15} className="text-black" aria-hidden="true" />
           <span>Защита данных (Закон № 99‑З) • ИП Беляков К. О.</span>
         </div>
 

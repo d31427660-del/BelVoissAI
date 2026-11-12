@@ -87,31 +87,31 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
     <aside
       role="region"
       aria-label="Уведомление об использовании файлов cookie"
-      className="fixed bottom-3 left-3 right-3 sm:left-6 sm:right-auto sm:max-w-xl z-50 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-[0_16px_48px_rgba(15,23,42,0.16)] p-4 sm:p-5 text-slate-900"
+      className="fixed bottom-3 left-3 right-3 sm:left-6 sm:right-auto sm:max-w-xl z-50 rounded-[16px] liquid-glass-card shadow-2xl p-4 sm:p-5 text-black"
     >
       <div className="space-y-3">
         <div className="flex items-start gap-3">
           <div
-            className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5"
+            className="w-8 h-8 rounded-[10px] bg-black text-white flex items-center justify-center shrink-0 mt-0.5"
             aria-hidden="true"
           >
             <ShieldCheckIcon size={18} />
           </div>
           <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xs sm:text-sm font-bold text-slate-900">
+              <h2 className="text-xs sm:text-sm font-medium text-black">
                 Обработка файлов cookie (Закон РБ № 99-З)
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+              <span className="px-2 py-0.5 rounded-full liquid-glass-pill text-[#777169] text-[10px] font-normal">
                 НЦЗПД РБ
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-[#59544F] leading-relaxed">
               Мы используем обязательные технические файлы cookie для безопасной работы сайта и авторизации, а также — с вашего согласия — функциональные и аналитические cookie для сохранения настроек голосового бота. Подробнее в{' '}
               <button
                 type="button"
                 onClick={onOpenPrivacyPolicy}
-                className="text-blue-600 hover:text-blue-800 underline font-semibold cursor-pointer"
+                className="text-black hover:underline font-medium cursor-pointer"
               >
                 Политике обработки персональных данных и cookie
               </button>
@@ -121,16 +121,16 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
         </div>
 
         {showDetails && (
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-xs">
+          <div className="p-3.5 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-2.5 text-xs">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                <div className="font-medium text-black flex items-center gap-1.5">
                   <span>Технические (обязательные)</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-semibold">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-medium">
                     Всегда активны
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[11px] text-[#777169] mt-0.5">
                   Необходимы для работы личного кабинета, защиты сессии и сохранения вашего выбора по файлам cookie.
                 </p>
               </div>
@@ -139,14 +139,14 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 checked
                 disabled
                 aria-label="Технические обязательные файлы cookie"
-                className="w-4 h-4 rounded accent-blue-600 mt-0.5 opacity-70"
+                className="w-4 h-4 rounded accent-black mt-0.5 opacity-70"
               />
             </div>
 
-            <div className="border-t border-slate-200/70 pt-2 flex items-start justify-between gap-3">
+            <div className="border-t border-black/[0.06] pt-2 flex items-start justify-between gap-3">
               <label htmlFor="cookie-functional" className="cursor-pointer">
-                <div className="font-semibold text-slate-900">Функциональные</div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <div className="font-medium text-black">Функциональные</div>
+                <p className="text-[11px] text-[#777169] mt-0.5">
                   Запоминают выбранный голос ассистента (Анна / Максим), сферу бизнеса и черновики настроек в браузере.
                 </p>
               </label>
@@ -155,14 +155,14 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 type="checkbox"
                 checked={functional}
                 onChange={(e) => setFunctional(e.target.checked)}
-                className="w-4 h-4 rounded accent-blue-600 mt-0.5 cursor-pointer shrink-0"
+                className="w-4 h-4 rounded accent-black mt-0.5 cursor-pointer shrink-0"
               />
             </div>
 
-            <div className="border-t border-slate-200/70 pt-2 flex items-start justify-between gap-3">
+            <div className="border-t border-black/[0.06] pt-2 flex items-start justify-between gap-3">
               <label htmlFor="cookie-analytics" className="cursor-pointer">
-                <div className="font-semibold text-slate-900">Аналитические</div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <div className="font-medium text-black">Аналитические</div>
+                <p className="text-[11px] text-[#777169] mt-0.5">
                   Помогают оценивать скорость работы голосового шлюза и удобство интерфейса в обезличенном виде.
                 </p>
               </label>
@@ -171,7 +171,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 type="checkbox"
                 checked={analytics}
                 onChange={(e) => setAnalytics(e.target.checked)}
-                className="w-4 h-4 rounded accent-blue-600 mt-0.5 cursor-pointer shrink-0"
+                className="w-4 h-4 rounded accent-black mt-0.5 cursor-pointer shrink-0"
               />
             </div>
           </div>
@@ -181,7 +181,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
           <button
             type="button"
             onClick={() => savePreferences(true, true)}
-            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+            className="px-4 py-2 rounded-full liquid-glass-btn-primary text-white text-xs font-normal inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
           >
             <CheckCircleIcon size={14} />
             <span>Принять все</span>
@@ -190,7 +190,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
           <button
             type="button"
             onClick={() => savePreferences(false, false)}
-            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-full liquid-glass-pill text-black text-xs font-normal transition-colors cursor-pointer hover:bg-white"
           >
             Только необходимые
           </button>
@@ -199,7 +199,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
             <button
               type="button"
               onClick={() => savePreferences(functional, analytics)}
-              className="px-3 py-2 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold transition-colors cursor-pointer ml-auto"
+              className="px-4 py-2 rounded-full liquid-glass-pill text-black text-xs font-medium transition-colors cursor-pointer ml-auto hover:bg-white"
             >
               Сохранить выбор
             </button>
@@ -207,7 +207,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
             <button
               type="button"
               onClick={() => setShowDetails(true)}
-              className="px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer sm:ml-auto"
+              className="px-3.5 py-2 rounded-full liquid-glass-pill text-[#59544F] hover:text-black text-xs font-normal inline-flex items-center gap-1.5 transition-colors cursor-pointer sm:ml-auto hover:bg-white"
             >
               <SettingsIcon size={14} />
               <span>Настроить</span>

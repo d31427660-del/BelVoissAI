@@ -41,21 +41,21 @@ export const FaqSection: React.FC = () => {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-slate-50/80 scroll-mt-20">
+    <section id="faq" className="py-24 bg-[#ffffff] border-t border-black/[0.06] scroll-mt-20">
       <div className="max-w-[820px] mx-auto px-4 sm:px-6">
         
         {/* Section Header */}
         <div className="mb-12 space-y-2 text-center">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-50 text-[#2563eb] text-xs font-semibold">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/[0.04] text-[#0a0a0c] border border-black/[0.08] text-xs font-medium">
             Вопросы и ответы
           </div>
-          <h2 className="apple-heading text-3xl sm:text-4xl text-[#1d1d1f]">
+          <h2 className="apple-heading text-3xl sm:text-4xl text-[#0a0a0c] font-semibold">
             Часто задаваемые вопросы
           </h2>
         </div>
 
-        {/* Clean Apple Accordion (Ultra-Rounded) */}
-        <div className="divide-y divide-slate-100 rounded-[40px] bg-[#ffffff] border border-slate-200/80 shadow-apple-card px-7 sm:px-10 py-2">
+        {/* Clean ElevenLabs Editorial Accordion with Liquid Glass */}
+        <div className="divide-y divide-black/[0.06] rounded-[16px] liquid-glass-cream px-7 sm:px-10 py-2">
           {faqs.map((faq, idx) => {
             const isOpen = openIndex === idx;
 
@@ -66,11 +66,11 @@ export const FaqSection: React.FC = () => {
                     type="button"
                     aria-expanded={isOpen}
                     onClick={() => setOpenIndex(isOpen ? null : idx)}
-                    className="w-full text-left flex items-center justify-between gap-4 font-semibold text-sm sm:text-base text-[#1d1d1f] hover:text-[#2563eb] transition-colors"
+                    className="w-full text-left flex items-center justify-between gap-4 font-medium text-sm sm:text-base text-black hover:opacity-80 transition-opacity cursor-pointer"
                   >
                     <span>{faq.q}</span>
                     <span aria-hidden="true" className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                      isOpen ? 'bg-[#2563eb] text-[#ffffff]' : 'bg-blue-50 text-[#2563eb]'
+                      isOpen ? 'liquid-glass-btn-primary text-white' : 'liquid-glass-pill text-black'
                     }`}>
                       {isOpen ? <AltArrowUpIcon size={16} /> : <AltArrowDownIcon size={16} />}
                     </span>
@@ -86,7 +86,7 @@ export const FaqSection: React.FC = () => {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <p className="pt-3 text-xs sm:text-sm text-[#86868b] leading-relaxed">
+                      <p className="pt-3 text-xs sm:text-sm text-[#52525b] leading-relaxed">
                         {faq.a}
                       </p>
                     </motion.div>

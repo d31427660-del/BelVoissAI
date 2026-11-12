@@ -4,8 +4,8 @@
   "description": "Голосовые ИИ-администраторы для автошкол, СТО, клиник и салонов Беларуси. Поминутная оплата в BYN через bePaid и ЕРИП.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
   "lang": "ru-BY",
   "icons": [
     {

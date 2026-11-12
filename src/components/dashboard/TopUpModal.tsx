@@ -401,28 +401,28 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
       aria-labelledby="topup-modal-title"
       onClose={onClose}
       onClick={handleBackdropClick}
-      className="w-[calc(100%-1.5rem)] max-w-xl rounded-[32px] sm:rounded-[40px] bg-white border border-slate-200 shadow-2xl overflow-hidden p-0 text-slate-900 backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
+      className="w-[calc(100%-1.5rem)] max-w-xl rounded-[16px] liquid-glass-card shadow-2xl overflow-hidden p-0 text-black backdrop:bg-black/50 backdrop:backdrop-blur-md open:animate-fadeIn m-auto"
     >
       <div className="max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-7 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="px-7 py-5 border-b border-black/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-100 flex items-center justify-center text-[#2563eb]" aria-hidden="true">
+            <div className="w-10 h-10 rounded-[10px] bg-black text-white flex items-center justify-center shrink-0" aria-hidden="true">
               <WalletMoneyIcon size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 id="topup-modal-title" className="text-base font-bold text-slate-900 tracking-tight">
+                <h2 id="topup-modal-title" className="text-base font-medium text-black tracking-tight">
                   Пополнение баланса минут
                 </h2>
                 {user.isMock && (
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  <span className="text-[10px] font-normal uppercase px-2 py-0.5 rounded-full liquid-glass-pill text-black">
                     Демо-режим
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-600">
-                Текущий баланс: <strong className="text-slate-900 font-semibold">{user.balanceMinutes || 0} мин</strong> (~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN)
+              <p className="text-xs text-[#59544F]">
+                Текущий баланс: <strong className="text-black font-medium">{user.balanceMinutes || 0} мин</strong> (~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN)
               </p>
             </div>
           </div>
@@ -431,7 +431,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
             type="button"
             aria-label="Закрыть окно пополнения"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full liquid-glass-pill text-[#777169] hover:text-black flex items-center justify-center transition-colors cursor-pointer"
           >
             <CloseCircleIcon size={18} />
           </button>
@@ -444,30 +444,30 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                 <CheckCircleIcon size={36} />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">
+              <h3 className="text-xl font-medium text-black">
                 Демо-баланс пополнен!
               </h3>
-              <p className="text-xs text-slate-600 max-w-sm mx-auto">
-                В ознакомительном режиме зачислено <strong className="text-emerald-700 font-semibold">+{finalMinutes} минут</strong>. При боевых платежах переадресация выполняется на защищённый шлюз <strong>bePaid</strong>.
+              <p className="text-xs text-[#59544F] max-w-sm mx-auto font-normal">
+                В ознакомительном режиме зачислено <strong className="text-black font-semibold">+{finalMinutes} минут</strong>. При боевых платежах переадресация выполняется на защищённый шлюз <strong>bePaid</strong>.
               </p>
             </div>
           ) : invoiceReady ? (
             <div className="space-y-4">
-              <div className="p-5 rounded-3xl bg-blue-50/70 border border-blue-200/90 space-y-3.5 text-xs text-slate-800">
-                <div className="flex items-center justify-between gap-2 border-b border-blue-200/60 pb-3">
-                  <div className="flex items-center gap-2 font-bold text-sm text-[#1d4ed8]">
+              <div className="p-5 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-3.5 text-xs text-black">
+                <div className="flex items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
+                  <div className="flex items-center gap-2 font-medium text-sm text-black">
                     <CheckCircleIcon size={18} />
                     <span>Счёт на оплату № {invoiceNumber || 'VX-001'}</span>
                   </div>
-                  <span className="text-[11px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">
+                  <span className="text-[11px] font-mono liquid-glass-pill text-black px-2 py-0.5 rounded-full font-medium">
                     от {new Date().toLocaleDateString('ru-RU')} г.
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
                   <div>
-                    <span className="text-slate-500 block">Плательщик (Заказчик):</span>
-                    <strong className="text-slate-900 font-semibold">{user.companyName || 'Организация'}</strong>
+                    <span className="text-[#777169] block">Плательщик (Заказчик):</span>
+                    <strong className="text-black font-medium">{user.companyName || 'Организация'}</strong>
                     {unpInput && <span className="block text-slate-600 font-mono">УНП: {unpInput}</span>}
                   </div>
                   <div>
@@ -564,11 +564,11 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               {/* Packages Selector */}
               <div>
                 <div className="flex items-center justify-between mb-3 text-xs">
-                  <span className="font-semibold text-slate-800">Выберите пакет минут:</span>
+                  <span className="font-medium text-black">Выберите пакет минут:</span>
                   <button
                     type="button"
                     onClick={() => setIsCustomMode(!isCustomMode)}
-                    className="text-[#2563eb] hover:underline font-medium"
+                    className="text-black hover:underline font-normal cursor-pointer"
                   >
                     {isCustomMode ? 'Выбрать готовый пакет' : 'Указать свое количество'}
                   </button>
@@ -584,37 +584,41 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                           type="button"
                           onClick={() => setSelectedPackageId(pkg.id)}
                           aria-pressed={isSelected}
-                          className={`cursor-pointer p-4 rounded-3xl border transition-all text-left relative flex flex-col justify-between ${
+                          className={`cursor-pointer p-4 rounded-[12px] transition-all text-left relative flex flex-col justify-between ${
                             isSelected
-                              ? 'bg-blue-50/70 border-[#2563eb] shadow-sm ring-2 ring-[#2563eb]/20'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
+                              ? 'bg-black text-white shadow-md'
+                              : 'liquid-glass-cream text-black hover:border-black/20'
                           }`}
                         >
                           {pkg.savingsPercent && (
-                            <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-0.5 shadow-xs">
+                            <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-normal flex items-center gap-0.5 shadow-xs ${
+                              isSelected ? 'bg-white text-black' : 'liquid-glass-btn-primary text-white'
+                            }`}>
                               <FlameIcon size={11} />
                               −{pkg.savingsPercent}%
                             </span>
                           )}
 
                           <div>
-                            <span className="text-[11px] font-semibold text-slate-600 block mb-0.5">
+                            <span className={`text-[11px] font-normal block mb-0.5 ${isSelected ? 'text-white/70' : 'text-[#777169]'}`}>
                               {pkg.name}
                             </span>
-                            <div className="text-lg font-bold text-slate-900">
+                            <div className={`text-lg font-medium tracking-tight ${isSelected ? 'text-white' : 'text-black'}`}>
                               {pkg.minutes} мин
                             </div>
-                            <div className="text-[11px] text-slate-600 mt-1">
+                            <div className={`text-[11px] mt-1 font-mono ${isSelected ? 'text-white/70' : 'text-[#777169]'}`}>
                               {pkg.ratePerMinute.toFixed(2)} BYN / мин
                             </div>
                           </div>
 
-                          <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-baseline justify-between w-full">
-                            <span className="text-base font-extrabold text-[#2563eb]">
+                          <div className={`mt-4 pt-3 border-t flex items-baseline justify-between w-full ${
+                            isSelected ? 'border-white/15' : 'border-black/[0.06]'
+                          }`}>
+                            <span className={`text-base font-medium ${isSelected ? 'text-white' : 'text-black'}`}>
                               {pkg.priceByn} BYN
                             </span>
                             {isSelected && (
-                              <CheckCircleIcon size={16} className="text-[#2563eb]" />
+                              <CheckCircleIcon size={16} className="text-white" />
                             )}
                           </div>
                         </button>
@@ -622,12 +626,12 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                     })}
                   </div>
                 ) : (
-                  <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="p-5 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                      <label htmlFor="custom-minutes-range" className="text-slate-700 font-medium">
+                      <label htmlFor="custom-minutes-range" className="text-black font-normal">
                         Количество минут:
                       </label>
-                      <span className="font-bold text-[#2563eb] text-sm bg-blue-100/80 px-3 py-0.5 rounded-full font-mono">
+                      <span className="font-medium text-black text-sm liquid-glass-pill px-3 py-0.5 rounded-full font-mono">
                         {customMinutes} мин
                       </span>
                     </div>
@@ -639,9 +643,9 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                       step="25"
                       value={customMinutes}
                       onChange={(e) => setCustomMinutes(Number(e.target.value))}
-                      className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-[#2563eb]"
+                      className="w-full h-1.5 bg-[#EBE8E4] rounded-full appearance-none cursor-pointer accent-black"
                     />
-                    <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+                    <div className="flex justify-between text-[11px] text-[#777169] font-mono">
                       <span>50 мин</span>
                       <span>500 мин</span>
                       <span>1 000 мин</span>
@@ -653,7 +657,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
 
               {/* Payment Methods (bePaid ERIP, Card, Invoice for Legal Entities) */}
               <div className="space-y-3">
-                <span className="font-semibold text-slate-800 text-xs block">
+                <span className="font-normal text-[#777169] text-xs block">
                   Способ оплаты (через bePaid / Беларусь):
                 </span>
 
@@ -662,18 +666,20 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                     type="button"
                     aria-pressed={paymentMethod === 'erip'}
                     onClick={() => setPaymentMethod('erip')}
-                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-2.5 transition-all ${
+                    className={`p-3.5 rounded-[12px] text-left flex items-start gap-2.5 transition-all cursor-pointer ${
                       paymentMethod === 'erip'
-                        ? 'bg-blue-50/70 border-[#2563eb] text-[#2563eb]'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        ? 'liquid-glass-dark text-white'
+                        : 'liquid-glass-cream text-black hover:border-black/20'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-slate-800">ЕРИП</span>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      paymentMethod === 'erip' ? 'bg-white/10 text-white' : 'liquid-glass-card text-black'
+                    }`}>
+                      <span className="text-xs font-bold">ЕРИП</span>
                     </div>
                     <div>
-                      <div className="text-xs font-bold leading-tight">ЕРИП (bePaid)</div>
-                      <div className="text-[10px] text-slate-600 mt-0.5">QR-код / АИС «Расчет»</div>
+                      <div className="text-xs font-medium leading-tight">ЕРИП (bePaid)</div>
+                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'erip' ? 'text-white/70' : 'text-[#777169]'}`}>QR / АИС «Расчет»</div>
                     </div>
                   </button>
 
@@ -681,18 +687,20 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                     type="button"
                     aria-pressed={paymentMethod === 'card'}
                     onClick={() => setPaymentMethod('card')}
-                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-2.5 transition-all ${
+                    className={`p-3.5 rounded-[12px] text-left flex items-start gap-2.5 transition-all cursor-pointer ${
                       paymentMethod === 'card'
-                        ? 'bg-blue-50/70 border-[#2563eb] text-[#2563eb]'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        ? 'liquid-glass-dark text-white'
+                        : 'liquid-glass-cream text-black hover:border-black/20'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      paymentMethod === 'card' ? 'bg-white/10 text-white' : 'liquid-glass-card text-black'
+                    }`}>
                       <CreditCardIcon size={18} />
                     </div>
                     <div>
-                      <div className="text-xs font-bold leading-tight">Карта (bePaid)</div>
-                      <div className="text-[10px] text-slate-600 mt-0.5">БЕЛКАРТ, Visa, MC</div>
+                      <div className="text-xs font-medium leading-tight">Карта (bePaid)</div>
+                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'card' ? 'text-white/70' : 'text-[#777169]'}`}>БЕЛКАРТ, Visa, MC</div>
                     </div>
                   </button>
 
@@ -700,25 +708,27 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                     type="button"
                     aria-pressed={paymentMethod === 'bank_invoice'}
                     onClick={() => setPaymentMethod('bank_invoice')}
-                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-2.5 transition-all ${
+                    className={`p-3.5 rounded-[12px] text-left flex items-start gap-2.5 transition-all cursor-pointer ${
                       paymentMethod === 'bank_invoice'
-                        ? 'bg-blue-50/70 border-[#2563eb] text-[#2563eb]'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        ? 'liquid-glass-dark text-white'
+                        : 'liquid-glass-cream text-black hover:border-black/20'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-700">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      paymentMethod === 'bank_invoice' ? 'bg-white/10 text-white' : 'liquid-glass-card text-black'
+                    }`}>
                       <ReceiptIcon size={18} />
                     </div>
                     <div>
-                      <div className="text-xs font-bold leading-tight">Безнал (ИП / ООО)</div>
-                      <div className="text-[10px] text-slate-600 mt-0.5">Счёт в BYN и акт</div>
+                      <div className="text-xs font-medium leading-tight">Безнал (ИП / ООО)</div>
+                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'bank_invoice' ? 'text-white/70' : 'text-[#777169]'}`}>Счёт в BYN и акт</div>
                     </div>
                   </button>
                 </div>
 
                 {paymentMethod === 'bank_invoice' && (
                   <div className="pt-1">
-                    <label htmlFor="invoice-unp" className="block text-[11px] font-medium text-slate-700 mb-1">
+                    <label htmlFor="invoice-unp" className="block text-[11px] font-normal text-black mb-1">
                       УНП вашей организации или ИП (необязательно):
                     </label>
                     <input
@@ -729,32 +739,32 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                       value={unpInput}
                       onChange={(e) => setUnpInput(e.target.value.replace(/\D/g, ''))}
                       placeholder="Напр. 193991846"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-[#2563eb]"
+                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-black/[0.08] text-xs font-mono text-black focus:outline-none focus:border-black"
                     />
                   </div>
                 )}
               </div>
 
               {/* Order Summary & Security Note */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-600">К зачислению на баланс:</span>
-                  <span className="font-bold text-slate-900 font-mono">+{finalMinutes} минут</span>
+                  <span className="text-[#59544F]">К зачислению на баланс:</span>
+                  <span className="font-medium text-black font-mono">+{finalMinutes} минут</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-600">Тариф за минуту:</span>
-                  <span className="text-slate-700 font-mono">{finalRate.toFixed(2)} BYN / мин</span>
+                  <span className="text-[#59544F]">Тариф за минуту:</span>
+                  <span className="text-[#59544F] font-mono">{finalRate.toFixed(2)} BYN / мин</span>
                 </div>
-                <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
-                  <span className="text-sm font-semibold text-slate-900">К оплате (без НДС):</span>
-                  <span className="text-2xl font-black text-[#2563eb]">
+                <div className="pt-2 border-t border-black/[0.06] flex justify-between items-baseline">
+                  <span className="text-sm font-normal text-black">К оплате (без НДС):</span>
+                  <span className="text-2xl font-medium text-black">
                     {finalAmountByn} BYN
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] text-slate-600">
-                <ShieldCheckIcon size={15} className="text-emerald-600 shrink-0" aria-hidden="true" />
+              <div className="flex items-center gap-2 text-[11px] text-[#777169]">
+                <ShieldCheckIcon size={15} className="text-black shrink-0" aria-hidden="true" />
                 <span>Безопасный приём платежей обеспечивает <strong>bePaid</strong> (PCI DSS Level 1). Минуты не сгорают в конце месяца.</span>
               </div>
             </>
@@ -763,12 +773,12 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
 
         {/* Footer Actions */}
         {!isSuccess && !invoiceReady && (
-          <div className="p-5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-3">
+          <div className="p-5 border-t border-black/[0.06] bg-[#F5F3F1]/70 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isProcessing}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+              className="px-5 h-10 rounded-full liquid-glass-pill text-xs font-normal text-black hover:bg-white transition-colors cursor-pointer"
             >
               Отмена
             </button>
@@ -777,7 +787,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               type="button"
               onClick={handlePay}
               disabled={isProcessing}
-              className="flex-1 sm:flex-initial px-7 py-3 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-60"
+              className="flex-1 sm:flex-initial px-7 h-11 rounded-full liquid-glass-btn-primary text-white text-xs font-normal transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.98]"
             >
               {isProcessing ? (
                 <>

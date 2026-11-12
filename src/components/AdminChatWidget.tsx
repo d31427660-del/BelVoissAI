@@ -319,7 +319,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
 
             {/* Unread indicator badge */}
             {hasUnread && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-[10px] font-bold text-white shadow-md">
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#0a0a0c] text-[10px] font-bold text-white shadow-md ring-1 ring-white/20">
                 1
               </span>
             )}
@@ -333,23 +333,23 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Чат с дежурным администратором Voxi.by"
-          className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[390px] h-[550px] max-h-[85vh] bg-[#ffffff] border border-slate-200/90 rounded-[28px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-[390px] h-[550px] max-h-[85vh] bg-[#ffffff] border border-black/[0.08] rounded-[28px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-4 py-3.5 flex items-center justify-between shrink-0 shadow-sm">
+          <div className="bg-[#0a0a0c] text-white px-4 py-3.5 flex items-center justify-between shrink-0 shadow-sm border-b border-white/10">
             <div className="flex items-center gap-3">
               {/* Admin Avatar */}
               <div className="relative">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2563eb] to-[#4f46e5] flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                   V
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0a0a0c]" />
               </div>
               {/* Admin Info */}
               <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs sm:text-sm font-bold text-white">Администратор Voxi</span>
-                  <CheckCircleIcon size={14} className="text-[#38bdf8]" />
+                  <CheckCircleIcon size={14} className="text-emerald-400" />
                 </div>
                 <span className="text-[10px] text-emerald-400 font-medium">
                   ● В сети • Отвечает мгновенно
@@ -364,7 +364,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
                 onClick={handleToggleSound}
                 aria-label={soundEnabled ? 'Отключить звук' : 'Включить звук'}
                 title={soundEnabled ? 'Звук включен' : 'Звук выключен'}
-                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 {soundEnabled ? <BellIcon size={16} className="text-emerald-400" /> : <BellOffIcon size={16} />}
               </button>
@@ -374,7 +374,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Перейти в Telegram-чат @voxi_support"
-                className="px-2.5 py-1 rounded-full bg-blue-600/30 hover:bg-blue-600/50 text-[#38bdf8] text-[11px] font-medium flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium flex items-center gap-1 transition-colors border border-white/10"
               >
                 <span>Telegram</span>
               </a>
@@ -382,7 +382,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
                 type="button"
                 onClick={() => setIsOpen(false)}
                 aria-label="Закрыть чат"
-                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <CloseCircleIcon size={20} />
               </button>
@@ -390,9 +390,9 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
           </div>
 
           {/* Subheader banner */}
-          <div className="bg-blue-50/80 border-b border-blue-100/80 px-4 py-1.5 flex items-center justify-between text-[11px] text-blue-900">
+          <div className="bg-zinc-50 border-b border-black/[0.06] px-4 py-1.5 flex items-center justify-between text-[11px] text-[#0a0a0c]">
             <div className="flex items-center gap-1.5 font-medium">
-              <ShieldCheckIcon size={13} className="text-[#2563eb]" />
+              <ShieldCheckIcon size={13} className="text-[#0a0a0c]" />
               <span>Официальная поддержка в Беларуси (УНП 193991846)</span>
             </div>
           </div>
@@ -458,8 +458,8 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
                 <div
                   className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed text-xs shadow-sm ${
                     m.sender === 'user'
-                      ? 'bg-gradient-to-r from-[#2563eb] to-[#4f46e5] text-white rounded-br-xs'
-                      : 'bg-[#ffffff] text-slate-800 border border-slate-200/80 rounded-bl-xs'
+                      ? 'bg-[#0a0a0c] text-white rounded-br-xs'
+                      : 'bg-[#ffffff] text-[#0a0a0c] border border-black/[0.08] rounded-bl-xs'
                   }`}
                 >
                   <p>{m.text}</p>
@@ -486,7 +486,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
                         setIsOpen(false);
                         onOpenAuth();
                       }}
-                      className="mt-2.5 w-full px-3 py-1.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="mt-2.5 w-full px-3 py-1.5 rounded-xl bg-[#0a0a0c] hover:bg-[#27272a] text-white font-medium text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <span>Настроить за 5 минут</span>
                       <ArrowRightIcon size={12} />
@@ -504,7 +504,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
                     </a>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 px-1">
+                <span className="text-[10px] text-zinc-400 mt-1 px-1">
                   {m.sender === 'user' ? 'Вы' : 'Администратор'} • {m.time}
                 </span>
               </div>
@@ -512,12 +512,12 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
 
             {/* Typing Animation */}
             {isTyping && (
-              <div className="flex items-center gap-1 text-[11px] text-slate-500 bg-white border border-slate-200/80 px-3 py-2 rounded-2xl w-fit shadow-xs">
+              <div className="flex items-center gap-1 text-[11px] text-zinc-500 bg-white border border-black/[0.08] px-3 py-2 rounded-2xl w-fit shadow-xs">
                 <span>Администратор печатает</span>
                 <span className="inline-flex items-center gap-0.5 ml-1">
-                  <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" />
-                  <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]" />
-                  <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]" />
+                  <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce" />
+                  <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce [animation-delay:0.4s]" />
                 </span>
               </div>
             )}
@@ -526,13 +526,13 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
           </div>
 
           {/* Quick Question Chips (Always Accessible) */}
-          <div className="px-3 py-2 bg-[#ffffff] border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="px-3 py-2 bg-[#ffffff] border-t border-black/[0.06] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {QUICK_CHIPS.map((chip, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSendMessage(chip)}
-                className="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap"
+                className="shrink-0 px-2.5 py-1 rounded-full bg-zinc-100 hover:bg-zinc-200 text-[#0a0a0c] text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap"
               >
                 {chip}
               </button>
@@ -540,7 +540,7 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
           </div>
 
           {/* Input Form */}
-          <div className="p-3 bg-[#ffffff] border-t border-slate-200/80 flex items-center gap-2">
+          <div className="p-3 bg-[#ffffff] border-t border-black/[0.08] flex items-center gap-2">
             <input
               ref={inputRef}
               type="text"
@@ -549,14 +549,14 @@ export const AdminChatWidget: React.FC<AdminChatWidgetProps> = ({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Задайте вопрос администратору..."
-              className="flex-1 bg-slate-100/80 focus:bg-white text-xs px-3.5 py-2.5 rounded-full border border-slate-200 focus:border-[#2563eb] focus:outline-none transition-colors text-slate-900 placeholder:text-slate-400"
+              className="flex-1 bg-zinc-100 focus:bg-white text-xs px-3.5 py-2.5 rounded-full border border-black/[0.08] focus:border-[#0a0a0c] focus:outline-none transition-colors text-[#0a0a0c] placeholder:text-zinc-400"
             />
             <button
               type="button"
               disabled={!inputValue.trim()}
               onClick={() => handleSendMessage()}
               aria-label="Отправить сообщение"
-              className="w-9 h-9 rounded-full bg-[#2563eb] hover:bg-[#1d4ed8] disabled:bg-slate-200 disabled:text-slate-400 text-white flex items-center justify-center transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed"
+              className="w-9 h-9 rounded-full bg-[#0a0a0c] hover:bg-[#27272a] disabled:bg-zinc-200 disabled:text-zinc-400 text-white flex items-center justify-center transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed"
             >
               <SendSquareIcon size={18} />
             </button>

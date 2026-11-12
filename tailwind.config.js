@@ -12,6 +12,16 @@ export default {
         mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
+        cream: '#F5F3F1',
+        eleven: {
+          cream: '#F5F3F1',
+          hover: '#44403B',
+          subtle: '#FDFCFC',
+          secondary: '#59544F',
+          muted: '#777169',
+          border: '#EBE8E4',
+          focus: '#2B7FFF',
+        },
         apple: {
           black: '#1d1d1f',
           gray: '#86868b',
@@ -25,6 +35,8 @@ export default {
         }
       },
       boxShadow: {
+        'eleven-pill': '0 0 0 0.5px rgba(0, 0, 0, 0.125), 0 1px 1px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04)',
+        'eleven-card': '0 0 0 0.5px rgba(0, 0, 0, 0.075)',
         'apple-sm': '0 2px 8px rgba(37, 99, 235, 0.06)',
         'apple-card': '0 10px 35px rgba(15, 23, 42, 0.05)',
         'apple-hover': '0 20px 45px rgba(37, 99, 235, 0.12)',
@@ -32,6 +44,8 @@ export default {
         'notion': 'none',
       },
       borderRadius: {
+        'card': '1rem',
+        'card-sm': '0.75rem',
         'xl': '20px',
         '2xl': '28px',
         '3xl': '36px',

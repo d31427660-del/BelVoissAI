@@ -30,22 +30,22 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
     {
       id: 'driving_school',
       label: 'Автошколы',
-      icon: <WheelAngleIcon size={16} />
+      icon: <WheelAngleIcon size={15} />
     },
     {
       id: 'auto_service',
       label: 'Автосервисы (СТО)',
-      icon: <GarageIcon size={16} />
+      icon: <GarageIcon size={15} />
     },
     {
       id: 'medical_clinic',
       label: 'Стоматологии и клиники',
-      icon: <StethoscopeIcon size={16} />
+      icon: <StethoscopeIcon size={15} />
     },
     {
       id: 'beauty_salon',
       label: 'Салоны красоты',
-      icon: <ScissorsIcon size={16} />
+      icon: <ScissorsIcon size={15} />
     }
   ];
 
@@ -138,105 +138,116 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
   const currentBenefit = nicheBenefits[activeTab];
 
   return (
-    <section id="who" className="py-24 bg-[#ffffff] scroll-mt-20">
-      <div className="max-w-[1080px] mx-auto px-4 sm:px-6">
+    <section id="who" className="py-24 bg-white scroll-mt-20">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
         
-        {/* Section Header */}
-        <div className="mb-12 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-50 text-[#2563eb] text-xs font-semibold">
-            Отраслевые решения
+        {/* ElevenLabs-Style Header */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+          <div className="max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#F5F3F1] text-black border border-black/[0.075] text-xs font-normal">
+              Отраслевые решения РБ
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-[44px] text-black tracking-[-0.025em] font-light leading-tight">
+              Готовые базы знаний.{' '}
+              <span className="text-[#59544F]">
+                Адаптированы под рынок Беларуси.
+              </span>
+            </h2>
           </div>
-          <h2 className="apple-heading text-3xl sm:text-4xl lg:text-[44px] text-[#1d1d1f]">
-            Готовые базы знаний.{' '}
-            <span className="bg-gradient-to-r from-[#2563eb] to-[#4f46e5] bg-clip-text text-transparent">
-              Адаптированы под рынок Беларуси.
-            </span>
-          </h2>
+
+          {/* Segmented Pill Bar (ElevenLabs style) */}
+          <div
+            role="tablist"
+            aria-label="Отрасли бизнеса"
+            className="inline-flex items-center gap-1 bg-[#F5F3F1] p-1 rounded-full border border-black/[0.075] overflow-x-auto voxi-scroll self-start lg:self-auto"
+          >
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    VoiceSimulator.stop();
+                    setIsPlayingAudio(false);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-normal transition-all whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-black shadow-[0_0_0_0.5px_rgba(0,0,0,0.125),0_1px_1px_rgba(0,0,0,0.04),0_2px_4px_rgba(0,0,0,0.04)]'
+                      : 'text-[#59544F] hover:text-black'
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Apple Segmented Pill Bar */}
-        <div className="inline-flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-full flex-wrap mb-10">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  VoiceSimulator.stop();
-                  setIsPlayingAudio(false);
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-[#2563eb] text-[#ffffff] shadow-md shadow-blue-500/20'
-                    : 'text-slate-600 hover:text-[#1d1d1f]'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Active Tab Bento Card (Ultra-Rounded) */}
-        <div className="rounded-[44px] sm:rounded-[52px] bg-gradient-to-b from-slate-50 to-blue-50/30 border border-slate-200/70 p-7 sm:p-10">
+        {/* ElevenLabs Bento Container (Exact 16px radius + Liquid Glass Cream) */}
+        <div className="rounded-[16px] liquid-glass-cream p-6 sm:p-8 lg:p-10">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             
             {/* Left Column */}
             <div className="lg:col-span-7 space-y-6">
               
               <div className="space-y-2.5">
-                <h3 className="text-2xl sm:text-3xl font-semibold text-[#1d1d1f] tracking-tight leading-snug">
+                <h3 className="text-2xl sm:text-3xl font-medium text-black tracking-tight leading-snug">
                   {currentBenefit.title}
                 </h3>
-                <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                <p className="text-[#59544F] text-sm sm:text-base leading-relaxed font-normal">
                   {currentBenefit.description}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {currentBenefit.problemsSolved.map((item, index) => (
-                  <div key={index} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#1d1d1f]">
-                    <CheckCircleIcon size={17} className="text-emerald-500 shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                  <div key={index} className="flex items-start gap-2.5 text-xs sm:text-sm text-black">
+                    <CheckCircleIcon size={17} className="text-black shrink-0 mt-0.5" />
+                    <span className="text-[#59544F]">{item}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Metrics Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-4 border-t border-slate-200/80">
-                <div className="p-3.5 sm:p-4 rounded-2xl sm:rounded-[28px] bg-[#ffffff] border border-slate-100 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
-                  <div className="text-[11px] text-[#86868b]">Средний чек</div>
-                  <div className="text-sm sm:text-lg font-bold text-[#2563eb] sm:mt-0.5">{currentBenefit.avgCheck}</div>
+              {/* Metrics Row (12px inner liquid-glass cards) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-black/[0.075]">
+                <div className="p-4 rounded-[12px] liquid-glass-card flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
+                  <div className="text-[11px] text-[#777169]">Средний чек</div>
+                  <div className="text-sm sm:text-lg font-medium text-black font-mono sm:mt-0.5">{currentBenefit.avgCheck}</div>
                 </div>
-                <div className="p-3.5 sm:p-4 rounded-2xl sm:rounded-[28px] bg-[#ffffff] border border-slate-100 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
-                  <div className="text-[11px] text-[#86868b]">Поток в месяц</div>
-                  <div className="text-sm sm:text-lg font-bold text-[#1d1d1f] sm:mt-0.5">{currentBenefit.monthlyLeads}</div>
+                <div className="p-4 rounded-[12px] liquid-glass-card flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
+                  <div className="text-[11px] text-[#777169]">Поток в месяц</div>
+                  <div className="text-sm sm:text-lg font-medium text-black font-mono sm:mt-0.5">{currentBenefit.monthlyLeads}</div>
                 </div>
-                <div className="p-3.5 sm:p-4 rounded-2xl sm:rounded-[28px] bg-[#ffffff] border border-slate-100 flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
-                  <div className="text-[11px] text-[#86868b]">Окупаемость</div>
-                  <div className="text-sm sm:text-lg font-bold text-emerald-600 sm:mt-0.5">{currentBenefit.roi}</div>
+                <div className="p-4 rounded-[12px] liquid-glass-card flex sm:flex-col items-center sm:items-start justify-between sm:justify-start">
+                  <div className="text-[11px] text-[#777169]">Окупаемость</div>
+                  <div className="text-sm sm:text-lg font-medium text-black font-mono sm:mt-0.5">{currentBenefit.roi}</div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons (ElevenLabs button tokens) */}
               <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 pt-1">
                 <button
+                  type="button"
                   onClick={() => onSelectNiche(activeTab)}
-                  className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-[#ffffff] font-semibold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center rounded-full liquid-glass-btn-primary text-white px-5 h-11 text-xs sm:text-sm font-normal active:scale-[0.98] transition-all cursor-pointer gap-2"
                 >
                   <span>Применить шаблон</span>
                   <ArrowRightIcon size={16} />
                 </button>
 
                 <button
+                  type="button"
                   onClick={handlePlaySample}
-                  className={`w-full sm:w-auto justify-center px-6 py-3.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-colors ${
+                  className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-5 h-11 text-xs sm:text-sm font-normal transition-all cursor-pointer gap-2 active:scale-[0.98] ${
                     isPlayingAudio
-                      ? 'bg-[#2563eb] text-[#ffffff]'
-                      : 'bg-[#ffffff] hover:bg-blue-50 text-[#2563eb] border border-blue-200'
+                      ? 'liquid-glass-btn-primary text-white'
+                      : 'liquid-glass-pill text-black hover:bg-white'
                   }`}
                 >
                   <VolumeLoudIcon size={16} />
@@ -246,39 +257,40 @@ export const WhoIsItFor: React.FC<WhoIsItForProps> = ({ onSelectNiche }) => {
 
             </div>
 
-            {/* Right Column: Clean Script Card */}
+            {/* Right Column: Clean Script Card (12px radius inner card) */}
             <div className="lg:col-span-5">
-              <div className="rounded-[36px] bg-[#ffffff] border border-slate-200/80 shadow-apple-card p-6 sm:p-7 space-y-4">
+              <div className="rounded-[12px] liquid-glass-card p-6 space-y-4">
                 
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#1d1d1f] min-w-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <div className="flex items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
+                  <div className="flex items-center gap-2 text-xs font-medium text-black min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-black shrink-0" />
                     <span className="truncate">{currentTemplate.companyName}</span>
                   </div>
-                  <span className="text-xs font-mono text-[#2563eb] font-medium whitespace-nowrap shrink-0">{currentTemplate.phone}</span>
+                  <span className="text-xs font-mono text-[#59544F] font-normal whitespace-nowrap shrink-0">{currentTemplate.phone}</span>
                 </div>
 
                 <div className="space-y-3 text-xs">
-                  <div className="p-4 rounded-[24px] bg-slate-50">
-                    <span className="text-[11px] text-[#86868b] block mb-1">
+                  <div className="p-4 rounded-[10px] bg-[#F5F3F1]/70 border border-black/[0.06]">
+                    <span className="text-[11px] text-[#777169] block mb-1">
                       Адрес и график работы
                     </span>
-                    <p className="text-[#1d1d1f] font-medium">{currentTemplate.address}</p>
-                    <p className="text-[#86868b] text-[11px] mt-0.5">{currentTemplate.workingHours}</p>
+                    <p className="text-black font-medium">{currentTemplate.address}</p>
+                    <p className="text-[#777169] text-[11px] mt-0.5">{currentTemplate.workingHours}</p>
                   </div>
 
-                  <div className="p-4 rounded-[24px] bg-gradient-to-br from-[#2563eb] to-[#4f46e5] text-[#ffffff] shadow-md shadow-blue-500/15">
-                    <span className="text-[11px] text-blue-100 block mb-1 font-medium">
+                  {/* ElevenLabs Signature Obsidian Callout with Liquid Glass */}
+                  <div className="p-4 rounded-[10px] liquid-glass-dark text-white">
+                    <span className="text-[11px] text-white/70 block mb-1 font-normal">
                       Первая фраза ассистента (0.5 сек)
                     </span>
-                    <p className="text-[#ffffff] font-normal leading-relaxed">«{currentTemplate.firstMessage}»</p>
+                    <p className="text-white font-normal leading-relaxed">«{currentTemplate.firstMessage}»</p>
                   </div>
 
-                  <div className="p-4 rounded-[24px] bg-slate-50">
-                    <span className="text-[11px] text-[#86868b] block mb-1">
+                  <div className="p-4 rounded-[10px] bg-[#F5F3F1]/70 border border-black/[0.06]">
+                    <span className="text-[11px] text-[#777169] block mb-1">
                       Фрагмент базы знаний
                     </span>
-                    <p className="text-[#1d1d1f] line-clamp-3 leading-relaxed">
+                    <p className="text-[#59544F] line-clamp-3 leading-relaxed font-normal">
                       {currentTemplate.knowledgeBase}
                     </p>
                   </div>

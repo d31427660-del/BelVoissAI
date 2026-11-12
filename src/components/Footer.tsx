@@ -91,40 +91,47 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer className="bg-[#f5f5f7] text-[#6e6e73] text-xs border-t border-[#e5e5ea]">
-      <div className="max-w-[1080px] mx-auto px-4 sm:px-6 pt-12 pb-24 sm:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+    <footer className="bg-[#f8fafc] text-[#6e6e73] text-xs border-t border-slate-200/80">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-14 pb-24 sm:py-14">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
           
-          <div className="space-y-3">
+          <div className="md:col-span-2 space-y-3.5 pr-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#2563eb] to-[#4f46e5] flex items-center justify-center text-[#ffffff]" aria-hidden="true">
-                <Microphone3Icon size={15} />
+              <div
+                className="w-7 h-7 rounded-xl bg-[#0a0a0c] p-[1px] shadow-xs"
+                aria-hidden="true"
+              >
+                <div className="w-full h-full rounded-[10px] bg-[#ffffff] flex items-center justify-center gap-[2.5px]">
+                  <span className="w-[3px] h-3 rounded-full bg-[#0a0a0c]" />
+                  <span className="w-[3px] h-3 rounded-full bg-[#0a0a0c]" />
+                </div>
               </div>
               <div className="flex items-baseline gap-0.5">
-                <span className="text-base font-extrabold text-[#1d1d1f]">
+                <span className="text-base font-extrabold tracking-tight text-[#0a0a0c]">
                   Voxi
                 </span>
-                <span className="text-xs font-bold text-[#2563eb]">.by</span>
+                <span className="text-xs font-semibold font-mono text-[#71717a]">.by</span>
               </div>
             </div>
-            <p className="text-[#6e6e73] text-xs leading-relaxed">
-              Платформа голосовых ИИ-администраторов для малого и среднего бизнеса в Республике Беларусь.
+            <p className="text-[#71717a] text-xs leading-relaxed max-w-sm">
+              Платформа голосовых ИИ-администраторов и нейросетевого синтеза речи для малого и среднего бизнеса в Республике Беларусь.
             </p>
-            <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5">
+            <div className="text-[11px] text-[#0a0a0c] font-medium flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-              <span>Шлюзы МТС и А1 работают штатно</span>
+              <span>Шлюзы МТС и А1 работают штатно • Отклик 0.5 сек</span>
             </div>
           </div>
 
           <div>
             <h3 className="text-[#1d1d1f] font-semibold mb-3 text-xs">
-              Отрасли
+              Решения
             </h3>
             <ul className="space-y-2 text-xs">
-              <li><a href="#who" onClick={(e) => handleLinkClick(e, 'who')} className="hover:text-[#1d1d1f] transition-colors">Автошколы</a></li>
-              <li><a href="#who" onClick={(e) => handleLinkClick(e, 'who')} className="hover:text-[#1d1d1f] transition-colors">Автосервисы и СТО</a></li>
-              <li><a href="#who" onClick={(e) => handleLinkClick(e, 'who')} className="hover:text-[#1d1d1f] transition-colors">Стоматологии и медцентры</a></li>
-              <li><a href="#who" onClick={(e) => handleLinkClick(e, 'who')} className="hover:text-[#1d1d1f] transition-colors">Салоны красоты</a></li>
+              <li><a href="#showcase" onClick={(e) => handleLinkClick(e, 'showcase')} className="hover:text-[#1d1d1f] transition-colors">Voxi Голос</a></li>
+              <li><a href="#who" onClick={(e) => handleLinkClick(e, 'who')} className="hover:text-[#1d1d1f] transition-colors">Отраслевые базы знаний</a></li>
+              <li><a href="#pricing" onClick={(e) => handleLinkClick(e, 'pricing')} className="hover:text-[#1d1d1f] transition-colors">Тарифы и пакеты минут</a></li>
+              <li><a href="#calculator" onClick={(e) => handleLinkClick(e, 'calculator')} className="hover:text-[#1d1d1f] transition-colors">Расчёт окупаемости</a></li>
+              <li><a href="#benchmark" onClick={(e) => handleLinkClick(e, 'benchmark')} className="hover:text-[#1d1d1f] transition-colors">Шкала задержки 510 мс</a></li>
             </ul>
           </div>
 
@@ -133,10 +140,10 @@ export const Footer: React.FC<FooterProps> = ({
               Платформа
             </h3>
             <ul className="space-y-2 text-xs">
-              <li><a href="#calculator" onClick={(e) => handleLinkClick(e, 'calculator')} className="hover:text-[#1d1d1f] transition-colors">Калькулятор окупаемости</a></li>
-              <li><a href="#pricing" onClick={(e) => handleLinkClick(e, 'pricing')} className="hover:text-[#1d1d1f] transition-colors">Оплата за минуты</a></li>
-              <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония РБ</a></li>
-              <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Технологии и SpeechKit</a></li>
+              <li><a href="#benchmark" onClick={(e) => handleLinkClick(e, 'benchmark')} className="hover:text-[#1d1d1f] transition-colors">Бенчмарк синтеза речи</a></li>
+              <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония МТС и А1</a></li>
+              <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Архитектура и Bento-обзор</a></li>
+              <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')} className="hover:text-[#1d1d1f] transition-colors">Вопросы и ответы</a></li>
             </ul>
           </div>
 
@@ -160,7 +167,7 @@ export const Footer: React.FC<FooterProps> = ({
                   href="https://t.me/voxi_support"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#2563eb] hover:underline font-medium"
+                  className="text-black hover:underline font-medium"
                 >
                   @voxi_support
                 </a>
@@ -225,14 +232,14 @@ export const Footer: React.FC<FooterProps> = ({
         aria-labelledby="legal-modal-title"
         onClose={closeDocModal}
         onClick={handleBackdropClick}
-        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[28px] sm:rounded-[36px] bg-[#ffffff] border border-[#e5e5ea] shadow-apple-hover p-0 text-[#1d1d1f] backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
+        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[16px] liquid-glass-card shadow-2xl p-0 text-[#1d1d1f] backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
       >
         {activeDocModal && (
           <div>
-            <div className="px-6 py-4 border-b border-[#f5f5f7] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ShieldCheckIcon size={18} className="text-[#1d1d1f] shrink-0" aria-hidden="true" />
-                <h2 id="legal-modal-title" className="text-sm font-semibold text-[#1d1d1f]">
+                <ShieldCheckIcon size={18} className="text-black shrink-0" aria-hidden="true" />
+                <h2 id="legal-modal-title" className="text-sm font-semibold text-black">
                   {LEGAL_DOCS[activeDocModal].title}
                 </h2>
               </div>
@@ -240,22 +247,22 @@ export const Footer: React.FC<FooterProps> = ({
                 type="button"
                 aria-label="Закрыть документ"
                 onClick={closeDocModal}
-                className="p-1.5 rounded-full text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors"
+                className="p-1.5 rounded-full text-[#777169] hover:text-black hover:bg-black/[0.04] transition-colors cursor-pointer"
               >
                 <CloseCircleIcon size={18} />
               </button>
             </div>
-            <div className="p-6 space-y-3 text-xs text-[#424245] leading-relaxed max-h-[65vh] overflow-y-auto">
+            <div className="p-6 space-y-3 text-xs text-[#59544F] leading-relaxed max-h-[65vh] overflow-y-auto">
               {LEGAL_DOCS[activeDocModal].content.map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
             </div>
-            <div className="px-6 py-4 border-t border-[#f5f5f7] bg-[#f5f5f7]/60 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-[#6e6e73]">ИП Беляков К. О. • УНП 193991846 • г. Минск</span>
+            <div className="px-6 py-4 border-t border-black/[0.06] bg-[#F5F3F1]/70 flex items-center justify-between gap-3">
+              <span className="text-[11px] text-[#777169]">ИП Беляков К. О. • УНП 193991846 • г. Минск</span>
               <button
                 type="button"
                 onClick={closeDocModal}
-                className="px-4 py-1.5 rounded-full bg-[#1d1d1f] hover:bg-[#000000] text-[#ffffff] text-xs font-medium transition-all"
+                className="px-4 py-1.5 rounded-full liquid-glass-btn-primary text-white text-xs font-normal transition-all cursor-pointer"
               >
                 Закрыть
               </button>
