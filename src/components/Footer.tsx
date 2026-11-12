@@ -124,14 +124,14 @@ export const Footer: React.FC<FooterProps> = ({
 
           <div>
             <h3 className="text-[#1d1d1f] font-semibold mb-3 text-xs">
-              Решения
+              Навигация
             </h3>
             <ul className="space-y-2 text-xs">
               <li><a href="#showcase" onClick={(e) => handleLinkClick(e, 'showcase')} className="hover:text-[#1d1d1f] transition-colors">Voxi Голос</a></li>
-              <li><a href="#who" onClick={(e) => handleLinkClick(e, 'who')} className="hover:text-[#1d1d1f] transition-colors">Отраслевые базы знаний</a></li>
-              <li><a href="#pricing" onClick={(e) => handleLinkClick(e, 'pricing')} className="hover:text-[#1d1d1f] transition-colors">Тарифы и пакеты минут</a></li>
-              <li><a href="#calculator" onClick={(e) => handleLinkClick(e, 'calculator')} className="hover:text-[#1d1d1f] transition-colors">Расчёт окупаемости</a></li>
-              <li><a href="#benchmark" onClick={(e) => handleLinkClick(e, 'benchmark')} className="hover:text-[#1d1d1f] transition-colors">Шкала задержки 510 мс</a></li>
+              <li><a href="#benchmark" onClick={(e) => handleLinkClick(e, 'benchmark')} className="hover:text-[#1d1d1f] transition-colors">Бенчмарк синтеза речи</a></li>
+              <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Возможности платформы</a></li>
+              <li><a href="#how-it-works" onClick={(e) => handleLinkClick(e, 'how-it-works')} className="hover:text-[#1d1d1f] transition-colors">Как это работает</a></li>
+              <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония МТС и А1</a></li>
             </ul>
           </div>
 

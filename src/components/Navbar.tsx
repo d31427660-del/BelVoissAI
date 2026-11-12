@@ -94,28 +94,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Платформа
               </a>
               <a
-                href="#who"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
-              >
-                Решения
-              </a>
-              <a
                 href="#benchmark"
                 className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
               >
                 Бенчмарк речи
               </a>
               <a
-                href="#pricing"
+                href="#features"
                 className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
               >
-                Тарифы
+                Возможности
               </a>
               <a
-                href="#calculator"
+                href="#how-it-works"
                 className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
               >
-                Окупаемость
+                Как это работает
               </a>
               <a
                 href="#integrations"
@@ -225,17 +219,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <a href="#showcase" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
                 Платформа Voxi
               </a>
-              <a href="#who" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Отраслевые решения
-              </a>
               <a href="#benchmark" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
                 Бенчмарк речи
               </a>
-              <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Тарифы и минуты
+              <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
+                Возможности
               </a>
-              <a href="#calculator" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Расчет окупаемости
+              <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
+                Как это работает
               </a>
               <a href="#integrations" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
                 Телефония МТС и А1

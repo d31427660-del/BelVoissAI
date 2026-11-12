@@ -3,12 +3,9 @@ import { SolarProvider } from '@solar-icons/react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/landing/Hero';
 import { IntegrationsStrip } from './components/landing/IntegrationsStrip';
-import { WhoIsItFor } from './components/landing/WhoIsItFor';
 import { VoiceComparison } from './components/landing/VoiceComparison';
 import { HowItWorks } from './components/landing/HowItWorks';
-import { RoiCalculator } from './components/landing/RoiCalculator';
 import { FeatureShowcase } from './components/landing/FeatureShowcase';
-import { Pricing } from './components/landing/Pricing';
 import { FaqSection } from './components/landing/FaqSection';
 import { CtaSection } from './components/landing/CtaSection';
 import { Footer, LegalDocType } from './components/Footer';
@@ -665,26 +662,9 @@ export function App() {
 
               <IntegrationsStrip />
 
-              <WhoIsItFor onSelectNiche={handleSelectNicheFromLanding} />
-
               <VoiceComparison />
 
               <FeatureShowcase />
-
-              <RoiCalculator
-                onOpenAuth={() => {
-                  if (user) setCurrentView('dashboard');
-                  else setIsAuthModalOpen(true);
-                }}
-              />
-
-              <Pricing
-                onSelectPackage={handleSelectPackage}
-                onOpenAuth={() => {
-                  if (user) setCurrentView('dashboard');
-                  else setIsAuthModalOpen(true);
-                }}
-              />
 
               <HowItWorks onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');

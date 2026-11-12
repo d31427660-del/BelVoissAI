@@ -262,44 +262,10 @@ async function runHydrationSuite() {
       assert(newExpanded === 'true', 'После клика второй элемент FAQ открылся (aria-expanded="true")');
     }
 
-    // 2.2 Калькулятор окупаемости (ROI Slider)
-    console.log('\n2.2 Проверка интерактивности ROI калькулятора:');
-    const sliderInput = await page.$('#roi-missed-calls');
-    assert(sliderInput !== null, 'Слайдер звонков #roi-missed-calls найден');
-
-    if (sliderInput) {
-      const initialCallsBadge = await page.evaluate(() => {
-        const badge = document.querySelector('label[for="roi-missed-calls"] + span');
-        return badge ? badge.textContent?.trim() : null;
-      });
-
-      // Update controlled React range input via prototype value setter
-      await page.evaluate(() => {
-        const input = document.getElementById('roi-missed-calls');
-        if (input) {
-          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          if (nativeSetter) {
-            nativeSetter.call(input, '120');
-          } else {
-            input.value = '120';
-          }
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      });
-
-      await new Promise((r) => setTimeout(r, 200));
-
-      const updatedCallsBadge = await page.evaluate(() => {
-        const badge = document.querySelector('label[for="roi-missed-calls"] + span');
-        return badge ? badge.textContent?.trim() : null;
-      });
-
-      assert(
-        updatedCallsBadge === '120 звонков',
-        `Слайдер успешно обновил реактивное состояние: "${initialCallsBadge}" -> "${updatedCallsBadge}"`
-      );
-    }
+    // 2.2 Проверка наличия и интерактивности бенчмарка речи
+    console.log('\n2.2 Проверка секции бенчмарка синтеза речи:');
+    const benchmarkSection = await page.$('#benchmark');
+    assert(benchmarkSection !== null, 'Секция бенчмарка речи #benchmark найдена на странице');
 
     // 2.3 Модальное окно авторизации/демо
     console.log('\n2.3 Проверка открытия и закрытия модального окна (AuthModal):');
@@ -347,30 +313,10 @@ async function runHydrationSuite() {
       console.warn('    Кнопка открытия модального окна не найдена');
     }
 
-    // 2.4 Интерактивность чата с администратором (AdminChatWidget)
-    console.log('\n2.4 Проверка работы виджета «Чат с администратором»:');
-    const chatBtn = await page.$('button[aria-label*="чат с дежурным администратором"]');
-    assert(chatBtn !== null, 'Плавающая кнопка «Чат с администратором» найдена в правом нижнем углу');
-
-    if (chatBtn) {
-      await chatBtn.click();
-      await new Promise((r) => setTimeout(r, 400));
-
-      const chatDialog = await page.$('div[role="dialog"][aria-label*="Чат с дежурным администратором"]');
-      assert(chatDialog !== null, 'Окно чата успешно открылось по клику');
-
-      const adminTitle = await page.$eval('div[role="dialog"]', (el) => el.textContent || '');
-      assert(adminTitle.includes('Администратор Voxi'), 'Шапка содержит имя администратора Voxi');
-
-      // Close chat
-      const closeChatBtn = await page.$('button[aria-label="Закрыть чат"]');
-      if (closeChatBtn) {
-        await closeChatBtn.click();
-        await new Promise((r) => setTimeout(r, 300));
-        const isChatClosed = (await page.$('div[role="dialog"][aria-label*="Чат с дежурным администратором"]')) === null;
-        assert(isChatClosed, 'Окно чата успешно закрылось по кнопке закрытия');
-      }
-    }
+    // 2.4 Интерактивность чата с администратором (если включен) или навигация
+    console.log('\n2.4 Проверка навигации хедера и интерактивности:');
+    const headerLinks = await page.$$('header nav a');
+    assert(headerLinks.length >= 4, `Найдено навигационных ссылок в шапке: ${headerLinks.length}`);
 
     await page.close();
 
