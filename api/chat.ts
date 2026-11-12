@@ -48,12 +48,13 @@ function buildDialogueSystemPrompt(ctx: Record<string, any>): string {
     '- Опирайся ТОЛЬКО на данные компании ниже. Не выдумывай несуществующие акции или адреса.',
     '- В конце реплики мягко веди клиента к целевому действию (запись на удобное время, уточнение марки авто / услуги или номера телефона).',
     '- Если клиент просит позвать человека, оператора или соединить со специалистом («соедините с человеком»), ответь строго: «Перевожу вас на старшего администратора, секунду...».',
-    address ? `Адрес компании: ${address}.` : '',
-    workingHours ? `График работы: ${workingHours}.` : '',
-    phone ? `Контактный телефон для перевода на специалиста: ${phone}.` : '',
-    pricing ? `Прайс-лист и услуги:\n${pricing}` : '',
-    kb ? `База знаний:\n${kb}` : '',
     customPrompt ? `Дополнительные инструкции бизнеса:\n${customPrompt}` : '',
+    'АКТУАЛЬНЫЕ ДАННЫЕ КОМПАНИИ (приоритет над старыми инструкциями):',
+    address ? `Адрес компании: ${address}.` : '',
+    workingHours ? `Актуальный график работы: ${workingHours}.` : '',
+    phone ? `Контактный телефон для перевода на специалиста: ${phone}.` : '',
+    pricing ? `Актуальный прайс-лист и услуги:\n${pricing}` : '',
+    kb ? `База знаний:\n${kb}` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -151,7 +152,7 @@ export default async function handler(req: any, res: any) {
       },
     ];
   } else {
-    const query = String(body.query || '').trim().slice(0, 500);
+    const query = String(body.query || '').trim().slice(0, 1500);
     if (!query) {
       res.statusCode = 400;
       res.setHeader('Content-Type', 'application/json; charset=utf-8');

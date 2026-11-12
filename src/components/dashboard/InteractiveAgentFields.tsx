@@ -383,9 +383,12 @@ const WEEKDAYS = [
 ];
 
 const TIME_SLOTS = [
+  '00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '06:30',
   '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-  '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
-  '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '23:00'
+  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+  '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30',
+  '23:00', '23:30', '24:00'
 ];
 
 function getTimeSlotOptions(currentVal?: string): string[] {
@@ -408,12 +411,33 @@ interface ScheduleState {
 
 function parseSchedule(raw: string): ScheduleState {
   const lower = (raw || '').toLowerCase();
-  if (lower.includes('круглосуточ') || lower.includes('24/7')) {
+  const is24HourText =
+    lower.includes('круглосуточ') ||
+    lower.includes('24/7') ||
+    lower.includes('24 часа') ||
+    lower.includes('00:00–24:00') ||
+    lower.includes('00:00 - 24:00');
+
+  let activeDays = [0, 1, 2, 3, 4, 5];
+  if (
+    lower.includes('ежедневн') ||
+    lower.includes('без выходн') ||
+    lower.includes('24/7') ||
+    (lower.includes('пн-сб') && lower.includes('вс:') && !lower.includes('вс: выходн'))
+  ) {
+    activeDays = [0, 1, 2, 3, 4, 5, 6];
+  } else if ((lower.includes('пн-пт') || lower.includes('пн–пт')) && !lower.includes('сб:')) {
+    activeDays = [0, 1, 2, 3, 4];
+  } else if (lower.includes('вс: выходн') || lower.includes('вс — выходн')) {
+    activeDays = [0, 1, 2, 3, 4, 5];
+  }
+
+  if (is24HourText) {
     return {
       is24x7: true,
-      activeDays: [0, 1, 2, 3, 4, 5, 6],
-      openTime: '09:00',
-      closeTime: '20:00',
+      activeDays: lower.includes('выходн') && !lower.includes('без выходн') ? activeDays : [0, 1, 2, 3, 4, 5, 6],
+      openTime: '00:00',
+      closeTime: '24:00',
       customWeekendHours: false,
       weekendOpen: '10:00',
       weekendClose: '16:00',
@@ -429,17 +453,8 @@ function parseSchedule(raw: string): ScheduleState {
   const weekendOpen = hasSecondRange ? times[2] : '10:00';
   const weekendClose = hasSecondRange ? times[3] : '16:00';
 
-  let activeDays = [0, 1, 2, 3, 4, 5];
-  if (lower.includes('ежедневн') || (lower.includes('пн-сб') && lower.includes('вс:') && !lower.includes('вс: выходн'))) {
-    activeDays = [0, 1, 2, 3, 4, 5, 6];
-  } else if (lower.includes('пн-пт') && !lower.includes('сб:')) {
-    activeDays = [0, 1, 2, 3, 4];
-  } else if (lower.includes('вс: выходн') || lower.includes('вс — выходн')) {
-    activeDays = [0, 1, 2, 3, 4, 5];
-  }
-
   return {
-    is24x7: false,
+    is24x7: openTime === '00:00' && (closeTime === '24:00' || closeTime === '23:59'),
     activeDays,
     openTime,
     closeTime,
@@ -463,7 +478,16 @@ function formatDayGroup(days: number[]): string {
 }
 
 function serializeSchedule(st: ScheduleState): string {
-  if (st.is24x7) return 'Круглосуточно 24/7 без выходных';
+  const isFull24h = st.is24x7 || (st.openTime === '00:00' && (st.closeTime === '24:00' || st.closeTime === '23:59'));
+  if (isFull24h) {
+    if (st.activeDays.length === 7 || st.activeDays.length === 0) {
+      return 'Круглосуточно 24/7 без выходных';
+    }
+    const offDays24 = WEEKDAYS.filter((w) => !st.activeDays.includes(w.id)).map((w) => w.short);
+    return `${formatDayGroup(st.activeDays)}: круглосуточно (24 часа)${
+      offDays24.length > 0 ? `, ${offDays24.join(', ')}: выходной` : ''
+    }`;
+  }
   if (st.activeDays.length === 0) return 'По предварительной записи';
 
   const weekdaysActive = st.activeDays.filter((d) => d <= 4);
@@ -507,6 +531,12 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
 
   const update = (patch: Partial<ScheduleState>) => {
     const next = { ...sched, ...patch };
+    if (
+      patch.openTime !== undefined ||
+      patch.closeTime !== undefined
+    ) {
+      next.is24x7 = next.openTime === '00:00' && (next.closeTime === '24:00' || next.closeTime === '23:59');
+    }
     setSched(next);
     onChange(serializeSchedule(next));
   };
@@ -516,12 +546,32 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
     const nextDays = exists
       ? sched.activeDays.filter((d) => d !== dayId)
       : [...sched.activeDays, dayId].sort((a, b) => a - b);
-    update({ is24x7: false, activeDays: nextDays });
+    update({ activeDays: nextDays });
+  };
+
+  const toggle24x7 = (enable?: boolean) => {
+    const next24 = enable !== undefined ? enable : !sched.is24x7;
+    if (next24) {
+      update({
+        is24x7: true,
+        activeDays: sched.activeDays.length > 0 ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4, 5, 6],
+        openTime: '00:00',
+        closeTime: '24:00',
+        customWeekendHours: false,
+        noLunchBreak: true
+      });
+    } else {
+      update({
+        is24x7: false,
+        openTime: sched.openTime === '00:00' ? '09:00' : sched.openTime,
+        closeTime: sched.closeTime === '24:00' ? '20:00' : sched.closeTime
+      });
+    }
   };
 
   const applyPreset = (preset: 'weekdays_sat' | 'office' | 'daily' | '24x7') => {
     if (preset === '24x7') {
-      update({ is24x7: true, activeDays: [0, 1, 2, 3, 4, 5, 6] });
+      toggle24x7(true);
     } else if (preset === 'daily') {
       update({
         is24x7: false,
@@ -555,27 +605,68 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
 
   return (
     <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3">
-      <FieldLabel
-        htmlFor="schedule-open-time"
-        label="График работы"
-        helpTitle="Как настроить рабочие дни и часы"
-        helpText="Отметьте рабочие дни недели синими кнопками и выберите время открытия и закрытия. Бот будет знать, когда вы открыты, и не запишет клиента на выходной день."
-        helpExample="Пн–Пт: 09:00–20:00, Сб: 10:00–16:00, Вс: выходной"
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <FieldLabel
+          htmlFor="schedule-open-time"
+          label="График работы"
+          helpTitle="Как настроить рабочие дни и часы"
+          helpText="Отметьте рабочие дни недели синими кнопками и выберите время открытия и закрытия или включите режим «Круглосуточно 24/7». Бот будет точно знать ваш режим работы."
+          helpExample="Пн–Пт: 09:00–20:00, Сб: 10:00–16:00, Вс: выходной или Круглосуточно 24/7 без выходных"
+        />
+
+        <label
+          htmlFor="schedule-24x7-checkbox"
+          className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer transition-all ${
+            sched.is24x7
+              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+              : 'bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200'
+          }`}
+        >
+          <input
+            id="schedule-24x7-checkbox"
+            type="checkbox"
+            checked={sched.is24x7}
+            onChange={(e) => toggle24x7(e.target.checked)}
+            className="w-3.5 h-3.5 rounded border-slate-300 accent-blue-600"
+          />
+          <span>Круглосуточно 24/7</span>
+        </label>
+      </div>
 
       {/* Quick Presets */}
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Быстрые шаблоны графика">
         {[
-          { id: 'weekdays_sat' as const, label: 'Будни + Сб' },
-          { id: 'daily' as const, label: 'Без выходных' },
-          { id: 'office' as const, label: 'Только Пн–Пт' },
-          { id: '24x7' as const, label: 'Круглосуточно 24/7' }
+          {
+            id: 'weekdays_sat' as const,
+            label: 'Будни + Сб',
+            active: !sched.is24x7 && sched.activeDays.length === 6 && !sched.activeDays.includes(6)
+          },
+          {
+            id: 'daily' as const,
+            label: 'Без выходных',
+            active: !sched.is24x7 && sched.activeDays.length === 7
+          },
+          {
+            id: 'office' as const,
+            label: 'Только Пн–Пт',
+            active: !sched.is24x7 && sched.activeDays.length === 5 && !sched.activeDays.includes(5) && !sched.activeDays.includes(6)
+          },
+          {
+            id: '24x7' as const,
+            label: 'Круглосуточно 24/7',
+            active: sched.is24x7
+          }
         ].map((p) => (
           <button
             key={p.id}
             type="button"
+            aria-pressed={p.active}
             onClick={() => applyPreset(p.id)}
-            className="px-2.5 py-1 rounded-lg bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 text-[11px] font-medium transition-colors"
+            className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+              p.active
+                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                : 'bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border-slate-200'
+            }`}
           >
             {p.label}
           </button>
@@ -585,7 +676,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
       {/* Day Pills */}
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5" role="group" aria-label="Рабочие дни недели">
         {WEEKDAYS.map((day) => {
-          const isWorking = sched.is24x7 || sched.activeDays.includes(day.id);
+          const isWorking = sched.activeDays.includes(day.id);
           return (
             <button
               key={day.id}
@@ -600,7 +691,7 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
             >
               <span>{day.short}</span>
               <span className={`text-[9px] font-normal ${isWorking ? 'text-blue-100' : 'text-slate-400'}`}>
-                {isWorking ? 'раб.' : 'вых.'}
+                {isWorking ? (sched.is24x7 ? '24ч' : 'раб.') : 'вых.'}
               </span>
             </button>
           );
@@ -608,107 +699,134 @@ export const InteractiveScheduleBuilder: React.FC<InteractiveScheduleBuilderProp
       </div>
 
       {/* Time Selectors */}
-      {!sched.is24x7 && (
-        <div className="space-y-2.5 pt-0.5">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-600 font-medium min-w-[110px]">Основное время:</span>
-            <label htmlFor="schedule-open-time" className="text-slate-500">
-              с
-            </label>
-            <select
-              id="schedule-open-time"
-              value={sched.openTime}
-              onChange={(e) => update({ openTime: e.target.value })}
-              className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
-            >
-              {getTimeSlotOptions(sched.openTime).map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <label htmlFor="schedule-close-time" className="text-slate-500">
-              до
-            </label>
-            <select
-              id="schedule-close-time"
-              value={sched.closeTime}
-              onChange={(e) => update({ closeTime: e.target.value })}
-              className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
-            >
-              {getTimeSlotOptions(sched.closeTime).map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+      <div className="space-y-2.5 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-slate-600 font-medium min-w-[110px]">Основное время:</span>
 
-            <button
-              type="button"
-              aria-pressed={sched.noLunchBreak}
-              onClick={() => update({ noLunchBreak: !sched.noLunchBreak })}
-              className={`sm:ml-auto px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
-                sched.noLunchBreak
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {sched.noLunchBreak ? '✓ Без обеда' : '+ Без обеда'}
-            </button>
-          </div>
-
-          {sched.activeDays.some((d) => d >= 5) && sched.activeDays.some((d) => d <= 4) && (
-            <div className="space-y-2">
-              <label htmlFor="schedule-weekend-toggle" className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                <input
-                  id="schedule-weekend-toggle"
-                  type="checkbox"
-                  checked={sched.customWeekendHours}
-                  onChange={(e) => update({ customWeekendHours: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 accent-blue-600"
-                />
-                <span>Сокращённый день в субботу / воскресенье</span>
-              </label>
-
-              {sched.customWeekendHours && (
-                <div className="flex flex-wrap items-center gap-2 text-xs pl-6">
-                  <span className="text-slate-600 font-medium">В выходные:</span>
-                  <label htmlFor="schedule-weekend-open" className="text-slate-500">
-                    с
-                  </label>
-                  <select
-                    id="schedule-weekend-open"
-                    value={sched.weekendOpen}
-                    onChange={(e) => update({ weekendOpen: e.target.value })}
-                    className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
-                  >
-                    {getTimeSlotOptions(sched.weekendOpen).map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                  <label htmlFor="schedule-weekend-close" className="text-slate-500">
-                    до
-                  </label>
-                  <select
-                    id="schedule-weekend-close"
-                    value={sched.weekendClose}
-                    onChange={(e) => update({ weekendClose: e.target.value })}
-                    className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
-                  >
-                    {getTimeSlotOptions(sched.weekendClose).map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+          {sched.is24x7 ? (
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                Круглосуточно (00:00 – 24:00, без перерывов)
+              </span>
+              <button
+                type="button"
+                onClick={() => toggle24x7(false)}
+                className="sm:ml-auto px-2.5 py-1 rounded-full text-[11px] font-medium bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+              >
+                Указать часы вручную
+              </button>
             </div>
+          ) : (
+            <>
+              <label htmlFor="schedule-open-time" className="text-slate-500">
+                с
+              </label>
+              <select
+                id="schedule-open-time"
+                value={sched.openTime}
+                onChange={(e) => update({ openTime: e.target.value })}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                {getTimeSlotOptions(sched.openTime).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <label htmlFor="schedule-close-time" className="text-slate-500">
+                до
+              </label>
+              <select
+                id="schedule-close-time"
+                value={sched.closeTime}
+                onChange={(e) => update({ closeTime: e.target.value })}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                {getTimeSlotOptions(sched.closeTime).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
+                <button
+                  type="button"
+                  aria-pressed={sched.noLunchBreak}
+                  onClick={() => update({ noLunchBreak: !sched.noLunchBreak })}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                    sched.noLunchBreak
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {sched.noLunchBreak ? '✓ Без обеда' : '+ Без обеда'}
+                </button>
+
+                <button
+                  type="button"
+                  aria-pressed={sched.is24x7}
+                  onClick={() => toggle24x7(true)}
+                  className="px-2.5 py-1 rounded-full text-[11px] font-medium border bg-white text-blue-700 border-blue-200 hover:bg-blue-50 transition-colors"
+                >
+                  + Круглосуточно 24/7
+                </button>
+              </div>
+            </>
           )}
         </div>
-      )}
+
+        {!sched.is24x7 && sched.activeDays.some((d) => d >= 5) && sched.activeDays.some((d) => d <= 4) && (
+          <div className="space-y-2">
+            <label htmlFor="schedule-weekend-toggle" className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+              <input
+                id="schedule-weekend-toggle"
+                type="checkbox"
+                checked={sched.customWeekendHours}
+                onChange={(e) => update({ customWeekendHours: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 accent-blue-600"
+              />
+              <span>Сокращённый день в субботу / воскресенье</span>
+            </label>
+
+            {sched.customWeekendHours && (
+              <div className="flex flex-wrap items-center gap-2 text-xs pl-6">
+                <span className="text-slate-600 font-medium">В выходные:</span>
+                <label htmlFor="schedule-weekend-open" className="text-slate-500">
+                  с
+                </label>
+                <select
+                  id="schedule-weekend-open"
+                  value={sched.weekendOpen}
+                  onChange={(e) => update({ weekendOpen: e.target.value })}
+                  className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  {getTimeSlotOptions(sched.weekendOpen).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <label htmlFor="schedule-weekend-close" className="text-slate-500">
+                  до
+                </label>
+                <select
+                  id="schedule-weekend-close"
+                  value={sched.weekendClose}
+                  onChange={(e) => update({ weekendClose: e.target.value })}
+                  className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  {getTimeSlotOptions(sched.weekendClose).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="px-3 py-2 rounded-lg bg-white border border-slate-200/80 text-[11px] text-slate-600 flex items-start gap-2">
         <ClockIcon className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />

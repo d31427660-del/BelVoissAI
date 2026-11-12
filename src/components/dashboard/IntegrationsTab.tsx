@@ -14,8 +14,8 @@ import {
   EyeIcon,
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
-import { Copy, Code, MessageSquare, Check, Sparkles, ExternalLink, Smartphone } from 'lucide-react';
-import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings, CallerNotificationConfig, WebWidgetConfig } from '../../types';
+import { MessageSquare, Sparkles, ExternalLink, Smartphone } from 'lucide-react';
+import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings, CallerNotificationConfig } from '../../types';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';
 import { formatCallerTemplate } from '../../lib/callerNotificationService';
@@ -87,18 +87,6 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   const [isTestingCallerSms, setIsTestingCallerSms] = useState(false);
   const [callerSmsResult, setCallerSmsResult] = useState<string | null>(null);
 
-  // WebRTC Website Click-to-Call Widget
-  const [localWidget, setLocalWidget] = useState<WebWidgetConfig>(() => ({
-    isEnabled: agent.webWidgetConfig?.isEnabled ?? true,
-    primaryColor: agent.webWidgetConfig?.primaryColor || '#000000',
-    position: agent.webWidgetConfig?.position || 'bottom-right',
-    buttonText: agent.webWidgetConfig?.buttonText || 'Позвонить администратору',
-    welcomeMessage: agent.webWidgetConfig?.welcomeMessage || 'Здравствуйте! Я голосовой ИИ-администратор. Чем могу помочь?',
-    showWaveform: agent.webWidgetConfig?.showWaveform ?? true,
-    accentTitle: agent.webWidgetConfig?.accentTitle || 'Звонок администратору 24/7'
-  }));
-  const [widgetCopied, setWidgetCopied] = useState(false);
-
   const [showSipPassword, setShowSipPassword] = useState(false);
   const [showCrmKey, setShowCrmKey] = useState(false);
   const [showWhSecret, setShowWhSecret] = useState(false);
@@ -132,8 +120,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
         selectedStaff: agent.yclientsConfig?.selectedStaff || 'all',
         liveSlotCheckingEnabled: liveSlotChecking
       },
-      callerNotification: localCallerNotif,
-      webWidgetConfig: localWidget
+      callerNotification: localCallerNotif
     });
     onSaveSip(localSip);
     onSaveTelegram(localTg);
@@ -1284,105 +1271,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
         </div>
       </fieldset>
 
-      {/* STEP 5: Website Click-to-Call Widget (WebRTC Single-Script) */}
-      <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
-        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/80 flex items-center justify-center shrink-0">
-              <Code className="w-4 h-4" />
-            </div>
-            <div>
-              <legend className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span>Шаг 5. Виджет «Звонок с сайта» (Click-to-Call)</span>
-                <span className="px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 text-[9px] uppercase tracking-wide font-bold">1 строка кода</span>
-              </legend>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Посетители вашего сайта смогут позвонить администратору прямо через браузер без набора номера
-              </p>
-            </div>
-          </div>
-
-          <label className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer shrink-0">
-            <input
-              type="checkbox"
-              checked={localWidget.isEnabled}
-              onChange={(e) => setLocalWidget({ ...localWidget, isEnabled: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-300 accent-indigo-600"
-            />
-            <span>Виджет включен</span>
-          </label>
-        </div>
-
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs relative group">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px] text-slate-400">
-              <span>HTML-код для вставки перед закрывающим тегом &lt;/body&gt;:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const code = `<script src="https://voxi.by/widget.js" data-assistant="${agent.id}" data-color="${localWidget.primaryColor}" data-position="${localWidget.position}" data-button-text="${localWidget.buttonText}"></script>`;
-                  navigator.clipboard?.writeText(code);
-                  setWidgetCopied(true);
-                  setTimeout(() => setWidgetCopied(false), 2400);
-                }}
-                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-sans font-semibold inline-flex items-center gap-1.5 transition-colors"
-              >
-                {widgetCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{widgetCopied ? 'Скопировано!' : 'Копировать код'}</span>
-              </button>
-            </div>
-            <code className="break-all text-emerald-400 select-all">
-              {`<script src="https://voxi.by/widget.js" data-assistant="${agent.id}" data-color="${localWidget.primaryColor}" data-position="${localWidget.position}" data-button-text="${localWidget.buttonText}"></script>`}
-            </code>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-800 mb-1">
-                Текст на кнопке
-              </label>
-              <input
-                type="text"
-                value={localWidget.buttonText}
-                onChange={(e) => setLocalWidget({ ...localWidget, buttonText: e.target.value })}
-                placeholder="Позвонить администратору"
-                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-800 mb-1">
-                Позиция на экране
-              </label>
-              <select
-                value={localWidget.position}
-                onChange={(e) => setLocalWidget({ ...localWidget, position: e.target.value as 'bottom-right' | 'bottom-left' })}
-                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
-              >
-                <option value="bottom-right">Справа внизу (стандарт)</option>
-                <option value="bottom-left">Слева внизу</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-800 mb-1">
-                Цвет кнопки
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={localWidget.primaryColor}
-                  onChange={(e) => setLocalWidget({ ...localWidget, primaryColor: e.target.value })}
-                  className="w-9 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
-                />
-                <span className="font-mono text-xs text-slate-600">{localWidget.primaryColor}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </fieldset>
-
-      {/* STEP 6: Caller Direct SMS / Viber Follow-up */}
+      {/* STEP 5: Caller Direct SMS / Viber Follow-up */}
       <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -1391,7 +1280,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
             </div>
             <div>
               <legend className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span>Шаг 6. SMS / Viber визитка звонящему клиенту</span>
+                <span>Шаг 5. SMS / Viber визитка звонящему клиенту</span>
                 <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 text-[9px] uppercase tracking-wide font-bold">Дожим лида</span>
               </legend>
               <p className="text-xs text-slate-500 mt-0.5">

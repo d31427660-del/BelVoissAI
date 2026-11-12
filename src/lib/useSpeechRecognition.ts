@@ -6,10 +6,24 @@ interface UseSpeechRecognitionOptions {
   silenceDelayMs?: number;
 }
 
+const INCOMPLETE_TRAILING_WORDS = new Set([
+  'и', 'а', 'но', 'или', 'либо', 'да', 'ни', 'что', 'чтобы', 'чтоб',
+  'потому', 'поскольку', 'так', 'как', 'если', 'когда', 'пока', 'хотя',
+  'где', 'куда', 'откуда', 'какой', 'какая', 'какие', 'какое', 'каким', 'каких', 'какую',
+  'чей', 'чья', 'чьи', 'сколько', 'насколько', 'почему', 'зачем',
+  'в', 'во', 'на', 'с', 'со', 'по', 'за', 'к', 'ко', 'у', 'о', 'об', 'про',
+  'для', 'без', 'до', 'от', 'из', 'под', 'над', 'при', 'через', 'между',
+  'здравствуйте', 'привет', 'алло', 'ало', 'слушайте', 'добрый', 'доброе', 'день', 'вечер', 'утро',
+  'подскажите', 'скажите', 'расскажите', 'пожалуйста', 'будьте', 'добры',
+  'хотел', 'хотела', 'хотели', 'хочу', 'могу', 'можно', 'нужно', 'надо', 'бы', 'ли',
+  'интересует', 'интересуют', 'вопрос', 'узнать', 'уточнить', 'спросить', 'записаться', 'записать',
+  'еще', 'ещё', 'также', 'плюс', 'то', 'вот', 'ну', 'значит', 'короче', 'например'
+]);
+
 export function useSpeechRecognition({
   onFinalTranscript,
   lang = 'ru-RU',
-  silenceDelayMs = 1400,
+  silenceDelayMs = 2200,
 }: UseSpeechRecognitionOptions = {}) {
   const [isSupported, setIsSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -30,6 +44,7 @@ export function useSpeechRecognition({
   const silenceTimerRef = useRef<number | null>(null);
   const botCooldownTimerRef = useRef<number | null>(null);
   const safariLevelDecayTimerRef = useRef<number | null>(null);
+  const lastVoiceActivityAtRef = useRef<number>(0);
 
   // Speech utterance tracking across both interim and final browser results
   const consumedIndexRef = useRef(0);
@@ -129,6 +144,9 @@ export function useSpeechRecognition({
         }
         const avg = sum / dataArray.length;
         const level = Math.min(100, Math.round((avg / 128) * 100));
+        if (level > 14) {
+          lastVoiceActivityAtRef.current = performance.now();
+        }
         setAudioLevel(level > 6 ? level : 0);
 
         animFrameRef.current = requestAnimationFrame(updateMeter);
@@ -141,6 +159,7 @@ export function useSpeechRecognition({
   }, []);
 
   const pulseVoiceActivity = useCallback(() => {
+    lastVoiceActivityAtRef.current = performance.now();
     if (micStreamRef.current) return; // Already driven by AnalyserNode
     setAudioLevel(45 + Math.round(Math.random() * 35));
     if (safariLevelDecayTimerRef.current) {
@@ -182,9 +201,17 @@ export function useSpeechRecognition({
     (delayMs: number) => {
       clearSilenceTimer();
       silenceTimerRef.current = window.setTimeout(() => {
-        if (utteranceRef.current.trim() && !isBotSpeakingRef.current && isCallActiveRef.current) {
-          submitNow();
+        if (!utteranceRef.current.trim() || isBotSpeakingRef.current || isMutedRef.current || !isCallActiveRef.current) {
+          return;
         }
+        // If microphone still detects active human speech (or speech ended <1300ms ago while STT buffers),
+        // extend the silence window so long phrases are never cut off mid-sentence.
+        const msSinceVoice = performance.now() - lastVoiceActivityAtRef.current;
+        if (msSinceVoice < 1300) {
+          scheduleSilenceSubmit(Math.max(900, 1400 - msSinceVoice));
+          return;
+        }
+        submitNow();
       }, delayMs);
     },
     [clearSilenceTimer, submitNow]
@@ -212,6 +239,9 @@ export function useSpeechRecognition({
     recognition.onspeechstart = () => {
       if (!isBotSpeakingRef.current && !isMutedRef.current && isCallActiveRef.current) {
         pulseVoiceActivity();
+        if (utteranceRef.current.trim()) {
+          scheduleSilenceSubmit(Math.max(silenceDelayMs, 2400));
+        }
       }
     };
 
@@ -232,33 +262,42 @@ export function useSpeechRecognition({
       for (let i = consumedIndexRef.current; i < event.results.length; i++) {
         const item = event.results[i];
         const seg = item?.[0]?.transcript || '';
-        if (seg) {
+        if (seg.trim()) {
           sessionParts += ' ' + seg;
+          latestSegmentIsFinal = Boolean(item?.isFinal);
         }
-        latestSegmentIsFinal = Boolean(item?.isFinal);
       }
 
       const fullText = `${carryOverRef.current} ${sessionParts}`.replace(/\s+/g, ' ').trim();
       if (!fullText) return;
 
-      const textChanged = fullText !== prevUtteranceRef.current;
       prevUtteranceRef.current = fullText;
       utteranceRef.current = fullText;
       setTranscript(fullText);
       setInterimTranscript(fullText);
 
-      // Adaptive turn-taking silence:
-      // Gives the user natural breathing room to finish their thought without interruption:
-      // - If segment has few words (<= 3 words, e.g. "Здравствуйте"), wait at least 1600ms
-      // - If segment has a complete thought (4+ words), wait 1200ms
-      // - Never cut off on rapid 500ms micro-pauses
+      // Adaptive turn-taking silence for long & multi-clause phrases:
+      // 1. If the browser STT segment is still interim (!latestSegmentIsFinal), the user is actively speaking:
+      //    wait at least 3200ms so ongoing speech is never interrupted.
+      // 2. If the phrase so far is short (<= 3 words) or ends with a conjunction, preposition, intro word, or comma,
+      //    the user is pausing for breath mid-thought: wait at least 2800ms.
+      // 3. Once a complete segment is marked final, wait at least 2200ms (or silenceDelayMs) of genuine silence.
       const words = fullText.split(/\s+/).filter(Boolean);
-      const isShortUtterance = words.length <= 3;
-      const targetDelay = isShortUtterance
-        ? Math.max(silenceDelayMs, 1600)
-        : latestSegmentIsFinal
-        ? Math.max(1200, silenceDelayMs - 200)
-        : silenceDelayMs;
+      const lastWordClean = (words[words.length - 1] || '')
+        .toLowerCase()
+        .replace(/[^а-яёa-z0-9]/gi, '');
+      const endsWithCommaOrDash = /[,:\-—]$/.test(fullText.trim());
+      const isIncompleteThought =
+        words.length <= 3 ||
+        endsWithCommaOrDash ||
+        INCOMPLETE_TRAILING_WORDS.has(lastWordClean);
+
+      const baseDelay = Math.max(silenceDelayMs, 2200);
+      const targetDelay = !latestSegmentIsFinal
+        ? Math.max(baseDelay + 1000, 3200)
+        : isIncompleteThought
+        ? Math.max(baseDelay + 600, 2800)
+        : baseDelay;
 
       scheduleSilenceSubmit(targetDelay);
     };
@@ -286,6 +325,8 @@ export function useSpeechRecognition({
       // Preserve any unspoken utterance across automatic browser session restarts
       if (utteranceRef.current.trim() && !isBotSpeakingRef.current && isCallActiveRef.current) {
         carryOverRef.current = utteranceRef.current.trim();
+        // Give the user extra time across browser session reconnects so multi-sentence speech isn't cut off
+        scheduleSilenceSubmit(Math.max(silenceDelayMs, 2400));
       }
       consumedIndexRef.current = 0;
       lastResultsLenRef.current = 0;

@@ -432,11 +432,19 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               address={formData.address}
               syncKey={syncKey}
               onChange={(nextCity, nextAddress) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  city: nextCity,
-                  address: nextAddress
-                }))
+                setFormData((prev) => {
+                  const updated = {
+                    ...prev,
+                    city: nextCity,
+                    address: nextAddress
+                  };
+                  return {
+                    ...updated,
+                    systemPrompt: isCustomPrompt
+                      ? prev.systemPrompt.replace(/^- Адрес:.*$/m, `- Адрес: ${nextAddress}`)
+                      : generateSystemPrompt(updated)
+                  };
+                })
               }
             />
 
@@ -444,10 +452,18 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               value={formData.workingHours}
               syncKey={syncKey}
               onChange={(nextHours) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  workingHours: nextHours
-                }))
+                setFormData((prev) => {
+                  const updated = {
+                    ...prev,
+                    workingHours: nextHours
+                  };
+                  return {
+                    ...updated,
+                    systemPrompt: isCustomPrompt
+                      ? prev.systemPrompt.replace(/^- График работы:.*$/m, `- График работы: ${nextHours}`)
+                      : generateSystemPrompt(updated)
+                  };
+                })
               }
             />
           </section>

@@ -124,8 +124,8 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     }
   }
 
-  // 1. Greetings & Audio / Mic check
-  if (
+  // 1. Pure Greetings & Audio / Mic check (only when the utterance doesn't also ask a substantive question)
+  const hasGreeting =
     q.includes('привет') ||
     q.includes('здравствуй') ||
     q.includes('добрый день') ||
@@ -135,8 +135,14 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('ало') ||
     q.includes('слышно') ||
     q.includes('кто это') ||
-    q.includes('вы кто')
-  ) {
+    q.includes('вы кто');
+
+  const hasSubstantiveIntent =
+    /цен|стоим|скольк|прайс|тариф|расценк|рубл|byn|оплат|где|адрес|находит|метро|проезд|доехать|район|улиц|график|режим|выходн|суббот|воскресен|работаете|круглосуточ|ночью|открыт|закрыв|запис|забронир|свободн|окно|время|завтра|сегодня|вечер|утр|прийти|подъехать|рассрочк|частям|кредит|халв|магнит|картой|медкомисс|справк|автодром|гаи|машин|инструктор|вождени|масл|фильтр|подвеск|стук|диагностик|боль|остр|срочн|услуг|категори|стрижк|маникюр|чистк|лечен/i.test(
+      q
+    );
+
+  if (hasGreeting && !hasSubstantiveIntent) {
     return `Здравствуйте! Компания ${company}, меня отлично слышно. Чем могу вам помочь? Подсказать по ценам или записать на свободное время?`;
   }
 
@@ -224,7 +230,11 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     q.includes('выходн') ||
     q.includes('суббот') ||
     q.includes('воскресен') ||
-    q.includes('работаете')
+    q.includes('работаете') ||
+    q.includes('круглосуточ') ||
+    q.includes('ночью') ||
+    q.includes('открыт') ||
+    q.includes('закрыв')
   ) {
     return `Наш график работы: ${hours}. Принимаем по предварительной записи. Подсказать свободные окна на сегодня или завтра?`;
   }

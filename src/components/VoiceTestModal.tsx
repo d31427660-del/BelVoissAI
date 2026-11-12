@@ -80,6 +80,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const lastBotMessageRef = useRef('');
   const callStateRef = useRef<CallState>('ready');
   const isBotSpeakingRef = useRef(false);
+  const isBotThinkingRef = useRef(false);
   const selectedNicheRef = useRef<BusinessNiche>(initialNiche);
   const selectedVoiceRef = useRef<VoiceId>(initialVoice);
   const callDurationRef = useRef(0);
@@ -119,6 +120,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   }, [callState]);
 
   useEffect(() => {
+    isBotThinkingRef.current = isBotThinking;
     isBotSpeakingRef.current = isBotSpeaking || isBotThinking;
   }, [isBotSpeaking, isBotThinking]);
 
@@ -181,9 +183,11 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         speechRecognition.setBotSpeaking(true);
       },
       () => {
-        isBotSpeakingRef.current = false;
         setIsBotSpeaking(false);
-        speechRecognition.setBotSpeaking(false);
+        if (!isBotThinkingRef.current) {
+          isBotSpeakingRef.current = false;
+          speechRecognition.setBotSpeaking(false);
+        }
       },
       (bars) => {
         setWaveBars(bars.slice(0, 10));
@@ -211,6 +215,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       const tmpl = NICHE_TEMPLATES[activeNiche];
 
       setIsBotThinking(true);
+      isBotThinkingRef.current = true;
       isBotSpeakingRef.current = true;
       speechRecognition.setBotSpeaking(true);
 
@@ -271,6 +276,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         }
 
         setAiProvider(provider);
+        isBotThinkingRef.current = false;
         setIsBotThinking(false);
         const aiTimeStr = formatTime(callDuration + 1);
         setTranscript((prev) => [...prev, { speaker: 'assistant', text: cleanReply, time: aiTimeStr }]);
@@ -291,6 +297,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
           // Newer user speech already started; do not clobber active bot thinking/speaking flags
           return;
         }
+        isBotThinkingRef.current = false;
         isBotSpeakingRef.current = false;
         setIsBotThinking(false);
         if (callStateRef.current === 'connected') {
@@ -304,7 +311,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   // Speech Recognition Hook
   const speechRecognition = useSpeechRecognition({
     lang: 'ru-RU',
-    silenceDelayMs: 750,
+    silenceDelayMs: 2200,
     onFinalTranscript: (spoken) => {
       if (callStateRef.current === 'connected' && !isBotSpeakingRef.current && !isMuted) {
         handleUserMessage(spoken);

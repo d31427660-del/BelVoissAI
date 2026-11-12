@@ -49,6 +49,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   const lastBotMessageRef = useRef('');
   const callStatusRef = useRef<CallStatus>('idle');
   const isBotSpeakingRef = useRef(false);
+  const isBotThinkingRef = useRef(false);
   const agentRef = useRef<AgentConfig>(agent);
   const prevNicheRef = useRef(agent.niche);
   const callDurationRef = useRef(0);
@@ -91,6 +92,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   }, [callStatus]);
 
   useEffect(() => {
+    isBotThinkingRef.current = isBotThinking;
     isBotSpeakingRef.current = isBotSpeaking || isBotThinking;
   }, [isBotSpeaking, isBotThinking]);
 
@@ -141,9 +143,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
         speechRecognition.setBotSpeaking(true);
       },
       () => {
-        isBotSpeakingRef.current = false;
         setIsBotSpeaking(false);
-        speechRecognition.setBotSpeaking(false);
+        if (!isBotThinkingRef.current) {
+          isBotSpeakingRef.current = false;
+          speechRecognition.setBotSpeaking(false);
+        }
       },
       (bars: number[]) => setWaveBars(bars.slice(0, 10))
     );
@@ -167,6 +171,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
       const liveAgent = agentRef.current;
 
       setIsBotThinking(true);
+      isBotThinkingRef.current = true;
       isBotSpeakingRef.current = true;
       speechRecognition.setBotSpeaking(true);
 
@@ -205,6 +210,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
         }
 
         setAiProvider(provider);
+        isBotThinkingRef.current = false;
         setIsBotThinking(false);
         const aiTime = formatCallTime(callDuration + 1);
 
@@ -215,6 +221,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
           // Newer user speech already started; do not clobber active bot thinking/speaking flags
           return;
         }
+        isBotThinkingRef.current = false;
         isBotSpeakingRef.current = false;
         setIsBotThinking(false);
         if (callStatusRef.current === 'connected') {
@@ -228,7 +235,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   // Speech Recognition Hook
   const speechRecognition = useSpeechRecognition({
     lang: 'ru-RU',
-    silenceDelayMs: 750,
+    silenceDelayMs: 2200,
     onFinalTranscript: (transcript) => {
       if (callStatusRef.current === 'connected' && !isBotSpeakingRef.current && !isMicMuted) {
         handleSendMessage(transcript);
