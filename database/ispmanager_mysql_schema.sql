@@ -135,3 +135,19 @@ CREATE TABLE IF NOT EXISTS `minute_transactions` (
   KEY `minute_tx_user_created_idx` (`user_id`, `created_at`),
   CONSTRAINT `fk_minute_tx_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Диалоги онлайн-чата поддержки на сайте (синхронизируются с Telegram)
+CREATE TABLE IF NOT EXISTS `live_chat_conversations` (
+  `id` VARCHAR(128) NOT NULL,
+  `visitor_id` VARCHAR(128) NOT NULL,
+  `visitor_name` VARCHAR(191) NOT NULL DEFAULT 'Гость сайта',
+  `visitor_contact` VARCHAR(191) DEFAULT NULL,
+  `visitor_city` VARCHAR(120) DEFAULT NULL,
+  `started_at` VARCHAR(64) NOT NULL,
+  `last_message_at` VARCHAR(64) NOT NULL,
+  `last_message_text` TEXT DEFAULT NULL,
+  `messages_json` LONGTEXT NOT NULL,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `live_chat_last_message_idx` (`last_message_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

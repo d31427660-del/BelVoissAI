@@ -249,7 +249,7 @@ class LiveChatService {
       message: newMessage,
     });
 
-    // Notify backend (Vercel / ISPmanager API + Telegram)
+    // Notify backend (ISPmanager PHP API + Telegram)
     this.syncMessageToServer(newMessage, conv);
 
     this.notifyListeners();

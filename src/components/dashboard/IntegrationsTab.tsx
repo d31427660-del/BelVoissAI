@@ -20,6 +20,7 @@ import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';
 import { formatCallerTemplate, sendCallerFollowUpNotification } from '../../lib/callerNotificationService';
 import { YclientsService } from '../../lib/yclientsService';
+import { syncWithVapiApi, testSipNode, testFallbackPhone, sendTestTelegramCard } from '../../lib/vapiService';
 
 interface IntegrationsTabProps {
   agent: AgentConfig;
@@ -42,7 +43,8 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   telegramSettings,
   onSaveTelegram,
   webhookSettings,
-  onSaveWebhook
+  onSaveWebhook,
+  vapiApiKey
 }) => {
   const [localSip, setLocalSip] = useState<SipSettings>({
     ...sipSettings,
@@ -101,16 +103,18 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   const [showWhSecret, setShowWhSecret] = useState(false);
 
   const [isTestingSip, setIsTestingSip] = useState(false);
-  const [sipTestResult, setSipTestResult] = useState<string | null>(null);
+  const [sipTestResult, setSipTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [isSyncingVapi, setIsSyncingVapi] = useState(false);
+  const [vapiSyncResult, setVapiSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [isTestingTg, setIsTestingTg] = useState(false);
-  const [showTgPreview, setShowTgPreview] = useState(false);
+  const [tgTestResult, setTgTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [isTestingWh, setIsTestingWh] = useState(false);
   const [whTestResult, setWhTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [isTestingFallback, setIsTestingFallback] = useState(false);
-  const [fallbackResult, setFallbackResult] = useState(null as string | null);
+  const [fallbackResult, setFallbackResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const [downloadDpaNotice, setDownloadDpaNotice] = useState(false);
@@ -138,34 +142,53 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
     setTimeout(() => setSavedNotice(null), 3000);
   };
 
-  const handleTestSip = () => {
+  const handleTestSip = async () => {
     setIsTestingSip(true);
     setSipTestResult(null);
-    setTimeout(() => {
-      setIsTestingSip(false);
-      setSipTestResult(
-        `Связь с сервером ${localSip.sipServer} проверена (отклик 14 мс). Номер ${localSip.callerId} готов к приёму звонков.`
-      );
-    }, 750);
+    const res = await testSipNode({
+      sipServer: localSip.sipServer,
+      sipLogin: localSip.sipLogin,
+      callerId: localSip.callerId,
+    });
+    setIsTestingSip(false);
+    setSipTestResult(res);
   };
 
-  const handleTestFallback = () => {
+  const handleSyncVapi = async () => {
+    setIsSyncingVapi(true);
+    setVapiSyncResult(null);
+    const res = await syncWithVapiApi(vapiApiKey, agent, localSip);
+    setIsSyncingVapi(false);
+    if (res.success && res.assistantId) {
+      onSaveAgent({ ...agent, vapiAssistantId: res.assistantId });
+      setVapiSyncResult({ ok: true, message: res.message });
+    } else {
+      setVapiSyncResult({ ok: false, message: res.message });
+    }
+  };
+
+  const handleTestFallback = async () => {
     setIsTestingFallback(true);
     setFallbackResult(null);
-    setTimeout(() => {
-      setIsTestingFallback(false);
-      setFallbackResult(
-        `Проверка прошла успешно: при необходимости вызов переключится на номер ${localSip.fallbackPhone} за 1 секунду.`
-      );
-    }, 750);
+    const res = await testFallbackPhone({
+      fallbackPhone: localSip.fallbackPhone,
+      assistantId: agent.vapiAssistantId,
+      vapiApiKey,
+    });
+    setIsTestingFallback(false);
+    setFallbackResult(res);
   };
 
-  const handleTestTg = () => {
+  const handleTestTg = async () => {
     setIsTestingTg(true);
-    setTimeout(() => {
-      setIsTestingTg(false);
-      setShowTgPreview(true);
-    }, 450);
+    setTgTestResult(null);
+    const res = await sendTestTelegramCard({
+      botToken: localTg.botToken,
+      chatId: localTg.chatId,
+      companyName: agent.companyName,
+    });
+    setIsTestingTg(false);
+    setTgTestResult(res);
   };
 
   const handleTestWebhook = async () => {
@@ -424,6 +447,26 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
 
             <div>
               <FieldLabel
+                htmlFor="tg-bot-token"
+                label="Bot Token (опционально — если свой бот)"
+                helpTriggerLabel="Где взять?"
+                helpTitle="Токен бота от @BotFather"
+                helpText="Если на сервере уже настроен единый бот в .env (TELEGRAM_BOT_TOKEN), это поле можно оставить пустым. Если хотите отправлять заявки через собственного корпоративного бота — вставьте токен от @BotFather."
+              />
+              <input
+                id="tg-bot-token"
+                name="telegramBotToken"
+                type="password"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                value={localTg.botToken}
+                onChange={(e) => setLocalTg({ ...localTg, botToken: e.target.value })}
+                placeholder="Оставьте пустым для системного бота или вставьте 123456:ABC..."
+                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600 mb-3"
+              />
+
+              <FieldLabel
                 htmlFor="tg-chat-id"
                 label="ID вашего чата или рабочей группы в Telegram"
                 helpTriggerLabel="Где взять ID?"
@@ -454,20 +497,21 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                 type="button"
                 onClick={handleTestTg}
                 disabled={isTestingTg}
-                className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{isTestingTg ? 'Формируем пример...' : 'Посмотреть пример заявки'}</span>
+                <span>{isTestingTg ? 'Отправляем в Telegram...' : 'Отправить тест в Telegram'}</span>
               </button>
-              <span className="text-[11px] text-slate-500">Приходит за 2 секунды</span>
+              <span className="text-[11px] text-slate-500">Реальная отправка через Bot API</span>
             </div>
 
-            {showTgPreview && (
-              <div className="p-3 rounded-xl bg-white border border-emerald-200 text-xs text-slate-800 space-y-1 shadow-2xs">
-                <div className="font-bold text-emerald-800">Новая заявка со звонка:</div>
-                <div>Клиент: Максим Ковалёв (+375 29 682-14-99)</div>
-                <div>Запрос: Диагностика подвески (стук спереди)</div>
-                <div>Желаемое время: сегодня в 18:30</div>
+            {tgTestResult && (
+              <div className={`p-3 rounded-xl border text-xs font-medium ${
+                tgTestResult.ok
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
+              }`}>
+                {tgTestResult.message}
               </div>
             )}
           </div>
@@ -1002,27 +1046,55 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
         </div>
 
         {/* Light Connection Check Bar (Replaces old dark terminal!) */}
-        <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Статус подключения номера: готов к проверке</span>
+        <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
+                <span className={`w-2 h-2 rounded-full ${sipTestResult ? (sipTestResult.ok ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-emerald-500'}`} />
+                <span>
+                  {agent.vapiAssistantId && !agent.vapiAssistantId.startsWith('asst_mock_')
+                    ? `Шлюз Vapi активен (ID: ${agent.vapiAssistantId})`
+                    : 'Статус подключения номера и голосового шлюза'}
+                </span>
+              </div>
+              <p className={`text-[11px] ${sipTestResult && !sipTestResult.ok ? 'text-rose-700 font-medium' : 'text-slate-600'}`}>
+                {sipTestResult?.message ||
+                  'Проверьте сетевую доступность SIP-сервера оператора и синхронизируйте голосового ассистента с Vapi.ai.'}
+              </p>
             </div>
-            <p className="text-[11px] text-slate-600">
-              {sipTestResult ||
-                'После ввода логина и пароля нажмите кнопку справа, чтобы убедиться, что линия отвечает без задержек.'}
-            </p>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleTestSip}
+                disabled={isTestingSip}
+                className="px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-100/60 text-emerald-800 border border-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isTestingSip ? 'animate-spin' : ''}`} />
+                <span>{isTestingSip ? 'Проверяем SIP...' : 'Проверить SIP-узел'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSyncVapi}
+                disabled={isSyncingVapi}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{isSyncingVapi ? 'Публикуем в Vapi...' : 'Синхронизировать с Vapi.ai'}</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleTestSip}
-            disabled={isTestingSip}
-            className="px-4 py-2 rounded-xl bg-white hover:bg-emerald-100/60 text-emerald-800 border border-emerald-300 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isTestingSip ? 'animate-spin' : ''}`} />
-            <span>{isTestingSip ? 'Проверяем связь...' : 'Проверить связь с номером'}</span>
-          </button>
+          {vapiSyncResult && (
+            <div className={`p-2.5 rounded-lg border text-xs font-medium ${
+              vapiSyncResult.ok
+                ? 'bg-white border-emerald-300 text-emerald-800'
+                : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`}>
+              {vapiSyncResult.message}
+            </div>
+          )}
         </div>
       </fieldset>
 
@@ -1119,8 +1191,12 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
           </button>
 
           {fallbackResult && (
-            <span role="status" aria-live="polite" className="text-xs text-emerald-700 font-medium">
-              {fallbackResult}
+            <span
+              role="status"
+              aria-live="polite"
+              className={`text-xs font-medium ${fallbackResult.ok ? 'text-emerald-700' : 'text-rose-600'}`}
+            >
+              {fallbackResult.message}
             </span>
           )}
         </div>

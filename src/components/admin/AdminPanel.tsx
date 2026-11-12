@@ -43,11 +43,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onNavigateToUserDashboard
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return Boolean(sessionStorage.getItem('voxi_admin_auth') === 'true');
+    if (typeof window === 'undefined') return false;
+    return Boolean(sessionStorage.getItem('voxi_admin_auth') === 'true' && sessionStorage.getItem('voxi_admin_token'));
   });
   const [pinInput, setPinInput] = useState<string>('');
-  const [pinError, setPinError] = useState<boolean>(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'billing' | 'telephony' | 'settings'>('overview');
   const [clients, setClients] = useState<PlatformClient[]>(() => {
@@ -55,16 +55,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const saved = localStorage.getItem('voxi_admin_clients_v1');
       if (saved) return JSON.parse(saved);
     } catch {}
-    return INITIAL_PLATFORM_CLIENTS;
+    return [];
   });
   const [transactions, setTransactions] = useState<PlatformTransaction[]>(() => {
     try {
       const saved = localStorage.getItem('voxi_admin_transactions_v1');
       if (saved) return JSON.parse(saved);
     } catch {}
-    return INITIAL_TRANSACTIONS;
+    return [];
   });
-  const [telephonyLogs, setTelephonyLogs] = useState<PlatformTelephonyLog[]>(INITIAL_TELEPHONY_LOGS);
+  const [telephonyLogs, setTelephonyLogs] = useState<PlatformTelephonyLog[]>([]);
   const [adminToken, setAdminToken] = useState<string>(() => {
     try {
       return sessionStorage.getItem('voxi_admin_token') || '';
@@ -157,8 +157,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     } catch {}
 
     // 2. Подтягиваем реальные данные из БД MySQL ISPmanager (/api/db?action=admin_data)
+    if (!adminToken) return;
     let cancelled = false;
-    ispFetchAdminData(adminToken || '7788').then((remote) => {
+    ispFetchAdminData(adminToken).then((remote) => {
       if (cancelled || !remote || !remote.dbConnected) return;
       setIsDbConnected(true);
       if (remote.clients.length > 0) {
@@ -319,23 +320,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     const trimmed = pinInput.trim();
     if (!trimmed) {
-      setPinError(true);
+      setPinError('Введите мастер PIN-код администратора');
       return;
     }
 
-    // Проверяем через серверный API (/api/db?action=admin_login) с резервным локальным фоллбэком
+    // Строгая серверная проверка через /api/db?action=admin_login
     const serverAuth = await ispAdminLogin(trimmed);
-    const localMatch = trimmed === '7788' || trimmed === 'admin2026' || trimmed === 'voxi';
 
-    if (serverAuth.ok || (!serverAuth.serverResponded && localMatch)) {
-      const tokenToStore = serverAuth.adminToken || trimmed;
-      setAdminToken(tokenToStore);
+    if (serverAuth.ok && serverAuth.adminToken) {
+      setAdminToken(serverAuth.adminToken);
       setIsAuthenticated(true);
       sessionStorage.setItem('voxi_admin_auth', 'true');
-      sessionStorage.setItem('voxi_admin_token', tokenToStore);
-      setPinError(false);
+      sessionStorage.setItem('voxi_admin_token', serverAuth.adminToken);
+      setPinError(null);
     } else {
-      setPinError(true);
+      setPinError(
+        serverAuth.serverResponded
+          ? 'Неверный мастер PIN-код или ADMIN_MASTER_PIN не настроен в .env на сервере'
+          : 'Сервер авторизации (/api/db) недоступен'
+      );
     }
   };
 
@@ -459,11 +462,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <input
                 type="password"
                 autoFocus
-                placeholder="Введите PIN (демо: 7788)"
+                placeholder="Введите мастер PIN-код из .env"
                 value={pinInput}
                 onChange={(e) => {
                   setPinInput(e.target.value);
-                  setPinError(false);
+                  setPinError(null);
                 }}
                 className={`w-full bg-black/60 border rounded-[12px] px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors ${
                   pinError
@@ -472,7 +475,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 }`}
               />
               {pinError && (
-                <p className="text-xs text-rose-400 mt-1">Неверный PIN-код (используйте 7788)</p>
+                <p className="text-xs text-rose-400 mt-1">{pinError}</p>
               )}
             </div>
 

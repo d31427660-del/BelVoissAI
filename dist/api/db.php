@@ -177,6 +177,7 @@ if ($action === 'admin_login') {
     if ($method !== 'POST') {
         voxi_json(['ok' => false, 'error' => 'Method Not Allowed'], 405);
     }
+    voxi_enforce_rate_limit('admin_login', 5, 60);
     if (trim((string)($VOXI_CONFIG['admin_master_pin'] ?? '')) === '') {
         voxi_json(['ok' => false, 'error' => 'ADMIN_MASTER_PIN не настроен на сервере'], 503);
     }
@@ -452,6 +453,7 @@ if ($action === 'admin_toggle_client') {
 
 // --- POST ?action=signup ---
 if ($action === 'signup') {
+    voxi_enforce_rate_limit('signup', 8, 60);
     $email = mb_strtolower(trim((string)($body['email'] ?? '')));
     $password = (string)($body['password'] ?? '');
     $companyName = trim((string)($body['companyName'] ?? ''));
@@ -524,6 +526,7 @@ if ($action === 'signup') {
 
 // --- POST ?action=signin ---
 if ($action === 'signin') {
+    voxi_enforce_rate_limit('signin', 10, 60);
     $email = mb_strtolower(trim((string)($body['email'] ?? '')));
     $password = (string)($body['password'] ?? '');
 
@@ -558,6 +561,7 @@ if ($action === 'signout') {
 
 // --- POST ?action=reset_password ---
 if ($action === 'reset_password') {
+    voxi_enforce_rate_limit('reset_password', 5, 60);
     $email = mb_strtolower(trim((string)($body['email'] ?? '')));
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         voxi_json(['ok' => false, 'error' => 'Пожалуйста, введите корректный адрес электронной почты'], 400);
@@ -582,10 +586,8 @@ if ($action === 'reset_password') {
             ? (($hostWithoutPort === 'localhost' || $hostWithoutPort === '127.0.0.1') ? "http://{$rawHost}" : "https://{$rawHost}")
             : 'https://voxi.by';
         $resetUrl = "{$safeBaseUrl}/?reset_token={$rawReset}&email=" . urlencode($email);
-        $subject = '=?UTF-8?B?' . base64_encode('Восстановление пароля Voxi.by') . '?=';
         $mailBody = "Здравствуйте!\n\nДля смены пароля в личном кабинете Voxi.by перейдите по ссылке (действует 1 час):\n{$resetUrl}\n\nЕсли вы не запрашивали сброс пароля, просто проигнорируйте это письмо.";
-        $headers = "From: Voxi.by <noreply@{$safeHost}>\r\nContent-Type: text/plain; charset=UTF-8\r\n";
-        @mail($email, $subject, $mailBody, $headers);
+        voxi_send_email($VOXI_CONFIG, $email, 'Восстановление пароля Voxi.by', $mailBody, $safeHost);
     }
 
     voxi_json([
@@ -596,6 +598,7 @@ if ($action === 'reset_password') {
 
 // --- POST ?action=confirm_reset_password ---
 if ($action === 'confirm_reset_password') {
+    voxi_enforce_rate_limit('confirm_reset_password', 5, 60);
     $email = mb_strtolower(trim((string)($body['email'] ?? '')));
     $resetToken = strtolower(trim((string)($body['resetToken'] ?? '')));
     $newPassword = (string)($body['newPassword'] ?? '');

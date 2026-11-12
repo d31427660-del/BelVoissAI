@@ -90,7 +90,7 @@ flowchart TB
 
 - **Палитра**: Строгий монохром — Белый основной фон (`#ffffff`), Угольно-черный (`#000000`) и оттенки серого (`#f5f5f5`, `#e5e5e5`, `#d4d4d4`, `#737373`, `#525252`, `#262626`).
 - **Типографика**: `Sofia Sans Extra Condensed` (верхний регистр, `line-height: 0.90`, `letter-spacing: -0.03em`) для бруталистских заголовков + `Plus Jakarta Sans` / `Inter` для интерфейса + `JetBrains Mono` для системных меток.
-- **Голосовой синтез и биллинг РБ**: Серверные функции Vercel (`/api/tts` на базе Yandex SpeechKit API v1, `/api/bepaid-checkout` и `/api/bepaid-webhook` для приёма платежей ЕРИП и карт через bePaid).
+- **Голосовой синтез и биллинг РБ**: Серверные обработчики PHP (`public/api/tts.php` на базе Yandex SpeechKit API v1, `public/api/bepaid-checkout.php` и `public/api/bepaid-webhook.php` для приёма платежей ЕРИП и карт через bePaid).
 
 ---
 

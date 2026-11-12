@@ -1,4 +1,4 @@
-import { AgentConfig, VoiceId } from '../types';
+import { AgentConfig, SipSettings, VoiceId } from '../types';
 import { YclientsService } from './yclientsService';
 
 export function generateSystemPrompt(config: Partial<AgentConfig>): string {
@@ -72,27 +72,109 @@ export const VOICE_PROFILES: Record<VoiceId, { name: string; gender: 'female' | 
 
 export async function syncWithVapiApi(
   apiKey: string,
-  config: AgentConfig
-): Promise<{ success: boolean; assistantId?: string; message: string; payload?: unknown }> {
-  // This is a static client application. Calling Vapi with a customer key here
-  // would expose it to every browser and to localStorage, so production sync is
-  // intentionally delegated to a protected server-side endpoint.
-  if (!apiKey || apiKey.trim() === '') {
+  config: AgentConfig,
+  sipSettings?: Partial<SipSettings>
+): Promise<{ success: boolean; assistantId?: string; webhookUrl?: string; message: string; payload?: unknown }> {
+  try {
+    const res = await fetch('/api/telephony', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'sync_assistant',
+        apiKey: apiKey?.trim() || '',
+        config,
+        sipSettings: sipSettings || {},
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
+      return {
+        success: true,
+        assistantId: data.assistantId,
+        webhookUrl: data.webhookUrl,
+        message: data.message || 'Ассистент успешно синхронизирован с Vapi.ai!',
+      };
+    }
     return {
-      success: true,
-      assistantId: config.vapiAssistantId || `asst_mock_bel_${Date.now()}`,
-      message: 'Промт проверен в демо-режиме. Для публикации в Vapi подключите защищённый серверный API — ключи не вводятся в браузере.',
-      payload: {
-        name: config.name,
-        systemPrompt: config.systemPrompt,
-        firstMessage: config.firstMessage,
-        voice: VOICE_PROFILES[config.voice].vapiVoiceId
-      }
+      success: false,
+      message: data?.error || `Ошибка синхронизации с Vapi (HTTP ${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || 'Не удалось связаться с серверным шлюзом /api/telephony',
     };
   }
+}
 
-  return {
-    success: false,
-    message: 'Прямая синхронизация из браузера отключена: перенесите вызов Vapi в защищённую серверную функцию.',
-  };
+export async function testSipNode(params: {
+  sipServer: string;
+  sipLogin: string;
+  callerId: string;
+}): Promise<{ ok: boolean; message: string; latencyMs?: number }> {
+  try {
+    const res = await fetch('/api/telephony', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'test_sip',
+        ...params,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
+      return { ok: true, message: data.message, latencyMs: data.latencyMs };
+    }
+    return { ok: false, message: data?.error || `Ошибка проверки SIP (HTTP ${res.status})` };
+  } catch (err: any) {
+    return { ok: false, message: err?.message || 'Сетевая ошибка при проверке SIP-узла' };
+  }
+}
+
+export async function testFallbackPhone(params: {
+  fallbackPhone: string;
+  assistantId?: string;
+  vapiApiKey?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/telephony', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'test_fallback',
+        ...params,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
+      return { ok: true, message: data.message };
+    }
+    return { ok: false, message: data?.error || `Ошибка проверки номера перевода (HTTP ${res.status})` };
+  } catch (err: any) {
+    return { ok: false, message: err?.message || 'Сетевая ошибка при проверке перевода' };
+  }
+}
+
+export async function sendTestTelegramCard(params: {
+  botToken?: string;
+  chatId: string;
+  companyName?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/telephony', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'test_telegram',
+        ...params,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
+      return { ok: true, message: data.message };
+    }
+    return { ok: false, message: data?.error || `Ошибка отправки в Telegram (HTTP ${res.status})` };
+  } catch (err: any) {
+    return { ok: false, message: err?.message || 'Сетевая ошибка при обращении к Telegram шлюзу' };
+  }
 }

@@ -123,11 +123,13 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
           }
           const body = rawBody ? JSON.parse(rawBody) : {};
           const pin = String(body.pin || '').trim();
-          const masterPin = String(env.ADMIN_MASTER_PIN || '7788').trim();
-          const isValid =
-            pin !== '' &&
-            (pin === masterPin || (masterPin === '7788' && (pin === 'admin2026' || pin === 'voxi')));
-          if (!isValid) {
+          const masterPin = String(env.ADMIN_MASTER_PIN || env.VOXI_ADMIN_PIN || '').trim();
+          if (!masterPin) {
+            res.statusCode = 503;
+            res.end(JSON.stringify({ ok: false, error: 'ADMIN_MASTER_PIN не задан в .env' }));
+            return;
+          }
+          if (!pin || pin !== masterPin) {
             res.statusCode = 401;
             res.end(JSON.stringify({ ok: false, error: 'Неверный PIN-код' }));
             return;
@@ -148,46 +150,16 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         );
       });
 
-      server.middlewares.use('/api/live-chat', async (req: any, res: any) => {
-        try {
-          let rawBody = '';
-          if (req.method === 'POST') {
-            for await (const chunk of req) {
-              rawBody += chunk;
-            }
-          }
-          req.body = rawBody ? JSON.parse(rawBody) : {};
-          const reqUrl = new URL(req.url || '', 'http://localhost');
-          req.query = Object.fromEntries(reqUrl.searchParams.entries());
-          for (const [k, v] of Object.entries(env)) {
-            if (v && !process.env[k]) process.env[k] = v;
-          }
-          const { default: liveChatHandler } = await import('./api/live-chat');
-          await liveChatHandler(req, res);
-        } catch {
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.end(JSON.stringify({ error: 'Dev live-chat handler error' }));
-        }
+      server.middlewares.use('/api/live-chat', async (_req: any, res: any) => {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ ok: true, conversations: [] }));
       });
 
-      server.middlewares.use('/api/chat', async (req: any, res: any) => {
-        try {
-          let rawBody = '';
-          for await (const chunk of req) {
-            rawBody += chunk;
-          }
-          req.body = rawBody ? JSON.parse(rawBody) : {};
-          for (const [k, v] of Object.entries(env)) {
-            if (v && !process.env[k]) process.env[k] = v;
-          }
-          const { default: chatHandler } = await import('./api/chat');
-          await chatHandler(req, res);
-        } catch {
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.end(JSON.stringify({ error: 'Dev chat handler error' }));
-        }
+      server.middlewares.use('/api/chat', async (_req: any, res: any) => {
+        res.statusCode = 503;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ ok: false, error: 'Local dev mode: PHP backend (/api/chat.php) used in production' }));
       });
     },
   };

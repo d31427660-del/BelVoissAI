@@ -25,6 +25,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $dataFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_livechat_store.json';
 
 function getLiveChatData(string $filePath): array {
+    $cfg = $GLOBALS['VOXI_CONFIG'] ?? [];
+    if (is_array($cfg) && voxi_is_db_configured($cfg)) {
+        try {
+            $pdo = voxi_get_pdo($cfg);
+            $stmt = $pdo->query(
+                'SELECT id, visitor_id, visitor_name, visitor_contact, visitor_city, started_at, last_message_at, last_message_text, messages_json
+                 FROM live_chat_conversations
+                 ORDER BY last_message_at DESC
+                 LIMIT 200'
+            );
+            $rows = $stmt ? $stmt->fetchAll() : [];
+            $data = [];
+            foreach ($rows as $r) {
+                $cid = (string)($r['id'] ?? '');
+                if ($cid === '') continue;
+                $msgs = json_decode((string)($r['messages_json'] ?? '[]'), true);
+                $data[$cid] = [
+                    'id' => $cid,
+                    'visitorId' => (string)($r['visitor_id'] ?? $cid),
+                    'visitorName' => (string)($r['visitor_name'] ?? 'Гость сайта'),
+                    'visitorContact' => (string)($r['visitor_contact'] ?? ''),
+                    'visitorCity' => (string)($r['visitor_city'] ?? 'Беларусь'),
+                    'startedAt' => (string)($r['started_at'] ?? gmdate('c')),
+                    'lastMessageAt' => (string)($r['last_message_at'] ?? gmdate('c')),
+                    'lastMessageText' => (string)($r['last_message_text'] ?? ''),
+                    'messages' => is_array($msgs) ? $msgs : [],
+                ];
+            }
+            return $data;
+        } catch (Throwable $e) {
+            // Fallback на локальный JSON-файл, если MySQL временно недоступен
+        }
+    }
+
     if (!is_file($filePath)) {
         return [];
     }
@@ -48,6 +82,45 @@ function saveLiveChatData(string $filePath, array $data): void {
         });
         $data = array_slice($data, 0, 200, true);
     }
+
+    $cfg = $GLOBALS['VOXI_CONFIG'] ?? [];
+    if (is_array($cfg) && voxi_is_db_configured($cfg)) {
+        try {
+            $pdo = voxi_get_pdo($cfg);
+            $stmt = $pdo->prepare(
+                'INSERT INTO live_chat_conversations
+                 (id, visitor_id, visitor_name, visitor_contact, visitor_city, started_at, last_message_at, last_message_text, messages_json)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                   visitor_name = VALUES(visitor_name),
+                   visitor_contact = VALUES(visitor_contact),
+                   visitor_city = VALUES(visitor_city),
+                   last_message_at = VALUES(last_message_at),
+                   last_message_text = VALUES(last_message_text),
+                   messages_json = VALUES(messages_json)'
+            );
+            foreach ($data as $cid => $conv) {
+                if (!is_array($conv)) continue;
+                $id = (string)($conv['id'] ?? $cid);
+                if ($id === '') continue;
+                $stmt->execute([
+                    $id,
+                    (string)($conv['visitorId'] ?? $id),
+                    mb_substr((string)($conv['visitorName'] ?? 'Гость сайта'), 0, 190),
+                    mb_substr((string)($conv['visitorContact'] ?? ''), 0, 190),
+                    mb_substr((string)($conv['visitorCity'] ?? 'Беларусь'), 0, 120),
+                    (string)($conv['startedAt'] ?? gmdate('c')),
+                    (string)($conv['lastMessageAt'] ?? gmdate('c')),
+                    (string)($conv['lastMessageText'] ?? ''),
+                    (string)json_encode($conv['messages'] ?? [], JSON_UNESCAPED_UNICODE),
+                ]);
+            }
+            return;
+        } catch (Throwable $e) {
+            // Fallback на локальный JSON-файл, если MySQL временно недоступен
+        }
+    }
+
     @file_put_contents($filePath, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
 }
 

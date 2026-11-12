@@ -121,6 +121,59 @@ function voxi_uuid(): string
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
 }
 
+function voxi_client_ip(): string
+{
+    $forwarded = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+    if ($forwarded !== '') {
+        $parts = explode(',', $forwarded);
+        $candidate = trim((string)$parts[0]);
+        if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+            return $candidate;
+        }
+    }
+    $remote = trim((string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '0.0.0.0';
+}
+
+function voxi_enforce_rate_limit(string $bucket, int $maxAttempts = 10, int $windowSec = 60): void
+{
+    $ip = voxi_client_ip();
+    $keyHash = substr(hash('sha256', "{$bucket}|{$ip}"), 0, 24);
+    $file = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . "voxi_rl_{$keyHash}.json";
+    $now = time();
+
+    $fp = @fopen($file, 'c+');
+    if (!is_resource($fp)) {
+        return;
+    }
+
+    @flock($fp, LOCK_EX);
+    $raw = @stream_get_contents($fp);
+    $state = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
+
+    if (!is_array($state) || (int)($state['resetAt'] ?? 0) <= $now) {
+        $state = ['count' => 1, 'resetAt' => $now + $windowSec];
+    } else {
+        $state['count'] = (int)($state['count'] ?? 0) + 1;
+    }
+
+    @ftruncate($fp, 0);
+    @rewind($fp);
+    @fwrite($fp, (string)json_encode($state));
+    @fflush($fp);
+    @flock($fp, LOCK_UN);
+    @fclose($fp);
+
+    if ($state['count'] > $maxAttempts) {
+        $retryAfter = max(1, (int)$state['resetAt'] - $now);
+        header("Retry-After: {$retryAfter}");
+        voxi_json([
+            'ok' => false,
+            'error' => "Слишком много попыток. Пожалуйста, подождите {$retryAfter} сек. перед повтором.",
+        ], 429);
+    }
+}
+
 function voxi_is_db_configured(array $cfg): bool
 {
     $dbName = trim((string)($cfg['db_name'] ?? ''));
@@ -143,7 +196,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
 {
     $markerFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR)
         . DIRECTORY_SEPARATOR
-        . 'voxi_schema_v1_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
+        . 'voxi_schema_v2_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
 
     if (is_file($markerFile) && (time() - (int)@filemtime($markerFile)) < 3600) {
         return;
@@ -267,6 +320,21 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           UNIQUE KEY `minute_tx_external_uid_unique` (`external_uid`),
           KEY `minute_tx_user_created_idx` (`user_id`, `created_at`),
           CONSTRAINT `fk_minute_tx_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `live_chat_conversations` (
+          `id` VARCHAR(128) NOT NULL,
+          `visitor_id` VARCHAR(128) NOT NULL,
+          `visitor_name` VARCHAR(191) NOT NULL DEFAULT 'Гость сайта',
+          `visitor_contact` VARCHAR(191) DEFAULT NULL,
+          `visitor_city` VARCHAR(120) DEFAULT NULL,
+          `started_at` VARCHAR(64) NOT NULL,
+          `last_message_at` VARCHAR(64) NOT NULL,
+          `last_message_text` TEXT DEFAULT NULL,
+          `messages_json` LONGTEXT NOT NULL,
+          `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          KEY `live_chat_last_message_idx` (`last_message_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
@@ -392,4 +460,138 @@ function voxi_format_user_session(array $u): array
         'spentMinutes' => round((float)$u['spent_minutes'], 2),
         'isMock' => false,
     ];
+}
+
+function voxi_smtp_expect($fp, array $allowedCodes): bool
+{
+    $response = '';
+    while (($line = @fgets($fp, 515)) !== false) {
+        $response .= $line;
+        if (strlen($line) >= 4 && $line[3] === ' ') {
+            break;
+        }
+    }
+    $code = (int)substr($response, 0, 3);
+    return in_array($code, $allowedCodes, true);
+}
+
+function voxi_send_email(array $cfg, string $to, string $subjectText, string $plainBody, string $fallbackHost = 'voxi.by'): bool
+{
+    $to = trim($to);
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $smtpHost = trim((string)($cfg['smtp_host'] ?? ''));
+    $smtpPort = (int)($cfg['smtp_port'] ?? 465);
+    if ($smtpPort <= 0) {
+        $smtpPort = 465;
+    }
+    $smtpUser = trim((string)($cfg['smtp_user'] ?? ''));
+    $smtpPass = (string)($cfg['smtp_pass'] ?? '');
+    $smtpFrom = trim((string)($cfg['smtp_from'] ?? ''));
+    if ($smtpFrom === '' || !filter_var($smtpFrom, FILTER_VALIDATE_EMAIL)) {
+        $smtpFrom = ($smtpUser !== '' && filter_var($smtpUser, FILTER_VALIDATE_EMAIL))
+            ? $smtpUser
+            : "noreply@{$fallbackHost}";
+    }
+    $encryption = strtolower(trim((string)($cfg['smtp_encryption'] ?? ($smtpPort === 465 ? 'ssl' : 'tls'))));
+    $encodedSubject = '=?UTF-8?B?' . base64_encode($subjectText) . '?=';
+
+    // 1. Отправка через аутентифицированный SMTP (SSL 465 / STARTTLS 587), если настроен SMTP_HOST
+    if ($smtpHost !== '') {
+        $remote = ($encryption === 'ssl' || $smtpPort === 465)
+            ? "ssl://{$smtpHost}:{$smtpPort}"
+            : "tcp://{$smtpHost}:{$smtpPort}";
+
+        $errNo = 0;
+        $errStr = '';
+        $fp = @stream_socket_client($remote, $errNo, $errStr, 6);
+        if (is_resource($fp)) {
+            stream_set_timeout($fp, 6);
+            $ok = voxi_smtp_expect($fp, [220]);
+
+            if ($ok) {
+                @fwrite($fp, "EHLO {$fallbackHost}\r\n");
+                $ok = voxi_smtp_expect($fp, [250]);
+            }
+
+            if ($ok && $encryption === 'tls' && $smtpPort !== 465) {
+                @fwrite($fp, "STARTTLS\r\n");
+                if (voxi_smtp_expect($fp, [220])) {
+                    $cryptoOk = @stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+                    if ($cryptoOk) {
+                        @fwrite($fp, "EHLO {$fallbackHost}\r\n");
+                        $ok = voxi_smtp_expect($fp, [250]);
+                    } else {
+                        $ok = false;
+                    }
+                } else {
+                    $ok = false;
+                }
+            }
+
+            if ($ok && $smtpUser !== '' && $smtpPass !== '') {
+                @fwrite($fp, "AUTH LOGIN\r\n");
+                if (voxi_smtp_expect($fp, [334])) {
+                    @fwrite($fp, base64_encode($smtpUser) . "\r\n");
+                    if (voxi_smtp_expect($fp, [334])) {
+                        @fwrite($fp, base64_encode($smtpPass) . "\r\n");
+                        $ok = voxi_smtp_expect($fp, [235]);
+                    } else {
+                        $ok = false;
+                    }
+                } else {
+                    $ok = false;
+                }
+            }
+
+            if ($ok) {
+                @fwrite($fp, "MAIL FROM:<{$smtpFrom}>\r\n");
+                $ok = voxi_smtp_expect($fp, [250]);
+            }
+            if ($ok) {
+                @fwrite($fp, "RCPT TO:<{$to}>\r\n");
+                $ok = voxi_smtp_expect($fp, [250, 251]);
+            }
+            if ($ok) {
+                @fwrite($fp, "DATA\r\n");
+                $ok = voxi_smtp_expect($fp, [354]);
+            }
+            if ($ok) {
+                $normBody = str_replace(["\r\n", "\r"], "\n", $plainBody);
+                $dotStuffed = preg_replace('/^\./m', '..', $normBody) ?? $normBody;
+                $smtpBody = str_replace("\n", "\r\n", $dotStuffed);
+                $messageId = '<' . bin2hex(random_bytes(12)) . "@{$fallbackHost}>";
+                $dateHeader = gmdate('D, d M Y H:i:s +0000');
+
+                $rawEmail = "Date: {$dateHeader}\r\n"
+                    . "From: Voxi.by <{$smtpFrom}>\r\n"
+                    . "To: <{$to}>\r\n"
+                    . "Subject: {$encodedSubject}\r\n"
+                    . "Message-ID: {$messageId}\r\n"
+                    . "MIME-Version: 1.0\r\n"
+                    . "Content-Type: text/plain; charset=UTF-8\r\n"
+                    . "Content-Transfer-Encoding: 8bit\r\n\r\n"
+                    . "{$smtpBody}\r\n.\r\n";
+
+                @fwrite($fp, $rawEmail);
+                $ok = voxi_smtp_expect($fp, [250]);
+            }
+
+            @fwrite($fp, "QUIT\r\n");
+            @fclose($fp);
+
+            if ($ok) {
+                return true;
+            }
+        }
+    }
+
+    // 2. Fallback: локальный MTA хостинга через mail(), если SMTP не задан или недоступен
+    $headers = "From: Voxi.by <{$smtpFrom}>\r\n"
+        . "Reply-To: {$smtpFrom}\r\n"
+        . "MIME-Version: 1.0\r\n"
+        . "Content-Type: text/plain; charset=UTF-8\r\n";
+    return (bool)@mail($to, $encodedSubject, $plainBody, $headers);
 }

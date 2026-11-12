@@ -43,6 +43,16 @@ return [
     'telegram_bot_token'     => $fnEnv ? voxi_env(['TELEGRAM_BOT_TOKEN', 'VOXI_TELEGRAM_BOT_TOKEN'], '') : (getenv('TELEGRAM_BOT_TOKEN') ?: (getenv('VOXI_TELEGRAM_BOT_TOKEN') ?: '')),
     'telegram_admin_chat_id' => $fnEnv ? voxi_env(['TELEGRAM_ADMIN_CHAT_ID', 'VOXI_TELEGRAM_CHAT_ID'], '') : (getenv('TELEGRAM_ADMIN_CHAT_ID') ?: (getenv('VOXI_TELEGRAM_CHAT_ID') ?: '')),
 
-    // --- 5. Резервный нейросетевой синтез речи ---
-    'fallback_tts_url' => $fnEnv ? voxi_env(['FALLBACK_TTS_URL'], 'https://telerobot.vercel.app/api/tts') : (getenv('FALLBACK_TTS_URL') ?: 'https://telerobot.vercel.app/api/tts'),
+    // --- 5. Резервный нейросетевой синтез речи и телефония Vapi.ai ---
+    'fallback_tts_url'    => $fnEnv ? voxi_env(['FALLBACK_TTS_URL'], '') : (getenv('FALLBACK_TTS_URL') ?: ''),
+    'vapi_api_key'        => $fnEnv ? voxi_env(['VAPI_API_KEY', 'VAPI_PRIVATE_KEY'], '') : (getenv('VAPI_API_KEY') ?: (getenv('VAPI_PRIVATE_KEY') ?: '')),
+    'vapi_webhook_secret' => $fnEnv ? voxi_env(['VAPI_WEBHOOK_SECRET'], '') : (getenv('VAPI_WEBHOOK_SECRET') ?: ''),
+
+    // --- 6. SMTP-почта (восстановление пароля и уведомления) ---
+    'smtp_host'       => $fnEnv ? voxi_env(['SMTP_HOST', 'MAIL_HOST'], '') : (getenv('SMTP_HOST') ?: ''),
+    'smtp_port'       => (int)($fnEnv ? voxi_env(['SMTP_PORT', 'MAIL_PORT'], '465') : (getenv('SMTP_PORT') ?: '465')),
+    'smtp_user'       => $fnEnv ? voxi_env(['SMTP_USER', 'SMTP_USERNAME', 'MAIL_USERNAME'], '') : (getenv('SMTP_USER') ?: ''),
+    'smtp_pass'       => $fnEnv ? voxi_env(['SMTP_PASS', 'SMTP_PASSWORD', 'MAIL_PASSWORD'], '') : (getenv('SMTP_PASS') ?: ''),
+    'smtp_from'       => $fnEnv ? voxi_env(['SMTP_FROM', 'MAIL_FROM_ADDRESS'], '') : (getenv('SMTP_FROM') ?: ''),
+    'smtp_encryption' => strtolower((string)($fnEnv ? voxi_env(['SMTP_ENCRYPTION', 'MAIL_ENCRYPTION'], 'ssl') : (getenv('SMTP_ENCRYPTION') ?: 'ssl'))),
 ];
