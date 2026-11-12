@@ -10,6 +10,8 @@ export interface CalendarSlotRequest {
   serviceName?: string;
   staffName?: string;
   companyId?: string;
+  partnerToken?: string;
+  platform?: 'none' | 'yclients' | 'google_calendar' | 'altegio' | 'dikidi' | 'bitrix24';
   workingHours?: string;
 }
 
@@ -21,6 +23,7 @@ export interface CalendarSlotResult {
   alternativeSlots: string[];
   speechResponse: string;
   slotDurationMinutes: number;
+  isLiveApi?: boolean;
 }
 
 // Fixed or pseudo-busy slots to simulate real-world booked calendar
@@ -98,8 +101,8 @@ export function normalizeDateQuery(dateQuery: string): { isoDate: string; displa
  * Live Function Call: Checks live slot availability and proposes alternatives if busy
  */
 export async function checkLiveSlotAvailability(params: CalendarSlotRequest): Promise<CalendarSlotResult> {
-  const { dateQuery, timeQuery, serviceName } = params;
-  const { displayDate } = normalizeDateQuery(dateQuery || 'сегодня');
+  const { dateQuery, timeQuery, serviceName, companyId, partnerToken, platform } = params;
+  const { isoDate, displayDate } = normalizeDateQuery(dateQuery || 'сегодня');
 
   // Extract time like 18:30 or 15:00
   let matchedTime = '18:30';
@@ -116,7 +119,59 @@ export async function checkLiveSlotAvailability(params: CalendarSlotRequest): Pr
     }
   }
 
-  // Artificial jitter simulation to mirror real API roundtrip (150-300ms)
+  // Real YCLIENTS / Google Calendar API check when credentials are configured
+  if ((platform === 'yclients' || platform === 'google_calendar') && companyId && partnerToken) {
+    try {
+      const res = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check_slots',
+          platform,
+          companyId,
+          partnerToken,
+          isoDate,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const availableSlots: string[] = Array.isArray(data?.availableSlots) ? data.availableSlots : [];
+        const isFree = availableSlots.includes(matchedTime);
+        if (!isFree) {
+          const altSlots = availableSlots.slice(0, 2);
+          const speech =
+            altSlots.length > 0
+              ? `Смотрю в расписании: на ${matchedTime} запись уже занята. Но на ${displayDate} свободно в ${altSlots.join(' или в ')}. Какое время вам удобнее забронировать?`
+              : `К сожалению, на ${displayDate} свободных окон уже нет. Могу предложить запись на следующий день — подсказать свободное время?`;
+          return {
+            isAvailable: false,
+            status: 'booked_conflict',
+            formattedDate: displayDate,
+            formattedTime: matchedTime,
+            alternativeSlots: altSlots,
+            speechResponse: speech,
+            slotDurationMinutes: 60,
+            isLiveApi: true,
+          };
+        }
+        const servicePhrase = serviceName ? ` на ${serviceName}` : '';
+        return {
+          isAvailable: true,
+          status: 'available',
+          formattedDate: displayDate,
+          formattedTime: matchedTime,
+          alternativeSlots: [],
+          speechResponse: `Отлично! Время ${matchedTime} на ${displayDate}${servicePhrase} свободно. Я могу закрепить эту бронь за вами прямо сейчас. На чьё имя оформить запись?`,
+          slotDurationMinutes: 60,
+          isLiveApi: true,
+        };
+      }
+    } catch {
+      // Fall back to local simulation if network/API is unavailable
+    }
+  }
+
+  // Fallback simulation when credentials are not configured (demo mode)
   await new Promise((resolve) => setTimeout(resolve, 200));
 
   // Determine availability

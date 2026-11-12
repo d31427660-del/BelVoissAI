@@ -18,7 +18,8 @@ import { MessageSquare, Sparkles, ExternalLink, Smartphone } from 'lucide-react'
 import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings, CallerNotificationConfig } from '../../types';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';
-import { formatCallerTemplate } from '../../lib/callerNotificationService';
+import { formatCallerTemplate, sendCallerFollowUpNotification } from '../../lib/callerNotificationService';
+import { YclientsService } from '../../lib/yclientsService';
 
 interface IntegrationsTabProps {
   agent: AgentConfig;
@@ -66,26 +67,34 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   const [localTg, setLocalTg] = useState<TelegramSettings>(telegramSettings);
   const [localWh, setLocalWh] = useState<WebhookSettings>(webhookSettings);
 
-  const [activeCrm, setActiveCrm] = useState<'none' | 'yclients' | 'dikidi' | 'altegio' | 'bitrix24' | 'google_calendar'>(() => {
+  const [activeCrm, setActiveCrm] = useState<'none' | 'yclients' | 'google_calendar'>(() => {
     if (!agent.yclientsConfig || !agent.yclientsConfig.isEnabled) return 'none';
-    return agent.yclientsConfig.platform || 'yclients';
+    const p = agent.yclientsConfig.platform;
+    if (p === 'yclients' || p === 'google_calendar') return p;
+    return 'none';
   });
   const [crmApiKey, setCrmApiKey] = useState<string>(() => agent.yclientsConfig?.partnerToken || '');
   const [crmCompanyId, setCrmCompanyId] = useState<string>(() => agent.yclientsConfig?.companyId || '');
   const [liveSlotChecking, setLiveSlotChecking] = useState<boolean>(() => agent.yclientsConfig?.liveSlotCheckingEnabled ?? true);
+  const [isTestingCrm, setIsTestingCrm] = useState(false);
+  const [crmTestResult, setCrmTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Direct Caller Notification (SMS / Viber Auto-Followup)
   const [localCallerNotif, setLocalCallerNotif] = useState<CallerNotificationConfig>(() => ({
     isEnabled: agent.callerNotification?.isEnabled ?? true,
     channel: agent.callerNotification?.channel || 'sms',
-    provider: agent.callerNotification?.provider || 'sms_by',
-    template: agent.callerNotification?.template || 'Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} ({УСЛУГА}). Время: {ВРЕМЯ}. Адрес: {АДРЕС}. Схема: https://yandex.by/maps/ Тел: {ТЕЛЕФОН}',
+    provider: agent.callerNotification?.provider && agent.callerNotification.provider !== 'mock' ? agent.callerNotification.provider : 'sms_by',
+    template: agent.callerNotification?.template || 'Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} ({УСЛУГА}). Время: {ВРЕМЯ}. Адрес: {АДРЕС}. Тел: {ТЕЛЕФОН}',
     sendMapLink: agent.callerNotification?.sendMapLink ?? true,
     notifyOnlyOnLead: agent.callerNotification?.notifyOnlyOnLead ?? true,
-    senderName: agent.callerNotification?.senderName || 'Voxi'
+    senderName: agent.callerNotification?.senderName || 'Voxi',
+    apiKey: agent.callerNotification?.apiKey || '',
+    apiLogin: agent.callerNotification?.apiLogin || '',
+    webhookUrl: agent.callerNotification?.webhookUrl || '',
+    testPhone: agent.callerNotification?.testPhone || '+375 (29) '
   }));
   const [isTestingCallerSms, setIsTestingCallerSms] = useState(false);
-  const [callerSmsResult, setCallerSmsResult] = useState<string | null>(null);
+  const [callerSmsResult, setCallerSmsResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [showSipPassword, setShowSipPassword] = useState(false);
   const [showCrmKey, setShowCrmKey] = useState(false);
@@ -328,11 +337,9 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   ];
 
   const crmOptions = [
-    { id: 'none' as const, label: 'Пока без CRM (только Telegram)' },
-    { id: 'yclients' as const, label: 'YCLIENTS' },
-    { id: 'dikidi' as const, label: 'DIKIDI' },
-    { id: 'altegio' as const, label: 'Altegio' },
-    { id: 'bitrix24' as const, label: 'Битрикс24' }
+    { id: 'none' as const, label: 'Пока без календаря (только Telegram / Webhook)' },
+    { id: 'yclients' as const, label: 'YCLIENTS (онлайн-запись в слоты)' },
+    { id: 'google_calendar' as const, label: 'Google Calendar (проверка FreeBusy и запись)' }
   ];
 
   return (
@@ -478,16 +485,19 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
             <div>
               <FieldLabel
                 htmlFor="crm-platform-select"
-                label="Какой программой учёта вы пользуетесь"
-                helpTitle="Нужно ли подключать CRM сразу?"
-                helpText="Подключать CRM необязательно: большинство компаний начинают с заявок в Telegram. Если у вас есть электронный журнал (YCLIENTS, DIKIDI, Altegio или Битрикс24), бот сможет сам проверять свободные окошки мастеров."
+                label="Календарь для онлайн-записи в слоты"
+                helpTitle="Нужно ли подключать календарь сразу?"
+                helpText="Подключать календарь необязательно: большинство компаний начинают с заявок в Telegram. Если вы используете YCLIENTS или Google Calendar, бот сможет сам проверять свободные окошки и бронировать время."
               />
               <select
                 id="crm-platform-select"
                 name="crmPlatform"
                 aria-describedby="crm-platform-hint"
                 value={activeCrm}
-                onChange={(e) => setActiveCrm(e.target.value as any)}
+                onChange={(e) => {
+                  setActiveCrm(e.target.value as 'none' | 'yclients' | 'google_calendar');
+                  setCrmTestResult(null);
+                }}
                 className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-600"
               >
                 {crmOptions.map((c) => (
@@ -497,7 +507,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                 ))}
               </select>
               <FieldHint id="crm-platform-hint">
-                Если ведёте запись в блокноте, Excel или локальной 1С — оставьте «Пока без CRM».
+                Для Битрикс24 / amoCRM / 1С используйте вебхук ниже. Для проверки свободных окон доступны YCLIENTS и Google Calendar.
               </FieldHint>
             </div>
 
@@ -507,11 +517,15 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                   <div>
                     <FieldLabel
                       htmlFor="crm-company-id"
-                      label={`ID филиала / компании`}
+                      label={activeCrm === 'google_calendar' ? 'Calendar ID (Google Calendar)' : 'ID филиала / компании (YCLIENTS)'}
                       helpTriggerLabel="Где найти?"
-                      helpTitle={`ID компании в ${activeCrm.toUpperCase()}`}
-                      helpText="Числовой номер вашего филиала или компании в адресной строке или настройках CRM (например, 849201)."
-                      helpExample="849201"
+                      helpTitle={activeCrm === 'google_calendar' ? 'ID календаря Google' : 'ID компании в YCLIENTS'}
+                      helpText={
+                        activeCrm === 'google_calendar'
+                          ? 'Укажите "primary" для основного календаря или ID из раздела «Настройки и общий доступ → Интеграция календаря» (формат ...@group.calendar.google.com).'
+                          : 'Числовой номер вашего филиала или компании в адресной строке или настройках YCLIENTS (например, 849201).'
+                      }
+                      helpExample={activeCrm === 'google_calendar' ? 'primary' : '849201'}
                     />
                     <input
                       id="crm-company-id"
@@ -523,22 +537,26 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                       aria-describedby="crm-company-id-hint"
                       value={crmCompanyId}
                       onChange={(e) => setCrmCompanyId(e.target.value)}
-                      placeholder="Например: 849201"
+                      placeholder={activeCrm === 'google_calendar' ? 'primary или ...@group.calendar.google.com' : 'Например: 849201'}
                       className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
                     />
                     <FieldHint id="crm-company-id-hint">
-                      Идентификатор филиала для запроса свободных слотов.
+                      {activeCrm === 'google_calendar' ? 'Идентификатор календаря для проверки FreeBusy и создания событий.' : 'Идентификатор филиала для запроса свободных слотов.'}
                     </FieldHint>
                   </div>
 
                   <div>
                     <FieldLabel
                       htmlFor="crm-api-key"
-                      label={`Ключ API (токен доступа)`}
+                      label={activeCrm === 'google_calendar' ? 'OAuth2 Access Token (Google)' : 'Partner / User Token (YCLIENTS)'}
                       helpTriggerLabel="Где найти?"
-                      helpTitle={`Где взять ключ в ${activeCrm.toUpperCase()}`}
-                      helpText="Откройте раздел «Настройки → Интеграции / API» в личном кабинете вашей CRM-системы и скопируйте ключ доступа (токен) филиала."
-                      helpExample="partner_9f8a7b6c5d4e3f2a1b"
+                      helpTitle={activeCrm === 'google_calendar' ? 'Токен доступа Google Calendar API' : 'Где взять ключ в YCLIENTS'}
+                      helpText={
+                        activeCrm === 'google_calendar'
+                          ? 'OAuth2 Access Token с правами https://www.googleapis.com/auth/calendar (или сервисный токен доступа).'
+                          : 'Откройте раздел «Настройки → Интеграции / API» в личном кабинете YCLIENTS и скопируйте токен доступа.'
+                      }
+                      helpExample={activeCrm === 'google_calendar' ? 'ya29.a0AfH6SM...' : 'partner_9f8a7b6c5d4e3f2a1b'}
                     />
                     <div className="relative">
                       <input
@@ -551,7 +569,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                         aria-describedby="crm-api-key-hint crm-key-visibility-warning"
                         value={crmApiKey}
                         onChange={(e) => setCrmApiKey(e.target.value)}
-                        placeholder="Вставьте ключ доступа из вашей CRM"
+                        placeholder={activeCrm === 'google_calendar' ? 'Вставьте OAuth2 Access Token' : 'Вставьте токен доступа YCLIENTS'}
                         className="w-full pl-3 pr-9 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
                       />
                       <button
@@ -571,6 +589,30 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                     <FieldHint id="crm-api-key-hint">
                       Ключ для авторизации запросов к слотам расписания.
                     </FieldHint>
+                  </div>
+
+                  <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={isTestingCrm || !crmCompanyId.trim() || !crmApiKey.trim()}
+                      onClick={async () => {
+                        setIsTestingCrm(true);
+                        setCrmTestResult(null);
+                        const res = await YclientsService.testConnection(activeCrm, crmCompanyId.trim(), crmApiKey.trim());
+                        setCrmTestResult(res);
+                        setIsTestingCrm(false);
+                      }}
+                      className="px-3.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingCrm ? 'animate-spin' : ''}`} />
+                      <span>{isTestingCrm ? 'Проверяем...' : 'Проверить подключение'}</span>
+                    </button>
+
+                    {crmTestResult && (
+                      <span className={`text-xs font-medium ${crmTestResult.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {crmTestResult.message}
+                      </span>
+                    )}
                   </div>
 
                   <div className="md:col-span-2 pt-3 border-t border-slate-200">
@@ -1206,72 +1248,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
         </details>
       </fieldset>
 
-      {/* STEP 4: Answering Machine Detection (AMD) */}
-      <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
-        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 border border-purple-200/80 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <legend className="text-sm font-bold text-slate-900">
-                Шаг 4. Защита от автоответчиков (AMD)
-              </legend>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Мгновенный сброс звонка при срабатывании голосовой почты мобильных операторов РБ
-              </p>
-            </div>
-          </div>
-
-          <label htmlFor="amd-enabled-checkbox" className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer shrink-0">
-            <input
-              id="amd-enabled-checkbox"
-              name="amdEnabled"
-              type="checkbox"
-              checked={localSip.amdEnabled !== false}
-              onChange={(e) => setLocalSip({ ...localSip, amdEnabled: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-300 accent-purple-600"
-            />
-            <span>Защита AMD включена</span>
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-200/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-950">
-                Мгновенный сброс (0 BYN списания)
-              </span>
-              <input
-                type="checkbox"
-                checked={localSip.amdHangupImmediately !== false}
-                onChange={(e) => setLocalSip({ ...localSip, amdHangupImmediately: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 accent-purple-600"
-              />
-            </div>
-            <p className="text-[11px] text-purple-900 leading-relaxed">
-              При фразах «Абонент временно недоступен», «Вызываемый абонент отключен» или «Оставьте сообщение после сигнала» бот кладет трубку за 1-2 секунды, не тратя оплаченные минуты.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-            <span className="text-xs font-bold text-slate-900">
-              Поддерживаемые операторы РБ
-            </span>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-100 text-red-800 border border-red-200">МТС РБ</span>
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-yellow-100 text-yellow-900 border border-yellow-200">А1 РБ</span>
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">life:) РБ</span>
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Белтелеком</span>
-            </div>
-            <p className="text-[10px] text-slate-500 mt-1">
-              Экономия до 18-25% бюджета на исходящих обзвонах и перехватах.
-            </p>
-          </div>
-        </div>
-      </fieldset>
-
-      {/* STEP 5: Caller Direct SMS / Viber Follow-up */}
+      {/* STEP 4: Caller Direct SMS / Viber Follow-up */}
       <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -1280,11 +1257,11 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
             </div>
             <div>
               <legend className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span>Шаг 5. SMS / Viber визитка звонящему клиенту</span>
-                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 text-[9px] uppercase tracking-wide font-bold">Дожим лида</span>
+                <span>Шаг 4. SMS / Viber визитка звонящему клиенту</span>
+                <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 text-[9px] uppercase tracking-wide font-bold">Продакшен</span>
               </legend>
               <p className="text-xs text-slate-500 mt-0.5">
-                Сразу после завершения звонка клиенту отправляется сообщение с подтверждением записи, точным адресом и схемой проезда
+                Сразу после завершения звонка клиенту отправляется сообщение через SMS.by, RocketSMS или Viber-шлюз с подтверждением записи и адресом
               </p>
             </div>
           </div>
@@ -1304,16 +1281,23 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-800 mb-1">
-                Канал отправки
+                Провайдер / Канал
               </label>
               <select
-                value={localCallerNotif.channel}
-                onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, channel: e.target.value as 'sms' | 'viber' | 'telegram' })}
+                value={localCallerNotif.provider}
+                onChange={(e) => {
+                  const p = e.target.value as 'sms_by' | 'rocketsms' | 'viber_business';
+                  setLocalCallerNotif({
+                    ...localCallerNotif,
+                    provider: p,
+                    channel: p === 'viber_business' ? 'viber' : 'sms',
+                  });
+                }}
                 className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
               >
-                <option value="sms">SMS (через SMS.by / RocketSMS РБ)</option>
-                <option value="viber">Viber Business (с логотипом)</option>
-                <option value="telegram">Telegram (по номеру телефона)</option>
+                <option value="sms_by">SMS.by (API токен)</option>
+                <option value="rocketsms">RocketSMS.by (Логин + Пароль)</option>
+                <option value="viber_business">Viber Business / Webhook-шлюз</option>
               </select>
             </div>
 
@@ -1330,24 +1314,96 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
               />
             </div>
 
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsTestingCallerSms(true);
-                  setCallerSmsResult(null);
-                  setTimeout(() => {
-                    setIsTestingCallerSms(false);
-                    setCallerSmsResult('Тестовая SMS-визитка успешно отправлена! Проверьте текст в предпросмотре ниже.');
-                  }, 600);
-                }}
-                disabled={isTestingCallerSms}
-                className="w-full px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>{isTestingCallerSms ? 'Отправляем...' : 'Тест отправки'}</span>
-              </button>
+            <div>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                Тестовый номер (+375...)
+              </label>
+              <input
+                type="tel"
+                value={localCallerNotif.testPhone || ''}
+                onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, testPhone: formatBelarusPhone(e.target.value) })}
+                placeholder="+375 (29) 123-45-67"
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+              />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {localCallerNotif.provider === 'rocketsms' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-800 mb-1">
+                  Логин RocketSMS.by
+                </label>
+                <input
+                  type="text"
+                  value={localCallerNotif.apiLogin || ''}
+                  onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, apiLogin: e.target.value })}
+                  placeholder="Логин (или из .env ROCKETSMS_USERNAME)"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            )}
+
+            {localCallerNotif.provider === 'viber_business' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-800 mb-1">
+                  Webhook URL шлюза Viber
+                </label>
+                <input
+                  type="url"
+                  value={localCallerNotif.webhookUrl || ''}
+                  onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, webhookUrl: e.target.value })}
+                  placeholder="https://api.example.by/viber/send"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            )}
+
+            <div className={localCallerNotif.provider === 'sms_by' ? 'sm:col-span-2' : ''}>
+              <label className="block text-xs font-semibold text-slate-800 mb-1">
+                {localCallerNotif.provider === 'rocketsms' ? 'Пароль / API-ключ RocketSMS' : localCallerNotif.provider === 'viber_business' ? 'Bearer токен шлюза (опционально)' : 'API-токен SMS.by'}
+              </label>
+              <input
+                type="password"
+                value={localCallerNotif.apiKey || ''}
+                onChange={(e) => setLocalCallerNotif({ ...localCallerNotif, apiKey: e.target.value })}
+                placeholder={localCallerNotif.provider === 'sms_by' ? 'Токен из кабинета SMS.by (или .env SMS_BY_TOKEN)' : 'Ключ доступа'}
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                setIsTestingCallerSms(true);
+                setCallerSmsResult(null);
+                const targetPhone = localCallerNotif.testPhone || agent.phone || '+375291234567';
+                const res = await sendCallerFollowUpNotification({
+                  toPhone: targetPhone,
+                  clientName: 'Артём',
+                  companyName: agent.companyName || 'Voxi.by',
+                  service: 'Консультация / Запись',
+                  date: 'Завтра',
+                  time: '18:30',
+                  address: agent.address || 'г. Минск, ул. Сурганова, 24',
+                  contactPhone: agent.phone || '+375 (29) 112-44-55',
+                  config: { ...localCallerNotif, isEnabled: true },
+                });
+                setIsTestingCallerSms(false);
+                if (res.ok) {
+                  setCallerSmsResult({ ok: true, message: `Сообщение отправлено через ${localCallerNotif.provider} на номер ${targetPhone}!` });
+                } else {
+                  setCallerSmsResult({ ok: false, message: res.errorMessage || 'Не удалось отправить тестовое сообщение' });
+                }
+              }}
+              disabled={isTestingCallerSms}
+              className="px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{isTestingCallerSms ? 'Отправляем...' : 'Отправить тест на номер'}</span>
+            </button>
           </div>
 
           <div>
@@ -1388,9 +1444,13 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
           </div>
 
           {callerSmsResult && (
-            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{callerSmsResult}</span>
+            <div className={`p-3 rounded-xl border text-xs font-medium flex items-center gap-2 ${
+              callerSmsResult.ok
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border-rose-200'
+            }`}>
+              <CheckCircle2 className={`w-4 h-4 shrink-0 ${callerSmsResult.ok ? 'text-emerald-600' : 'text-rose-600'}`} />
+              <span>{callerSmsResult.message}</span>
             </div>
           )}
         </div>

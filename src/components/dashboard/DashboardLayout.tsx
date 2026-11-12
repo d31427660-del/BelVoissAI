@@ -11,22 +11,13 @@ import {
   CheckCircleIcon as CheckCircle2,
   HamburgerMenuIcon as Menu,
   CloseCircleIcon as X,
-  MagicWand3Icon as Sparkles,
-  GraphNewUpIcon as TrendingUp,
-  WalletMoneyIcon as Wallet,
-  DocumentTextIcon as FileText,
-  CallChatIcon as CallTransfer,
-  ChatRoundDotsIcon
+  WalletMoneyIcon as Wallet
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession } from '../../types';
 import { SimpleOverviewTab } from './SimpleOverviewTab';
 import { SimpleAgentTab } from './SimpleAgentTab';
-import { OverviewTab } from './OverviewTab';
 import { IntegrationsTab } from './IntegrationsTab';
 import { CallLogsTab } from './CallLogsTab';
-import { MysteryCallerTab } from './MysteryCallerTab';
-import { KnowledgeBaseTab } from './KnowledgeBaseTab';
-import { SipSettingsTab } from './SipSettingsTab';
 import { GuideModal } from './GuideModal';
 
 interface DashboardLayoutProps {
@@ -68,7 +59,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onExitToLanding,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'analytics' | 'integrations' | 'sip' | 'knowledge' | 'mystery'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'integrations'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
@@ -111,46 +102,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       badge: `${displayCallLogs.length}`
     },
     {
-      id: 'analytics' as const,
-      label: 'Аналитика и ROI',
-      subtitle: 'Нагрузка 24/7, графики, ФОТ',
-      icon: <TrendingUp className="w-4 h-4 shrink-0" />,
-      badge: undefined
-    }
-  ];
-
-  const secondaryNavItems = [
-    {
-      id: 'knowledge' as const,
-      label: 'База знаний',
-      subtitle: 'PDF, Word и регламенты',
-      icon: <FileText className="w-4 h-4 shrink-0" />,
-      badge: (agent.knowledgeDocuments || []).length > 0 ? `${(agent.knowledgeDocuments || []).length}` : undefined
-    },
-    {
-      id: 'sip' as const,
-      label: 'SIP и перевод',
-      subtitle: 'Warm Handoff и AMD',
-      icon: <CallTransfer className="w-4 h-4 shrink-0" />,
-      badge: undefined
-    },
-    {
       id: 'integrations' as const,
       label: 'Номер и заявки',
-      subtitle: 'Телефон, Telegram и CRM',
+      subtitle: 'Телефон, YCLIENTS, SMS, Telegram',
       icon: <Network className="w-4 h-4 shrink-0" />,
-      badge: undefined
-    },
-    {
-      id: 'mystery' as const,
-      label: 'Проверка звонков',
-      subtitle: 'Демо-пример для компаний',
-      icon: <Sparkles className="w-4 h-4 shrink-0" />,
       badge: undefined
     }
   ];
 
-  const allNavItems = [...primaryNavItems, ...secondaryNavItems];
+  const allNavItems = primaryNavItems;
   const currentNav = allNavItems.find(n => n.id === activeTab) || primaryNavItems[0];
   const isLowBalance = (user.balanceMinutes || 0) < 25;
   const balanceByn = ((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1);
@@ -266,16 +226,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           {/* Navigation */}
           <nav className="space-y-1 pt-1" aria-label="Разделы кабинета">
             <span className="block text-[10px] font-medium text-[#777169] uppercase tracking-wider px-2 pb-1">
-              Основное
+              Разделы
             </span>
             {primaryNavItems.map(renderNavButton)}
-
-            <div className="pt-3 space-y-1">
-              <span className="block text-[10px] font-medium text-[#777169] uppercase tracking-wider px-2 pb-1">
-                Подключение и инструменты
-              </span>
-              {secondaryNavItems.map(renderNavButton)}
-            </div>
           </nav>
         </div>
 
@@ -447,33 +400,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             />
           )}
 
-          {activeTab === 'analytics' && (
-            <OverviewTab
-              user={user}
-              agent={agent}
-              callLogs={displayCallLogs}
-              sipSettings={sipSettings}
-              telegramSettings={telegramSettings}
-              onNavigateTab={(t) => setActiveTab(t as any)}
-              onOpenTopUp={onOpenTopUp}
-            />
-          )}
-
-          {activeTab === 'knowledge' && (
-            <KnowledgeBaseTab
-              agent={agent}
-              onSaveAgent={onSaveAgent}
-            />
-          )}
-
-          {activeTab === 'sip' && (
-            <SipSettingsTab
-              sipSettings={sipSettings}
-              onSaveSip={onSaveSip}
-              onOpenVoiceTest={onOpenVoiceTest}
-            />
-          )}
-
           {activeTab === 'integrations' && (
             <IntegrationsTab
               agent={agent}
@@ -486,12 +412,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               onSaveWebhook={onSaveWebhook}
               vapiApiKey={vapiApiKey}
               onSaveVapiApiKey={onSaveVapiApiKey}
-            />
-          )}
-
-          {activeTab === 'mystery' && (
-            <MysteryCallerTab
-              currentVoice={agent.voice}
             />
           )}
         </div>

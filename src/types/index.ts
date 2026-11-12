@@ -34,11 +34,15 @@ export interface YclientsSlotConfig {
 export interface CallerNotificationConfig {
   isEnabled: boolean;
   channel: 'sms' | 'viber' | 'telegram';
-  provider: 'sms_by' | 'rocketsms' | 'viber_business' | 'mock';
+  provider: 'sms_by' | 'rocketsms' | 'viber_business' | 'webhook' | 'mock';
   template: string;
   sendMapLink: boolean;
   notifyOnlyOnLead: boolean;
   senderName?: string;
+  apiKey?: string;
+  apiLogin?: string;
+  webhookUrl?: string;
+  testPhone?: string;
 }
 
 export interface WebWidgetConfig {

@@ -128,7 +128,7 @@ export const FeatureShowcase: React.FC = () => {
                   <span>Voxi Операционный Контур</span>
                 </div>
                 <p className="text-xs sm:text-sm text-[#52525b] leading-relaxed">
-                  Проверяет слоты в YCLIENTS на лету, проводит A/B-тесты приветствий и доставляет лиды в CRM.
+                  Проверяет слоты в YCLIENTS и Google Calendar на лету, отправляет SMS/Viber клиентам и доставляет лиды в CRM.
                 </p>
               </div>
             </div>
@@ -154,15 +154,15 @@ export const FeatureShowcase: React.FC = () => {
                     </span>
                   </div>
                   <span className="text-[11px] font-mono text-black bg-[#F5F3F1] px-2.5 py-0.5 rounded-full border border-black/[0.06]">
-                    A/B Сплит активен
+                    Голос: Анна • Онлайн
                   </span>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   <div className="p-3.5 rounded-[10px] bg-[#F5F3F1] border border-black/[0.06] space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] text-[#777169]">
-                      <span>Приветствие Вариант А (Конверсия 41%)</span>
-                      <span className="text-emerald-600 font-medium">● Лидер</span>
+                      <span>Приветствие администратора</span>
+                      <span className="text-emerald-600 font-medium">● Активно</span>
                     </div>
                     <p className="text-black font-normal">
                       «Здравствуйте! Автошкола Драйв-Минск, голосовой помощник Анна. Подсказать стоимость обучения или записать на пробный урок?»
@@ -171,8 +171,8 @@ export const FeatureShowcase: React.FC = () => {
 
                   <div className="p-3.5 rounded-[10px] bg-[#F5F3F1] border border-black/[0.06] space-y-2">
                     <div className="flex items-center justify-between text-[11px] font-medium text-black">
-                      <span>Интеллектуальные речевые филлеры (0.2 сек)</span>
-                      <span className="font-mono text-xs text-[#777169]">Auto-Filler ON</span>
+                      <span>Быстрые действия во время звонка</span>
+                      <span className="font-mono text-xs text-[#777169]">Live Slots ON</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       <span className="px-2.5 py-1 rounded-full bg-white text-black border border-black/[0.08] text-[11px]">
@@ -186,7 +186,7 @@ export const FeatureShowcase: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-[#777169] pt-2 border-t border-black/[0.06]">
-                  <span>Синхронизация базы знаний: PDF / Прайс BYN</span>
+                  <span>Синхронизация прайс-листа и базы знаний (BYN)</span>
                   <span className="font-mono text-emerald-600 font-medium">Готово к звонкам</span>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export const FeatureShowcase: React.FC = () => {
                     <BoltCircleIcon size={14} className="text-emerald-500" />
                     Проверка занятости за 120 мс
                   </span>
-                  <span className="font-mono">YCLIENTS • Bitrix24 • Google Calendar</span>
+                  <span className="font-mono">YCLIENTS • Google Calendar • Telegram</span>
                 </div>
               </div>
             </div>

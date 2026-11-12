@@ -80,7 +80,6 @@ export async function sendCallerFollowUpNotification(payload: CallerNotification
     contactPhone,
   });
 
-  // Call serverless webhook dispatcher if available, otherwise return verified simulation
   try {
     const res = await fetch('/api/dispatch-webhook', {
       method: 'POST',
@@ -91,29 +90,39 @@ export async function sendCallerFollowUpNotification(payload: CallerNotification
         message: messageText,
         senderName: config.senderName || companyName,
         provider: config.provider,
+        apiKey: config.apiKey || '',
+        apiLogin: config.apiLogin || '',
+        webhookUrl: config.webhookUrl || '',
         action: 'caller_notification',
       }),
     });
 
-    if (res.ok) {
-      const data = await res.json().catch(() => null);
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
       return {
         ok: true,
         channel: config.channel,
         formattedMessage: messageText,
-        deliveryStatus: data?.deliveryStatus === 'simulated' ? 'simulated' : 'sent',
+        deliveryStatus: 'sent',
       };
     }
-  } catch {
-    // If running offline or in demo mode, provide verified simulation
-  }
 
-  return {
-    ok: true,
-    channel: config.channel,
-    formattedMessage: messageText,
-    deliveryStatus: 'simulated',
-  };
+    return {
+      ok: false,
+      channel: config.channel,
+      formattedMessage: messageText,
+      deliveryStatus: 'failed',
+      errorMessage: data?.error || `Ошибка отправки (HTTP ${res.status})`,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      channel: config.channel,
+      formattedMessage: messageText,
+      deliveryStatus: 'failed',
+      errorMessage: err?.message || 'Сетевая ошибка при обращении к /api/dispatch-webhook',
+    };
+  }
 }
 
 /**

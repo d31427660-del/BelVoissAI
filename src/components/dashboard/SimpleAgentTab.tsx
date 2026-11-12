@@ -16,7 +16,6 @@ import { generateSystemPrompt } from '../../lib/vapiService';
 import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
-import { KnowledgeBaseDocumentsCard } from './KnowledgeBaseDocumentsCard';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import {
   BelarusPhoneInput,
@@ -551,15 +550,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             </div>
           </section>
 
-          {/* Card 5: База знаний из файлов */}
-          <KnowledgeBaseDocumentsCard
-            documents={formData.knowledgeDocuments || []}
-            onChange={(docs) => {
-              setFormData((prev) => ({ ...prev, knowledgeDocuments: docs }));
-            }}
-          />
-
-          {/* Card 6: Дополнительные правила (Native <details> disclosure) */}
+          {/* Card 5: Дополнительные правила (Native <details> disclosure) */}
           <details className="group border border-slate-200/90 rounded-2xl bg-white overflow-hidden shadow-xs">
             <summary className="list-none cursor-pointer p-4 flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-2">

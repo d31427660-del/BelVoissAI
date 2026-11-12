@@ -143,9 +143,9 @@ function voxi_issue_session(PDO $pdo, string $userId): string
 
 function voxi_get_admin_hmac_token(array $cfg): string
 {
-    $pin = trim((string)($cfg['admin_master_pin'] ?? '7788'));
+    $pin = trim((string)($cfg['admin_master_pin'] ?? ''));
     if ($pin === '') {
-        $pin = '7788';
+        return '';
     }
     $secret = $pin . '|' . (string)($cfg['db_pass'] ?? '') . '|voxi_master_admin_salt';
     return hash_hmac('sha256', 'voxi_admin_panel_session_v1', $secret);
@@ -153,20 +153,18 @@ function voxi_get_admin_hmac_token(array $cfg): string
 
 function voxi_verify_admin_request(array $cfg, array $body = []): bool
 {
+    $masterPin = trim((string)($cfg['admin_master_pin'] ?? ''));
+    if ($masterPin === '') {
+        return false;
+    }
     $expected = voxi_get_admin_hmac_token($cfg);
     $provided = trim((string)($_SERVER['HTTP_X_ADMIN_TOKEN'] ?? ($body['adminToken'] ?? '')));
-    if ($provided !== '' && hash_equals($expected, $provided)) {
+    if ($expected !== '' && $provided !== '' && hash_equals($expected, $provided)) {
         return true;
     }
     $pin = trim((string)($body['pin'] ?? ''));
-    $masterPin = trim((string)($cfg['admin_master_pin'] ?? '7788'));
-    if ($pin !== '') {
-        if (hash_equals($masterPin, $pin)) {
-            return true;
-        }
-        if ($masterPin === '7788' && ($pin === 'admin2026' || $pin === 'voxi')) {
-            return true;
-        }
+    if ($pin !== '' && hash_equals($masterPin, $pin)) {
+        return true;
     }
     return false;
 }
@@ -178,6 +176,9 @@ $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($action === 'admin_login') {
     if ($method !== 'POST') {
         voxi_json(['ok' => false, 'error' => 'Method Not Allowed'], 405);
+    }
+    if (trim((string)($VOXI_CONFIG['admin_master_pin'] ?? '')) === '') {
+        voxi_json(['ok' => false, 'error' => 'ADMIN_MASTER_PIN не настроен на сервере'], 503);
     }
     $loginBody = voxi_read_json_body();
     if (!voxi_verify_admin_request($VOXI_CONFIG, $loginBody)) {

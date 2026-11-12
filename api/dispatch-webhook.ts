@@ -93,18 +93,95 @@ export default async function handler(req: any, res: any) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { action, webhookUrl, secretKey, sendFormat = 'json_standard', lead = {}, isTest = false } = body;
 
-    if (action === 'caller_notification' && (!webhookUrl || typeof webhookUrl !== 'string' || !/^https?:\/\//i.test(webhookUrl))) {
-      res.statusCode = 200;
+    if (action === 'caller_notification') {
+      const channel = String(body.channel || 'sms');
+      const provider = String(body.provider || 'sms_by');
+      const recipientRaw = String(body.recipient || '').trim();
+      const recipientDigits = recipientRaw.replace(/\D+/g, '');
+      const messageText = String(body.message || '').trim();
+      const senderName = String(body.senderName || 'Voxi').trim();
+      const apiKey = String(body.apiKey || '').trim();
+      const apiLogin = String(body.apiLogin || '').trim();
+
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(
-        JSON.stringify({
-          ok: true,
-          status: 200,
-          deliveryStatus: 'simulated',
-          channel: body.channel || 'sms',
-          recipient: body.recipient || '',
-        })
-      );
+
+      if (!recipientDigits || recipientDigits.length < 9 || !messageText) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: 'Укажите корректный номер получателя (+375...) и текст сообщения' }));
+        return;
+      }
+
+      if (provider === 'sms_by') {
+        const token = apiKey || process.env.SMS_BY_TOKEN?.trim() || '';
+        if (!token) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: 'Не указан API-токен SMS.by' }));
+          return;
+        }
+        const qs = new URLSearchParams({ token, message: messageText, phone: recipientDigits }).toString();
+        const smsRes = await fetch(`https://app.sms.by/api/v1/sendQuickSMS?${qs}`);
+        const smsData: any = await smsRes.json().catch(() => null);
+        if (smsRes.ok && !smsData?.error) {
+          res.statusCode = 200;
+          res.end(JSON.stringify({ ok: true, deliveryStatus: 'sent', provider: 'sms_by', channel, recipient: recipientRaw, providerResponse: smsData }));
+          return;
+        }
+        res.statusCode = 502;
+        res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: smsData?.error || `Ошибка SMS.by (HTTP ${smsRes.status})` }));
+        return;
+      }
+
+      if (provider === 'rocketsms') {
+        const username = apiLogin || process.env.ROCKETSMS_USERNAME?.trim() || '';
+        const password = apiKey || process.env.ROCKETSMS_PASSWORD?.trim() || '';
+        if (!username || !password) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: 'Укажите логин и пароль/ключ RocketSMS.by' }));
+          return;
+        }
+        const form = new URLSearchParams({ username, password, phone: recipientDigits, text: messageText, sender: senderName }).toString();
+        const rsRes = await fetch('https://api.rocketsms.by/simple/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: form,
+        });
+        const rsData: any = await rsRes.json().catch(() => null);
+        if (rsRes.ok && !rsData?.error) {
+          res.statusCode = 200;
+          res.end(JSON.stringify({ ok: true, deliveryStatus: 'sent', provider: 'rocketsms', channel, recipient: recipientRaw, providerResponse: rsData }));
+          return;
+        }
+        res.statusCode = 502;
+        res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: rsData?.error || `Ошибка RocketSMS (HTTP ${rsRes.status})` }));
+        return;
+      }
+
+      const viberUrl = (typeof webhookUrl === 'string' && webhookUrl.trim()) || process.env.VIBER_WEBHOOK_URL?.trim() || '';
+      if (!viberUrl || !/^https?:\/\//i.test(viberUrl)) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: 'Укажите Webhook URL для Viber Business / шлюза уведомлений' }));
+        return;
+      }
+      const viberSafety = await validateWebhookUrlSafety(viberUrl);
+      if (!viberSafety.safe) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: viberSafety.error }));
+        return;
+      }
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+      const vbRes = await fetch(viberUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ channel, recipient: recipientRaw, phone: recipientDigits, senderName, message: messageText, source: 'Voxi.by' }),
+      });
+      if (vbRes.ok) {
+        res.statusCode = 200;
+        res.end(JSON.stringify({ ok: true, deliveryStatus: 'sent', provider, channel, recipient: recipientRaw }));
+        return;
+      }
+      res.statusCode = 502;
+      res.end(JSON.stringify({ ok: false, deliveryStatus: 'failed', error: `Ошибка шлюза Viber/Webhook (HTTP ${vbRes.status})` }));
       return;
     }
 

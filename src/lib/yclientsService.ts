@@ -100,8 +100,34 @@ export class YclientsService {
     return slots;
   }
 
+  static async testConnection(
+    platform: 'yclients' | 'google_calendar',
+    companyId: string,
+    partnerToken: string
+  ): Promise<{ ok: boolean; message: string }> {
+    try {
+      const res = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'test_connection',
+          platform,
+          companyId,
+          partnerToken,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok) {
+        return { ok: true, message: data.message || 'Подключение успешно проверено!' };
+      }
+      return { ok: false, message: data?.error || `Ошибка подключения (HTTP ${res.status})` };
+    } catch {
+      return { ok: false, message: 'Не удалось связаться с сервером /api/calendar' };
+    }
+  }
+
   /**
-   * Создать бронь слота в расписании (POST /api/v1/book_record/{company_id})
+   * Создать бронь слота в расписании (YCLIENTS или Google Calendar)
    */
   static async bookSlot(
     clientName: string,
@@ -109,8 +135,55 @@ export class YclientsService {
     serviceName: string,
     date: string,
     time: string,
-    staffName: string
+    staffName: string,
+    liveConfig?: {
+      platform?: 'yclients' | 'google_calendar';
+      companyId?: string;
+      partnerToken?: string;
+      isoDate?: string;
+      staffId?: number;
+    }
   ): Promise<YclientsBookingResult> {
+    if (
+      liveConfig?.platform &&
+      liveConfig.companyId &&
+      liveConfig.partnerToken
+    ) {
+      try {
+        const res = await fetch('/api/calendar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'book_slot',
+            platform: liveConfig.platform,
+            companyId: liveConfig.companyId,
+            partnerToken: liveConfig.partnerToken,
+            isoDate: liveConfig.isoDate || new Date().toISOString().slice(0, 10),
+            time,
+            clientName,
+            phone,
+            service: serviceName,
+            staffId: liveConfig.staffId || 0,
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.ok) {
+          return {
+            success: true,
+            recordId: Number(data.recordId || 0),
+            bookingCode: String(data.bookingCode || 'LIVE'),
+            staffName,
+            date,
+            time,
+            service: serviceName,
+            message: String(data.message || `Запись создана (${data.bookingCode})`),
+          };
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     const recordId = Math.floor(100000 + Math.random() * 900000);

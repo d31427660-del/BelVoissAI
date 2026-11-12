@@ -39,9 +39,9 @@ return [
     'public_site_url'        => $fnEnv ? voxi_env(['PUBLIC_SITE_URL']) : (getenv('PUBLIC_SITE_URL') ?: ''),
 
     // --- 4. Уведомления администратора в Telegram (онлайн-чат и лиды) и доступ в #admin ---
-    'admin_master_pin'       => $fnEnv ? voxi_env(['ADMIN_MASTER_PIN', 'VOXI_ADMIN_PIN'], '7788') : (getenv('ADMIN_MASTER_PIN') ?: '7788'),
-    'telegram_bot_token'     => $fnEnv ? voxi_env('TELEGRAM_BOT_TOKEN', voxi_env('VOXI_TELEGRAM_BOT_TOKEN', '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U')) : (getenv('TELEGRAM_BOT_TOKEN') ?: (getenv('VOXI_TELEGRAM_BOT_TOKEN') ?: '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U')),
-    'telegram_admin_chat_id' => $fnEnv ? voxi_env('TELEGRAM_ADMIN_CHAT_ID', voxi_env('VOXI_TELEGRAM_CHAT_ID', '')) : (getenv('TELEGRAM_ADMIN_CHAT_ID') ?: (getenv('VOXI_TELEGRAM_CHAT_ID') ?: '')),
+    'admin_master_pin'       => $fnEnv ? voxi_env(['ADMIN_MASTER_PIN', 'VOXI_ADMIN_PIN'], '') : (getenv('ADMIN_MASTER_PIN') ?: (getenv('VOXI_ADMIN_PIN') ?: '')),
+    'telegram_bot_token'     => $fnEnv ? voxi_env(['TELEGRAM_BOT_TOKEN', 'VOXI_TELEGRAM_BOT_TOKEN'], '') : (getenv('TELEGRAM_BOT_TOKEN') ?: (getenv('VOXI_TELEGRAM_BOT_TOKEN') ?: '')),
+    'telegram_admin_chat_id' => $fnEnv ? voxi_env(['TELEGRAM_ADMIN_CHAT_ID', 'VOXI_TELEGRAM_CHAT_ID'], '') : (getenv('TELEGRAM_ADMIN_CHAT_ID') ?: (getenv('VOXI_TELEGRAM_CHAT_ID') ?: '')),
 
     // --- 5. Резервный нейросетевой синтез речи ---
     'fallback_tts_url' => $fnEnv ? voxi_env(['FALLBACK_TTS_URL'], 'https://telerobot.vercel.app/api/tts') : (getenv('FALLBACK_TTS_URL') ?: 'https://telerobot.vercel.app/api/tts'),

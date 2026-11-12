@@ -4,7 +4,16 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
+$origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
+if ($origin !== '') {
+    $originHost = strtolower((string)(parse_url($origin, PHP_URL_HOST) ?? ''));
+    $publicSiteHost = strtolower((string)(parse_url((string)($VOXI_CONFIG['public_site_url'] ?? ''), PHP_URL_HOST) ?? ''));
+    $allowedHosts = array_filter(['voxi.by', 'www.voxi.by', 'localhost', '127.0.0.1', $publicSiteHost]);
+    if (in_array($originHost, $allowedHosts, true)) {
+        header("Access-Control-Allow-Origin: {$origin}");
+        header('Vary: Origin');
+    }
+}
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
@@ -81,7 +90,10 @@ function resolveTelegramAdminChatId(string $botToken, array $voxiConfig): string
 }
 
 function syncTelegramAdminReplies(string $filePath, array $voxiConfig): void {
-    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U'));
+    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? ''));
+    if ($botToken === '') {
+        $botToken = trim((string)(getenv('TELEGRAM_BOT_TOKEN') ?: ''));
+    }
     if ($botToken === '') return;
 
     $offsetFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_tg_last_update_id.txt';
@@ -180,7 +192,10 @@ function syncTelegramAdminReplies(string $filePath, array $voxiConfig): void {
 }
 
 function notifyTelegram(array $message, array $conv, array $voxiConfig): void {
-    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? getenv('TELEGRAM_BOT_TOKEN') ?: '9051705111:AAGD452S-c8yZtcBa6gMV1mxYEUHsG9rZ7U'));
+    $botToken = trim((string)($voxiConfig['telegram_bot_token'] ?? ''));
+    if ($botToken === '') {
+        $botToken = trim((string)(getenv('TELEGRAM_BOT_TOKEN') ?: ''));
+    }
     if ($botToken === '') {
         return;
     }

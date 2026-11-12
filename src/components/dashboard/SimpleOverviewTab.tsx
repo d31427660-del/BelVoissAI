@@ -21,7 +21,7 @@ interface SimpleOverviewTabProps {
   agent: AgentConfig;
   callLogs: CallLog[];
   sipSettings: SipSettings;
-  onNavigateTab: (tab: 'overview' | 'agent' | 'calls' | 'analytics' | 'integrations') => void;
+  onNavigateTab: (tab: 'overview' | 'agent' | 'calls' | 'integrations') => void;
   onOpenVoiceTest: () => void;
   onToggleActive: () => void;
   onOpenTopUp?: () => void;
@@ -240,9 +240,9 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
         <button
           type="button"
-          onClick={() => onNavigateTab('analytics')}
+          onClick={() => onNavigateTab('calls')}
           className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2 text-left hover:border-emerald-300 transition-all group"
-          title="Открыть подробные графики окупаемости"
+          title="Открыть журнал звонков"
         >
           <div className="flex items-center justify-between text-slate-500 text-xs">
             <span className="font-medium group-hover:text-emerald-700 transition-colors">
@@ -257,7 +257,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           </div>
           <p className="text-[11px] text-emerald-700 font-medium flex items-center justify-between">
             <span>Вечерние и выходные звонки</span>
-            <span>Открыть графики →</span>
+            <span>Журнал звонков →</span>
           </p>
         </button>
 
