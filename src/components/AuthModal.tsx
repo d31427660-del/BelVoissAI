@@ -10,7 +10,6 @@ import {
   EyeIcon,
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   getIspDbStatus,
   ispConfirmResetPassword,
@@ -113,37 +112,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const fetchUserProfile = async (userId: string, fallbackEmail: string, fallbackCompany: string): Promise<UserSession> => {
-    if (supabase) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email, company_name, balance_minutes, rate_per_minute, spent_minutes')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profile) {
-        return {
-          id: userId,
-          email: profile.email || fallbackEmail,
-          companyName: profile.company_name || fallbackCompany,
-          balanceMinutes: Number(profile.balance_minutes ?? 15),
-          ratePerMinute: Number(profile.rate_per_minute ?? 0.45),
-          spentMinutes: Number(profile.spent_minutes ?? 0),
-          isMock: false
-        };
-      }
-    }
-    return {
-      id: userId,
-      email: fallbackEmail,
-      companyName: fallbackCompany,
-      balanceMinutes: 15,
-      ratePerMinute: 0.45,
-      spentMinutes: 0,
-      isMock: false
-    };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -165,12 +133,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           }
           const msg = await ispResetPassword(email.trim());
           setInfoMessage(msg);
-        } else if (isSupabaseConfigured && supabase) {
-          const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-            redirectTo: `${window.location.origin}/`
-          });
-          if (error) throw error;
-          setInfoMessage('Ссылка для сброса пароля отправлена на указанный email.');
         } else {
           setInfoMessage('Демо-режим: используйте кнопки быстрого демо-входа выше без пароля.');
         }
@@ -208,7 +170,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
 
-    // 1. Приоритет: База данных MySQL на хостинге ISPmanager (/api/db)
+    // 1. Авторизация через MySQL на хостинге ISPmanager (/api/db)
     if (ispStatus.available && ispStatus.configured) {
       try {
         if (!ispStatus.connected) {
@@ -238,74 +200,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // 2. Резервная поддержка облачной БД (если настроена вместо ISPmanager)
-    if (isSupabaseConfigured && supabase) {
-      try {
-        if (mode === 'signup') {
-          const { data, error } = await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: {
-              data: {
-                company_name: companyName.trim() || 'Моя компания РБ'
-              }
-            }
-          });
-          if (error) throw error;
-
-          if (data.user && !data.session) {
-            setInfoMessage('На ваш email отправлено письмо для подтверждения аккаунта. Перейдите по ссылке в письме, чтобы получить 15 бесплатных минут.');
-            setLoading(false);
-            return;
-          }
-
-          if (data.user && data.session) {
-            const sessionProfile = await fetchUserProfile(
-              data.user.id,
-              data.user.email || email.trim(),
-              companyName.trim() || 'Моя компания РБ'
-            );
-            onLoginSuccess(sessionProfile);
-            onClose();
-          }
-        } else {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password
-          });
-          if (error) throw error;
-          if (data.user) {
-            const sessionProfile = await fetchUserProfile(
-              data.user.id,
-              data.user.email || email.trim(),
-              data.user.user_metadata?.company_name || 'Бизнес РБ'
-            );
-            onLoginSuccess(sessionProfile);
-            onClose();
-          }
-        }
-      } catch (err: unknown) {
-        const rawMsg = err instanceof Error ? err.message : 'Ошибка авторизации';
-        setErrorMessage(localizeAuthError(rawMsg));
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // 3. Ознакомительный песочный режим (если БД ещё не подключена)
-      setTimeout(() => {
-        onLoginSuccess({
-          id: `usr_demo_${Date.now()}`,
-          email: email.trim(),
-          companyName: companyName.trim() || 'Моя компания РБ',
-          balanceMinutes: 15,
-          ratePerMinute: 0.45,
-          spentMinutes: 0,
-          isMock: true
-        });
-        setLoading(false);
-        onClose();
-      }, 300);
-    }
+    // 2. Ознакомительный песочный режим (если локальная среда разработки без активной БД)
+    setTimeout(() => {
+      onLoginSuccess({
+        id: `usr_demo_${Date.now()}`,
+        email: email.trim(),
+        companyName: companyName.trim() || 'Моя компания РБ',
+        balanceMinutes: 15,
+        ratePerMinute: 0.45,
+        spentMinutes: 0,
+        isMock: true
+      });
+      setLoading(false);
+      onClose();
+    }, 300);
   };
 
   return (

@@ -188,9 +188,6 @@ export default defineConfig(({ mode }) => {
               if (id.includes('/node_modules/@solar-icons/')) {
                 return 'icons';
               }
-              if (id.includes('/node_modules/@supabase/')) {
-                return 'supabase';
-              }
             }
           },
         },

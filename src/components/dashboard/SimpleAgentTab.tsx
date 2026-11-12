@@ -7,9 +7,12 @@ import {
   PauseIcon as Pause,
   Tuning2Icon as Sliders,
   AltArrowDownIcon as ChevronDown,
-  MagicWand3Icon as Sparkles
+  MagicWand3Icon as Sparkles,
+  ToolboxIcon as Wrench,
+  ScissorsIcon as Scissors,
+  DiplomaIcon as GraduationCap,
+  StethoscopeIcon as Stethoscope
 } from '@solar-icons/react/bold-duotone';
-import { Wrench, Scissors, GraduationCap, Stethoscope } from 'lucide-react';
 import { AgentConfig, BusinessNiche, VoiceId, CallLog } from '../../types';
 import { NICHE_TEMPLATES } from '../../lib/mockData';
 import { generateSystemPrompt } from '../../lib/vapiService';

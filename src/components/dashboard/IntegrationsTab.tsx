@@ -12,9 +12,10 @@ import {
   CallChatIcon as CallTransfer,
   AltArrowDownIcon as ChevronDown,
   EyeIcon,
-  EyeClosedIcon
+  EyeClosedIcon,
+  MagicWand3Icon as Sparkles,
+  ChatRoundDotsIcon as MessageSquare
 } from '@solar-icons/react/bold-duotone';
-import { MessageSquare, Sparkles, ExternalLink, Smartphone } from 'lucide-react';
 import { AgentConfig, SipSettings, TelegramSettings, WebhookSettings, CallerNotificationConfig } from '../../types';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 import { formatBelarusPhone } from './InteractiveAgentFields';

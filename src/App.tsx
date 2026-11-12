@@ -20,7 +20,7 @@ import {
 } from './lib/mockData';
 import { generateSystemPrompt } from './lib/vapiService';
 import { adaptGreetingForVoice, ensureMandatoryGreetingNotice } from './lib/botDialogueEngine';
-import { supabase, isSupabaseConfigured, LOCAL_STORAGE_KEYS } from './lib/supabaseClient';
+import { LOCAL_STORAGE_KEYS } from './lib/storageKeys';
 import {
   getIspDbStatus,
   getStoredIspToken,
@@ -102,10 +102,10 @@ export function App() {
     return token ? { token, email } : null;
   });
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(() => {
-    return Boolean(getStoredIspToken() || isSupabaseConfigured);
+    return Boolean(getStoredIspToken());
   });
 
-  // User session: restore demo user from localStorage ONLY if demo mode; real Supabase sessions come via auth listener
+  // User session: restore demo user from localStorage ONLY if demo mode; real sessions come via ISPmanager token
   const [user, setUser] = useState<UserSession | null>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.DEMO_AUTH_USER);
@@ -207,19 +207,18 @@ export function App() {
     }
   }, [resetLinkData]);
 
-  // Restore real session: Priority #1 = ISPmanager MySQL (/api/db), Priority #2 = Supabase fallback
+  // Restore real session: ISPmanager MySQL (/api/db)
   useEffect(() => {
     let cancelled = false;
-    let authCleanup: (() => void) | undefined;
 
     (async () => {
-      const ispStatus = await getIspDbStatus();
-      if (cancelled) return;
+      try {
+        const ispStatus = await getIspDbStatus();
+        if (cancelled) return;
 
-      if (ispStatus.available && ispStatus.configured && ispStatus.connected) {
-        const bundle = await ispGetMe();
-        if (!cancelled) {
-          if (bundle) {
+        if (ispStatus.available && ispStatus.configured && ispStatus.connected) {
+          const bundle = await ispGetMe();
+          if (!cancelled && bundle) {
             setUser(bundle.user);
             if (bundle.agent) setAgent(bundle.agent);
             if (bundle.sipSettings) setSipSettings(bundle.sipSettings);
@@ -227,95 +226,18 @@ export function App() {
             if (bundle.webhookSettings) setWebhookSettings(bundle.webhookSettings);
             setCallLogs(bundle.callLogs);
           }
+        }
+      } catch {
+        // Fallback to offline / sandbox session
+      } finally {
+        if (!cancelled) {
           setIsRestoringSession(false);
         }
-        return;
       }
-
-      if (!isSupabaseConfigured || !supabase) {
-        setIsRestoringSession(false);
-        return;
-      }
-
-      const loadRealUserData = async (userId: string, email: string, fallbackCompany: string) => {
-        if (!supabase || cancelled) return;
-        const [{ data: profile }, { data: dbLogs }] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('email, company_name, balance_minutes, rate_per_minute, spent_minutes')
-            .eq('id', userId)
-            .maybeSingle(),
-          supabase
-            .from('call_logs')
-            .select('*')
-            .eq('user_id', userId)
-            .order('call_timestamp', { ascending: false })
-            .limit(50),
-        ]);
-        if (cancelled) return;
-
-        setUser({
-          id: userId,
-          email: profile?.email || email,
-          companyName: profile?.company_name || fallbackCompany,
-          balanceMinutes: Number(profile?.balance_minutes ?? 15),
-          ratePerMinute: Number(profile?.rate_per_minute ?? 0.45),
-          spentMinutes: Number(profile?.spent_minutes ?? 0),
-          isMock: false,
-        });
-
-        if (Array.isArray(dbLogs)) {
-          setCallLogs(
-            dbLogs.map((row: any) => {
-              const durSec = Number(row.duration_seconds || 0);
-              const mins = Math.floor(durSec / 60);
-              const secs = String(durSec % 60).padStart(2, '0');
-              return {
-                id: row.id,
-                callerNumber: row.caller_number,
-                callerName: row.caller_name || 'Клиент',
-                timestamp: new Date(row.call_timestamp).toLocaleString('ru-RU'),
-                durationSeconds: durSec,
-                audioDuration: `${mins}:${secs}`,
-                costByn: Number(row.cost_byn || 0),
-                status: row.status || 'consultation',
-                dealValueByn: Number(row.deal_value_byn || 0),
-                summary: row.summary || '',
-                capturedData: row.captured_data || {},
-                transcript: row.transcript || [],
-              };
-            })
-          );
-        }
-      };
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!cancelled) {
-        if (session?.user) {
-          await loadRealUserData(
-            session.user.id,
-            session.user.email || '',
-            session.user.user_metadata?.company_name || 'Компания РБ'
-          );
-        }
-        setIsRestoringSession(false);
-      }
-
-      const { data: authSub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-        if (nextSession?.user) {
-          loadRealUserData(
-            nextSession.user.id,
-            nextSession.user.email || '',
-            nextSession.user.user_metadata?.company_name || 'Компания РБ'
-          );
-        }
-      });
-      authCleanup = () => authSub.subscription.unsubscribe();
     })();
 
     return () => {
       cancelled = true;
-      if (authCleanup) authCleanup();
     };
   }, []);
 
@@ -575,9 +497,6 @@ export function App() {
 
   const handleLogout = async () => {
     await ispSignOut();
-    if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
-    }
     setUser(null);
     setCurrentView('landing');
   };
@@ -745,12 +664,6 @@ export function App() {
                     getIspDbStatus().then((st) => {
                       if (st.available && st.configured && st.connected) {
                         ispSaveAgent(updatedAgent).catch(() => {});
-                      } else if (isSupabaseConfigured && supabase) {
-                        supabase
-                          .from('profiles')
-                          .update({ company_name: updatedAgent.companyName, niche: updatedAgent.niche, updated_at: new Date().toISOString() })
-                          .eq('id', user.id)
-                          .then(() => {});
                       }
                     });
                   }

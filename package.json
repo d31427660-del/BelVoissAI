@@ -17,11 +17,9 @@
   "dependencies": {
     "@oddbird/popover-polyfill": "^0.7.3",
     "@solar-icons/react": "^2.3.3",
-    "@supabase/supabase-js": "^2.49.1",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "framer-motion": "^14.6.0",
-    "lucide-react": "^0.475.0",
     "msedge-tts": "^2.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

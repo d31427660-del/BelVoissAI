@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AltArrowDownIcon, AltArrowUpIcon } from '@solar-icons/react/bold-duotone';
 
 export const FaqSection: React.FC = () => {
@@ -77,21 +76,17 @@ export const FaqSection: React.FC = () => {
                   </button>
                 </h3>
 
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="pt-3 text-xs sm:text-sm text-[#52525b] leading-relaxed">
-                        {faq.a}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div
+                  className={`grid transition-[grid-template-rows,opacity] duration-250 ease-out ${
+                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <p className="pt-3 text-xs sm:text-sm text-[#52525b] leading-relaxed">
+                      {faq.a}
+                    </p>
+                  </div>
+                </div>
               </div>
             );
           })}

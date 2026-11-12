@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { PhoneCallingRoundedIcon, SoundwaveCircleIcon } from '@solar-icons/react/bold-duotone';
 
 interface WebCallFloatingWidgetProps {
@@ -8,12 +7,9 @@ interface WebCallFloatingWidgetProps {
 
 export const WebCallFloatingWidget: React.FC<WebCallFloatingWidgetProps> = ({ onOpenVoiceTest }) => {
   return (
-    <motion.aside
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.8, duration: 0.4 }}
+    <aside
       aria-label="Интерактивный голосовой виджет Voxi.by"
-      className="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 print:hidden"
+      className="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 print:hidden animate-fadeIn"
     >
       <button
         type="button"
@@ -46,6 +42,6 @@ export const WebCallFloatingWidget: React.FC<WebCallFloatingWidgetProps> = ({ on
           </div>
         </div>
       </button>
-    </motion.aside>
+    </aside>
   );
 };

@@ -39,6 +39,21 @@ Options -Indexes
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+
+  # Неизменяемые скомпилированные ассеты с хешем (JS / CSS) -> кешировать на 1 год
+  <FilesMatch "\.(js|mjs|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Статические медиа-файлы (WebP, PNG, SVG, MP3, шрифты) -> кешировать на 30 дней
+  <FilesMatch "\.(webp|png|svg|ico|mp3|wav|woff2|woff)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+
+  # HTML-страницы и манифест приложения -> не кешировать (всегда свежий SPA вход)
+  <FilesMatch "\.(html|htm|webmanifest)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
 </IfModule>
 
 # 4. Маршрутизация на скомпилированный бандл /dist/
@@ -56,8 +71,8 @@ Options -Indexes
   RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1) [NC]
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Запросы к API -> dist/api/<file>.php
-  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|live-chat)/?$ dist/api/$1.php [QSA,L]
+  # Запросы к API -> dist/api/<file>.php (полный список всех модулей бэкенда)
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|live-chat|telephony|calendar|vapi-webhook)/?$ dist/api/$1.php [QSA,L]
 
   # Запрет доступа к служебным файлам исходников (.git, src, node_modules, api, scripts и архивам)
   RewriteRule ^(\.git|src|node_modules|database|api|scripts|\.env|\.env\.example|package\.json|package-lock\.json|tsconfig\.json|vite\.config\.ts|voxi-ispmanager\.zip) - [F,L]

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightIcon,
   SoundwaveCircleIcon,
@@ -45,7 +44,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
     voice: 'anna',
     voiceBadge: 'Голос: Анна • Эмпатичный тембр',
     emotionCue: '[доброжелательно, без пауз]',
-    image: '/orbs/orb-1.png',
+    image: '/orbs/orb-1.webp',
     orbGradient: 'radial-gradient(circle at 32% 28%, #60a5fa 0%, #2563eb 45%, #3730a3 85%, #1e1b4b 100%)',
     orbShadow: '0 24px 60px -10px rgba(37, 99, 235, 0.45)',
     questions: [
@@ -77,7 +76,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
     voice: 'maxim',
     voiceBadge: 'Голос: Максим • Уверенный эксперт',
     emotionCue: '[уверенно, по-деловому]',
-    image: '/orbs/orb-3.png',
+    image: '/orbs/orb-3.webp',
     orbGradient: 'radial-gradient(circle at 32% 28%, #34d399 0%, #059669 45%, #2563eb 85%, #0f172a 100%)',
     orbShadow: '0 24px 60px -10px rgba(16, 185, 129, 0.45)',
     questions: [
@@ -109,7 +108,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
     voice: 'anna',
     voiceBadge: 'Голос: Анна • Заботливый администратор',
     emotionCue: '[мягко, внимательно]',
-    image: '/orbs/orb-2.png',
+    image: '/orbs/orb-2.webp',
     orbGradient: 'radial-gradient(circle at 32% 28%, #818cf8 0%, #4f46e5 48%, #2563eb 82%, #1e1b4b 100%)',
     orbShadow: '0 24px 60px -10px rgba(79, 70, 229, 0.45)',
     questions: [
@@ -141,7 +140,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
     voice: 'anna',
     voiceBadge: 'Голос: Анна • Премиальный сервис',
     emotionCue: '[приветливо, выразительно]',
-    image: '/orbs/orb-4.png',
+    image: '/orbs/orb-4.webp',
     orbGradient: 'radial-gradient(circle at 32% 28%, #38bdf8 0%, #2563eb 45%, #10b981 88%, #0f172a 100%)',
     orbShadow: '0 24px 60px -10px rgba(14, 165, 233, 0.45)',
     questions: [
@@ -173,7 +172,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
     voice: 'maxim',
     voiceBadge: 'Голос: Максим • Дежурный 24/7',
     emotionCue: '[спокойно, чёткая дикция]',
-    image: '/orbs/orb-5.png',
+    image: '/orbs/orb-5.webp',
     orbGradient: 'radial-gradient(circle at 32% 28%, #2dd4bf 0%, #2563eb 52%, #1e3a8a 90%, #090d16 100%)',
     orbShadow: '0 24px 60px -10px rgba(37, 99, 235, 0.45)',
     questions: [
@@ -488,38 +487,20 @@ export const Hero: React.FC<HeroProps> = ({
                     }
 
                     return (
-                      <motion.div
+                      <div
                         key={sc.id}
-                        animate={{
-                          x: tx,
-                          y: ty,
-                          scale,
-                          opacity
+                        style={{
+                          transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
+                          opacity,
+                          zIndex,
+                          transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
                         }}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 240,
-                          damping: 26,
-                          mass: 0.85
-                        }}
-                        style={{ zIndex }}
-                        className="absolute flex items-center justify-center origin-center"
+                        className="absolute flex items-center justify-center origin-center will-change-transform"
                       >
                         <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center">
                           {/* Center Acoustic Radiant Glow - active only during speech */}
                           {isCenter && isSpeaking && (
-                            <motion.div
-                              animate={{
-                                scale: [1, 1.25, 1],
-                                opacity: [0.55, 0.15, 0.55]
-                              }}
-                              transition={{
-                                duration: 1.4,
-                                repeat: Infinity,
-                                ease: 'easeInOut'
-                              }}
-                              className="absolute -inset-4 sm:-inset-6 rounded-full bg-black/15 blur-xl pointer-events-none will-change-transform"
-                            />
+                            <div className="absolute -inset-4 sm:-inset-6 rounded-full bg-black/15 blur-xl pointer-events-none animate-pulse will-change-transform" />
                           )}
 
                           {/* Sphere Body with Authentic ElevenLabs 3D Texture */}
@@ -532,28 +513,14 @@ export const Hero: React.FC<HeroProps> = ({
                             onClick={!isCenter ? () => selectScenarioByIndex(idx) : undefined}
                           >
                             {/* High-Resolution Photorealistic 3D Texture */}
-                            <motion.img
+                            <img
                               src={sc.image}
                               alt={sc.title}
-                              animate={
-                                isCenter && isSpeaking
-                                  ? {
-                                      rotate: 360,
-                                      scale: [1, 1.03, 0.98, 1]
-                                    }
-                                  : { rotate: 0, scale: 1 }
-                              }
-                              transition={
-                                isSpeaking
-                                  ? {
-                                      rotate: { duration: 16, repeat: Infinity, ease: 'linear' },
-                                      scale: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }
-                                    }
-                                  : { duration: 0.3 }
-                              }
                               loading={isCenter ? 'eager' : 'lazy'}
                               decoding="async"
-                              className="w-full h-full object-cover select-none pointer-events-none will-change-transform"
+                              className={`w-full h-full object-cover select-none pointer-events-none will-change-transform ${
+                                isCenter && isSpeaking ? 'animate-[spin_16s_linear_infinite]' : ''
+                              }`}
                               draggable={false}
                             />
 
@@ -580,7 +547,7 @@ export const Hero: React.FC<HeroProps> = ({
                             </button>
                           )}
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>
@@ -631,21 +598,15 @@ export const Hero: React.FC<HeroProps> = ({
                     </span>
                   </div>
 
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={`${currentScenario.id}-${selectedVoice}-${activeQuestionId}`}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.18 }}
-                      className="text-sm sm:text-base text-black font-normal leading-relaxed"
-                    >
-                      <span className="text-black font-semibold mr-1.5">
-                        {selectedVoice === 'maxim' ? 'Максим:' : 'Анна:'}
-                      </span>
-                      «{currentAnswerText}»
-                    </motion.div>
-                  </AnimatePresence>
+                  <div
+                    key={`${currentScenario.id}-${selectedVoice}-${activeQuestionId}`}
+                    className="text-sm sm:text-base text-black font-normal leading-relaxed animate-fadeIn"
+                  >
+                    <span className="text-black font-semibold mr-1.5">
+                      {selectedVoice === 'maxim' ? 'Максим:' : 'Анна:'}
+                    </span>
+                    «{currentAnswerText}»
+                  </div>
 
                   <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between gap-3">
                     <button
