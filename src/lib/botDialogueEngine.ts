@@ -72,6 +72,41 @@ export const NICHE_QUICK_QUESTIONS: Record<
   ],
 };
 
+export function ensureMandatoryGreetingNotice(greeting: string): string {
+  const trimmed = (greeting || '').trim();
+  if (!trimmed) {
+    return 'Здравствуйте! Разговор записывается. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем я могу вам помочь?';
+  }
+
+  const hasRecordingNotice = /записыва|запись разговора|подлежит записи/i.test(trimmed);
+  const hasManagerNotice =
+    /(?:переключ|соедин|позов|перевед|свяж|скажите).*(?:менеджер|оператор|администратор|специалист|человек)/i.test(
+      trimmed
+    );
+
+  if (hasRecordingNotice && hasManagerNotice) {
+    return trimmed;
+  }
+
+  const missingParts: string[] = [];
+  if (!hasRecordingNotice) {
+    missingParts.push('Разговор записывается.');
+  }
+  if (!hasManagerNotice) {
+    missingParts.push('Чтобы переключиться на менеджера, скажите «соедините с менеджером».');
+  }
+  const noticeBlock = missingParts.join(' ');
+
+  // Insert right before the final question sentence so the bot finishes its turn with the question
+  const lastSentenceSplit = trimmed.match(/^(.*[.!])\s+([^.!?]+\?)\s*$/s);
+  if (lastSentenceSplit) {
+    return `${lastSentenceSplit[1]} ${noticeBlock} ${lastSentenceSplit[2]}`;
+  }
+
+  const endsWithPunct = /[.!?]$/.test(trimmed);
+  return `${trimmed}${endsWithPunct ? '' : '.'} ${noticeBlock}`;
+}
+
 export function adaptGreetingForVoice(
   rawGreeting: string,
   voice: string,
@@ -91,7 +126,7 @@ export function adaptGreetingForVoice(
   if (companyName && templateCompanyName && companyName.trim() && companyName !== templateCompanyName) {
     result = result.replace(templateCompanyName, companyName.trim());
   }
-  return result;
+  return ensureMandatoryGreetingNotice(result);
 }
 
 /**

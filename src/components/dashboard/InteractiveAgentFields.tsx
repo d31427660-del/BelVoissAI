@@ -10,6 +10,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { BusinessNiche, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
+import { ensureMandatoryGreetingNotice } from '../../lib/botDialogueEngine';
 import { FieldLabel, FieldHint, AutoGrowTextarea } from './FieldHelp';
 
 /* ============================================================================
@@ -851,25 +852,26 @@ function buildGreetingTemplate(
   const cleanCompany = companyName.trim() || 'наша компания';
   const speakerName = voice === 'maxim' ? 'Максим' : 'Анна';
   const autoServiceRole = voice === 'maxim' ? 'мастер-приёмщик' : 'мастер';
+  const mandatoryNotice = 'Разговор записывается. Чтобы переключиться на менеджера, скажите «соедините с менеджером».';
 
   if (style === 'friendly') {
-    return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. Чем могу вам помочь?`;
+    return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. ${mandatoryNotice} Чем могу вам помочь?`;
   }
   if (style === 'booking') {
-    return `Добрый день! ${cleanCompany}, голосовой помощник ${speakerName}. Подсказать стоимость услуг или записать вас на удобное время?`;
+    return `Добрый день! ${cleanCompany}, голосовой помощник ${speakerName}. ${mandatoryNotice} Подсказать стоимость услуг или записать вас на удобное время?`;
   }
 
   switch (niche) {
     case 'driving_school':
-      return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. Подскажите, вас интересует обучение на категорию B или дополнительные уроки вождения?`;
+      return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. ${mandatoryNotice} Подскажите, вас интересует обучение на категорию B или дополнительные уроки вождения?`;
     case 'auto_service':
-      return `Добрый день! ${cleanCompany}, ${autoServiceRole} ${speakerName}. Подскажите, нужна диагностика или плановое обслуживание автомобиля?`;
+      return `Добрый день! ${cleanCompany}, ${autoServiceRole} ${speakerName}. ${mandatoryNotice} Подскажите, нужна диагностика или плановое обслуживание автомобиля?`;
     case 'medical_clinic':
-      return `Здравствуйте! ${cleanCompany}, администратор ${speakerName}. Желаете записаться на приём к врачу или вас беспокоит острая боль?`;
+      return `Здравствуйте! ${cleanCompany}, администратор ${speakerName}. ${mandatoryNotice} Желаете записаться на приём к врачу или вас беспокоит острая боль?`;
     case 'beauty_salon':
-      return `Здравствуйте! ${cleanCompany}, администратор ${speakerName}. На какую процедуру и в какой день вам удобно записаться?`;
+      return `Здравствуйте! ${cleanCompany}, администратор ${speakerName}. ${mandatoryNotice} На какую процедуру и в какой день вам удобно записаться?`;
     default:
-      return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. Чем могу вам помочь?`;
+      return `Здравствуйте! ${cleanCompany}, меня зовут ${speakerName}. ${mandatoryNotice} Чем могу вам помочь?`;
   }
 }
 
@@ -927,7 +929,7 @@ export const InteractiveGreetingBuilder: React.FC<InteractiveGreetingBuilderProp
     setIsPlayingA(false);
     setIsPlayingB(false);
     VoiceSimulator.speak(
-      text || buildGreetingTemplate('friendly', companyName, voice, niche),
+      ensureMandatoryGreetingNotice(text || buildGreetingTemplate('friendly', companyName, voice, niche)),
       voice,
       () => (isVariantB ? setIsPlayingB(true) : setIsPlayingA(true)),
       () => (isVariantB ? setIsPlayingB(false) : setIsPlayingA(false))

@@ -13,6 +13,7 @@ import { FaqSection } from './components/landing/FaqSection';
 import { CtaSection } from './components/landing/CtaSection';
 import { Footer, LegalDocType } from './components/Footer';
 import { AdminChatWidget } from './components/AdminChatWidget';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { 
   DEFAULT_AGENT_CONFIG, 
   INITIAL_CALL_LOGS, 
@@ -22,7 +23,7 @@ import {
   NICHE_TEMPLATES 
 } from './lib/mockData';
 import { generateSystemPrompt } from './lib/vapiService';
-import { adaptGreetingForVoice } from './lib/botDialogueEngine';
+import { adaptGreetingForVoice, ensureMandatoryGreetingNotice } from './lib/botDialogueEngine';
 import { supabase, isSupabaseConfigured, LOCAL_STORAGE_KEYS } from './lib/supabaseClient';
 import {
   getIspDbStatus,
@@ -95,6 +96,7 @@ export function App() {
     voice: VoiceId;
   } | null>(null);
   const [externalLegalDoc, setExternalLegalDoc] = useState<LegalDocType | null>(getInitialLegalDocFromLocation);
+  const [cookieSettingsTrigger, setCookieSettingsTrigger] = useState<number>(0);
   const [paymentToast, setPaymentToast] = useState<string | null>(null);
   const [resetLinkData, setResetLinkData] = useState<{ token: string; email: string } | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -125,7 +127,13 @@ export function App() {
   const [agent, setAgent] = useState<AgentConfig>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENT_CONFIG);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: AgentConfig = JSON.parse(saved);
+        parsed.firstMessage = ensureMandatoryGreetingNotice(parsed.firstMessage);
+        if (parsed.greetingA) parsed.greetingA = ensureMandatoryGreetingNotice(parsed.greetingA);
+        if (parsed.greetingB) parsed.greetingB = ensureMandatoryGreetingNotice(parsed.greetingB);
+        return parsed;
+      }
     } catch {
       // fallback
     }
@@ -790,12 +798,19 @@ export function App() {
               window.history.pushState({}, '', '/');
             }
           }}
+          onOpenCookieSettings={() => setCookieSettingsTrigger((n) => n + 1)}
           onNavigateSection={(sectionId) => {
             const el = document.getElementById(sectionId);
             if (el) el.scrollIntoView({ behavior: 'smooth' });
           }}
         />
       )}
+
+      {/* Cookie Consent Banner (Law of RB No. 99-Z) */}
+      <CookieConsentBanner
+        onOpenPrivacyPolicy={() => setExternalLegalDoc('privacy')}
+        forceOpenTrigger={cookieSettingsTrigger}
+      />
 
       {/* Lazy Modals */}
       {isAuthModalOpen && (
