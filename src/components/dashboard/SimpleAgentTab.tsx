@@ -15,7 +15,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, VoiceId, CallLog } from '../../types';
 import { generateSystemPrompt } from '../../lib/vapiService';
-import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
+import { requestAiPromptImprovement, adaptGreetingForVoice, isMockCompanyOrTest } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
 import { FieldLabel, FieldHint } from './FieldHelp';
@@ -83,10 +83,31 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   const [promptGenStatus, setPromptGenStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    setFormData(agent);
-    setServices(parsePricing(agent.pricingAndServices));
+    const cleanCompany = isMockCompanyOrTest(agent.companyName) ? '' : agent.companyName;
+    const cleanAddress = agent.address?.includes('Сурганова') ? '' : (agent.address || '');
+    const cleanPhone = (agent.phone === '+375 (29) 112-44-55' || agent.phone === '+375 (29) 700-11-22') ? '' : (agent.phone || '');
+    const cleanPricing = agent.pricingAndServices?.includes('категории "B"') ? '' : (agent.pricingAndServices || '');
+    const cleanKnowledge = agent.knowledgeBase?.includes('Volkswagen Polo') ? '' : (agent.knowledgeBase || '');
+    const voiceLabel = agent.voice === 'maxim' ? 'Максим' : 'Анна';
+    const cleanName = `${voiceLabel} — ${cleanCompany || 'Голосовой ассистент'}`;
+    const cleanFirstMessage = (agent.firstMessage && !isMockCompanyOrTest(agent.firstMessage))
+      ? agent.firstMessage
+      : `Здравствуйте! Вас приветствует компания. Меня зовут ${voiceLabel}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`;
+
+    const cleanedAgent: AgentConfig = {
+      ...agent,
+      companyName: cleanCompany,
+      name: cleanName,
+      address: cleanAddress,
+      phone: cleanPhone,
+      pricingAndServices: cleanPricing,
+      knowledgeBase: cleanKnowledge,
+      firstMessage: cleanFirstMessage,
+    };
+    setFormData(cleanedAgent);
+    setServices(parsePricing(cleanPricing));
     setIsCustomPrompt(
-      Boolean(agent.systemPrompt?.trim() && agent.systemPrompt.trim() !== generateSystemPrompt(agent).trim())
+      Boolean(agent.systemPrompt?.trim() && agent.systemPrompt.trim() !== generateSystemPrompt(cleanedAgent).trim())
     );
   }, [agent]);
 

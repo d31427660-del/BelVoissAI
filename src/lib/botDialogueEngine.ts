@@ -2,6 +2,21 @@ import { BusinessNiche, CallLog, CallerNotificationConfig } from '../types';
 import { NICHE_TEMPLATES } from './mockData';
 import { formatCallerTemplate } from './callerNotificationService';
 
+export function isMockCompanyOrTest(name?: string | null): boolean {
+  if (!name) return true;
+  const lower = name.trim().toLowerCase();
+  return (
+    lower === 'автошкола "драйв-минск"' ||
+    lower === 'автошкола «драйв-минск»' ||
+    lower.includes('драйв-минск') ||
+    lower.includes('минск-моторс') ||
+    lower.includes('дент-престиж') ||
+    lower.includes('лофт бьюти') ||
+    lower === 'моя компания' ||
+    lower === 'моя компания рб'
+  );
+}
+
 export interface DialogueContext {
   niche?: BusinessNiche;
   companyName?: string;

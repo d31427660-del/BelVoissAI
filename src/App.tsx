@@ -18,7 +18,7 @@ import {
   NICHE_TEMPLATES,
 } from './lib/mockData';
 import { generateSystemPrompt } from './lib/vapiService';
-import { adaptGreetingForVoice, ensureMandatoryGreetingNotice } from './lib/botDialogueEngine';
+import { adaptGreetingForVoice, ensureMandatoryGreetingNotice, isMockCompanyOrTest } from './lib/botDialogueEngine';
 import {
   getIspDbStatus,
   hasSessionHint,
@@ -153,8 +153,23 @@ export function App() {
           if (!cancelled && bundle) {
             setUser(bundle.user);
             if (bundle.agent) {
-              setAgent(withMandatoryNotice(bundle.agent));
-            } else if (bundle.user?.companyName) {
+              const cleaned = { ...bundle.agent };
+              if (isMockCompanyOrTest(cleaned.companyName)) {
+                cleaned.companyName = bundle.user?.companyName && !isMockCompanyOrTest(bundle.user.companyName) ? bundle.user.companyName : '';
+              }
+              if (cleaned.phone === '+375 (29) 112-44-55' || cleaned.phone === '+375 (29) 700-11-22') {
+                cleaned.phone = '';
+              }
+              if (cleaned.address && cleaned.address.includes('Сурганова')) {
+                cleaned.address = '';
+              }
+              if (cleaned.pricingAndServices && cleaned.pricingAndServices.includes('категории "B"')) {
+                cleaned.pricingAndServices = '';
+              }
+              cleaned.name = `${cleaned.voice === 'maxim' ? 'Максим' : 'Анна'} — ${cleaned.companyName || 'Голосовой ассистент'}`;
+              cleaned.systemPrompt = generateSystemPrompt(cleaned);
+              setAgent(withMandatoryNotice(cleaned));
+            } else if (bundle.user?.companyName && !isMockCompanyOrTest(bundle.user.companyName)) {
               setAgent((prev) => {
                 const voiceLabel = prev.voice === 'maxim' ? 'Максим' : 'Анна';
                 const updated = {
@@ -270,24 +285,24 @@ export function App() {
   }, [user]);
 
   const buildAgentForNicheAndVoice = (base: AgentConfig, niche: BusinessNiche, voiceOverride?: VoiceId): AgentConfig => {
-    const template = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.custom;
     const nextVoice = voiceOverride || base.voice;
     const voiceName = nextVoice === 'maxim' ? 'Максим' : 'Анна';
-    const effectiveCompany = user?.companyName || (base.companyName && base.companyName !== 'Моя Компания' ? base.companyName : '') || template.companyName || 'Моя компания';
+    const effectiveCompany = (!isMockCompanyOrTest(user?.companyName) ? user?.companyName : '') ||
+                             (!isMockCompanyOrTest(base.companyName) ? base.companyName : '') || '';
     const updatedAgent: AgentConfig = {
       ...base,
       niche,
       voice: nextVoice,
-      name: `${voiceName} — ${effectiveCompany}`,
+      name: `${voiceName} — ${effectiveCompany || 'Голосовой ассистент'}`,
       companyName: effectiveCompany,
-      city: base.city || template.city,
-      address: base.address || template.address,
-      phone: base.phone || template.phone,
-      workingHours: base.workingHours || template.workingHours,
-      pricingAndServices: base.pricingAndServices || template.pricingAndServices,
-      knowledgeBase: base.knowledgeBase || template.knowledgeBase,
+      city: base.city || 'Минск',
+      address: base.address?.includes('Сурганова') ? '' : (base.address || ''),
+      phone: (base.phone === '+375 (29) 112-44-55' || base.phone === '+375 (29) 700-11-22') ? '' : (base.phone || ''),
+      workingHours: base.workingHours || 'Пн-Пт: 09:00 - 19:00',
+      pricingAndServices: base.pricingAndServices?.includes('категории "B"') ? '' : (base.pricingAndServices || ''),
+      knowledgeBase: base.knowledgeBase?.includes('Volkswagen Polo') ? '' : (base.knowledgeBase || ''),
       firstMessage: adaptGreetingForVoice(
-        base.firstMessage || template.firstMessage,
+        base.firstMessage || `Здравствуйте! Вас приветствует компания. Меня зовут ${voiceName}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`,
         nextVoice,
         effectiveCompany,
         effectiveCompany

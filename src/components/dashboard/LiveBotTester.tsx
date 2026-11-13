@@ -327,12 +327,15 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
       setCallStatus('connected');
 
       const latestAgent = agentRef.current;
-      const chosenGreeting = latestAgent.firstMessage || tmpl.firstMessage;
+      const voiceLabel = latestAgent.voice === 'maxim' ? 'Максим' : 'Анна';
+      const cleanCompany = latestAgent.companyName || 'наша компания';
+      const defaultGreeting = `Здравствуйте! Вас приветствует ${cleanCompany}. Меня зовут ${voiceLabel}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`;
+      const chosenGreeting = latestAgent.firstMessage || defaultGreeting;
       const welcome = adaptGreetingForVoice(
         chosenGreeting,
         latestAgent.voice,
-        latestAgent.companyName,
-        tmpl.companyName
+        cleanCompany,
+        'Компания'
       );
       const initialMsg = [{ speaker: 'assistant' as const, text: welcome, time: '00:01' }];
       messagesRef.current = initialMsg;
