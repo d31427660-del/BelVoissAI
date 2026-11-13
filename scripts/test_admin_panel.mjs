@@ -60,6 +60,7 @@ function startStaticServer(baseDir) {
           req.on('end', () => {
             let body = {};
             try { body = JSON.parse(bodyStr); } catch {}
+            console.log(`[TEST-API] Action: ${action}, body: ${JSON.stringify(body)}`);
             if (action === 'admin_login') {
               if (body.pin === '7788') {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -218,6 +219,7 @@ async function runAdminPanelTest() {
 
   try {
     const page = await browser.newPage();
+    page.on('console', msg => console.log(`[BROWSER]: ${msg.text()}`));
     await page.setViewport({ width: 1280, height: 800 });
 
     // 1. Navigate to #admin
@@ -241,10 +243,11 @@ async function runAdminPanelTest() {
     // Test valid PIN 7788
     console.log('Вводим правильный PIN-код (7788)...');
     await page.evaluate(() => {
-      const input = document.querySelector('input[type="password"]');
-      if (input) {
-        input.value = '';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+      const el = document.querySelector('input[type="password"]');
+      if (el) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+        setter?.call(el, '');
+        el.dispatchEvent(new Event('input', { bubbles: true }));
       }
     });
     await page.type('input[type="password"]', '7788');

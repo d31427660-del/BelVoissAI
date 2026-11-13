@@ -7,17 +7,13 @@ import {
   PauseIcon as Pause,
   AltArrowDownIcon as ChevronDown,
   MagicWand3Icon as Sparkles,
-  ToolboxIcon as Wrench,
-  ScissorsIcon as Scissors,
-  DiplomaIcon as GraduationCap,
-  StethoscopeIcon as Stethoscope,
+  Buildings2Icon as Briefcase,
   PhoneCallingRoundedIcon as Phone,
   CloseCircleIcon as X,
   ClockCircleIcon as Clock,
   MapPointIcon as MapPin
 } from '@solar-icons/react/bold-duotone';
-import { AgentConfig, BusinessNiche, VoiceId, CallLog } from '../../types';
-import { NICHE_TEMPLATES } from '../../lib/mockData';
+import { AgentConfig, VoiceId, CallLog } from '../../types';
 import { generateSystemPrompt } from '../../lib/vapiService';
 import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
@@ -100,55 +96,32 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     };
   }, []);
 
-  const niches: Array<{
-    id: BusinessNiche;
-    label: string;
-    desc: string;
-    Icon: React.ComponentType<{ className?: string }>;
-  }> = [
-    { id: 'auto_service', label: 'Автосервис (СТО)', desc: 'Ремонт, ТО, диагностика, шиномонтаж', Icon: Wrench },
-    { id: 'beauty_salon', label: 'Салон красоты', desc: 'Стрижки, маникюр, окрашивание, косметология', Icon: Scissors },
-    { id: 'driving_school', label: 'Автошкола', desc: 'Категория B, вождение, рассрочка', Icon: GraduationCap },
-    { id: 'medical_clinic', label: 'Стоматология / Клиника', desc: 'Консультации врачей, лечение, приём', Icon: Stethoscope }
-  ];
-
   const getVoiceDisplayName = (voice: VoiceId): string => {
     return voice === 'maxim' ? 'Максим' : 'Анна';
   };
 
-  const handleSelectNiche = (niche: BusinessNiche) => {
-    const tmpl = NICHE_TEMPLATES[niche];
-    const voiceLabel = getVoiceDisplayName(formData.voice);
+  const handleBusinessActivityChange = (val: string) => {
     const updated: AgentConfig = {
       ...formData,
-      niche,
-      name: `${voiceLabel} — ${tmpl.companyName}`,
-      companyName: tmpl.companyName,
-      city: tmpl.city,
-      address: tmpl.address,
-      phone: tmpl.phone,
-      workingHours: tmpl.workingHours,
-      pricingAndServices: tmpl.pricingAndServices,
-      knowledgeBase: tmpl.knowledgeBase,
-      firstMessage: adaptGreetingForVoice(tmpl.firstMessage, formData.voice, tmpl.companyName, tmpl.companyName),
+      niche: 'custom',
+      businessActivity: val,
       updatedAt: new Date().toISOString()
     };
-    updated.systemPrompt = generateSystemPrompt(updated);
-    setIsCustomPrompt(false);
+    if (!isCustomPrompt) {
+      updated.systemPrompt = generateSystemPrompt(updated);
+    }
     setFormData(updated);
-    setServices(parsePricing(tmpl.pricingAndServices));
-    onSaveAgent(updated);
   };
 
   const handleSelectVoice = (voice: VoiceId) => {
-    const tmpl = NICHE_TEMPLATES[formData.niche] || NICHE_TEMPLATES.driving_school;
     const voiceLabel = getVoiceDisplayName(voice);
+    const defaultGreeting = `Здравствуйте! Вас приветствует компания. Меня зовут ${voiceLabel}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`;
     const updated: AgentConfig = {
       ...formData,
       voice,
-      name: `${voiceLabel} — ${formData.companyName}`,
+      name: `${voiceLabel} — ${formData.companyName || 'Голосовой ассистент'}`,
       firstMessage: adaptGreetingForVoice(
-        formData.firstMessage || tmpl.firstMessage,
+        formData.firstMessage || defaultGreeting,
         voice,
         formData.companyName,
         formData.companyName
@@ -229,13 +202,11 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     });
   };
 
-  const handleResetServicesToNiche = () => {
-    const tmpl = NICHE_TEMPLATES[formData.niche] || NICHE_TEMPLATES.auto_service;
-    const parsed = parsePricing(tmpl.pricingAndServices);
-    setServices(parsed);
+  const handleClearServices = () => {
+    setServices([]);
     setFormData({
       ...formData,
-      pricingAndServices: tmpl.pricingAndServices
+      pricingAndServices: ''
     });
   };
 
@@ -354,39 +325,27 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
           </p>
         </div>
 
-        {/* Сфера бизнеса */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-black block">
-            Сфера бизнеса (готовый шаблон):
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {niches.map((n) => {
-              const isSelected = formData.niche === n.id;
-              return (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => handleSelectNiche(n.id)}
-                  className={`p-3 rounded-[12px] text-left border transition-all cursor-pointer flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-black text-white border-black shadow-xs'
-                      : 'liquid-glass-cream text-black border-black/[0.06] hover:bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <n.Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-black'}`} />
-                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium">{n.label}</div>
-                    <div className={`text-[10px] mt-0.5 truncate ${isSelected ? 'text-white/70' : 'text-[#777169]'}`}>
-                      {n.desc}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        {/* Сфера бизнеса / Чем занимается компания */}
+        <div>
+          <FieldLabel
+            htmlFor="business-activity"
+            label="Сфера бизнеса и деятельность компании"
+            required
+            helpTitle="Сфера бизнеса вашей компании"
+            helpText="Напишите своими словами, чем занимается компания (любая сфера: аренда спецтехники, грузоперевозки, отделка помещений, юруслуги, доставка еды, авторемонт, медицинские услуги, торговля и др.). Бот обучается специфике вашей деятельности и будет консультировать клиентов без шаблонных ограничений."
+            helpExample="Аренда автовышек и строительной техники&#10;Доставка суши и пиццы&#10;Ремонт и отделка квартир под ключ&#10;Юридические услуги для бизнеса&#10;Оптовая продажа автозапчастей"
+          />
+          <input
+            id="business-activity"
+            type="text"
+            value={formData.businessActivity || ''}
+            onChange={(e) => handleBusinessActivityChange(e.target.value)}
+            placeholder="Например: Аренда спецтехники / Юридические услуги / Ремонт квартир"
+            className="w-full px-3 py-2.5 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black focus:outline-none focus:border-black transition-colors"
+          />
+          <p className="text-[10px] text-[#777169] mt-1">
+            Любое направление бизнеса: бот подстраивается под специфику вашей сферы без жестких шаблонов.
+          </p>
         </div>
 
         {/* Название и Телефон */}
@@ -398,7 +357,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               required
               helpTitle="Как написать название компании"
               helpText="Напишите понятное на слух название без «ООО», «ЗАО» и «УНП». Как только вы измените название здесь, оно автоматически обновится и в приветствии бота."
-              helpExample="Автошкола Все категории&#10;Автосервис Минск-Моторс&#10;Стоматология Дент-Престиж"
+              helpExample="СпецТрансГрупп&#10;Юрист Консалт&#10;Минск Ремонт"
             />
             <input
               id="company-name"
@@ -406,7 +365,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               required
               value={formData.companyName}
               onChange={(e) => handleCompanyNameChange(e.target.value)}
-              placeholder="СТО Минск-Моторс / Салон Эдем"
+              placeholder="Название вашей компании"
               className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black focus:outline-none focus:border-black"
             />
             <p className="text-[10px] text-[#777169] mt-1">
@@ -588,7 +547,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             label="Приветствие бота (первая фраза при звонке)"
             helpTitle="Как составить первое сообщение"
             helpText="Первая фраза, которую услышит клиент при звонке. Рекомендуем поздороваться, назвать компанию, имя бота и задать открытый вопрос («Чем могу помочь?»). Предупреждение о записи разговора добавляется автоматически согласно Закону РБ 99-З."
-            helpExample="Здравствуйте! Автосервис Минск-Моторс, меня зовут Анна. Разговор записывается. Чем могу вам помочь?"
+            helpExample="Здравствуйте! Вас приветствует компания, меня зовут Анна. Разговор записывается. Чем могу вам помочь?"
           />
           <textarea
             id="first-message"
@@ -616,13 +575,15 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleResetServicesToNiche}
-            className="text-[11px] text-[#777169] hover:text-black underline cursor-pointer"
-          >
-            Сбросить к типовым
-          </button>
+          {services.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearServices}
+              className="text-[11px] text-[#777169] hover:text-black underline cursor-pointer"
+            >
+              Очистить список
+            </button>
+          )}
         </div>
 
         {/* Services List */}

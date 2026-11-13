@@ -152,7 +152,20 @@ export function App() {
           const bundle = await ispGetMe();
           if (!cancelled && bundle) {
             setUser(bundle.user);
-            if (bundle.agent) setAgent(withMandatoryNotice(bundle.agent));
+            if (bundle.agent) {
+              setAgent(withMandatoryNotice(bundle.agent));
+            } else if (bundle.user?.companyName) {
+              setAgent((prev) => {
+                const voiceLabel = prev.voice === 'maxim' ? 'Максим' : 'Анна';
+                const updated = {
+                  ...prev,
+                  companyName: bundle.user.companyName,
+                  name: `${voiceLabel} — ${bundle.user.companyName}`,
+                };
+                updated.systemPrompt = generateSystemPrompt(updated);
+                return updated;
+              });
+            }
             if (bundle.sipSettings) setSipSettings(bundle.sipSettings);
             if (bundle.telegramSettings) setTelegramSettings(bundle.telegramSettings);
             if (bundle.webhookSettings) setWebhookSettings(bundle.webhookSettings);
@@ -257,22 +270,28 @@ export function App() {
   }, [user]);
 
   const buildAgentForNicheAndVoice = (base: AgentConfig, niche: BusinessNiche, voiceOverride?: VoiceId): AgentConfig => {
-    const template = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
+    const template = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.custom;
     const nextVoice = voiceOverride || base.voice;
     const voiceName = nextVoice === 'maxim' ? 'Максим' : 'Анна';
+    const effectiveCompany = user?.companyName || (base.companyName && base.companyName !== 'Моя Компания' ? base.companyName : '') || template.companyName || 'Моя компания';
     const updatedAgent: AgentConfig = {
       ...base,
       niche,
       voice: nextVoice,
-      name: `${voiceName} — ${template.companyName}`,
-      companyName: template.companyName,
-      city: template.city,
-      address: template.address,
-      phone: template.phone,
-      workingHours: template.workingHours,
-      pricingAndServices: template.pricingAndServices,
-      knowledgeBase: template.knowledgeBase,
-      firstMessage: adaptGreetingForVoice(template.firstMessage, nextVoice, template.companyName, template.companyName),
+      name: `${voiceName} — ${effectiveCompany}`,
+      companyName: effectiveCompany,
+      city: base.city || template.city,
+      address: base.address || template.address,
+      phone: base.phone || template.phone,
+      workingHours: base.workingHours || template.workingHours,
+      pricingAndServices: base.pricingAndServices || template.pricingAndServices,
+      knowledgeBase: base.knowledgeBase || template.knowledgeBase,
+      firstMessage: adaptGreetingForVoice(
+        base.firstMessage || template.firstMessage,
+        nextVoice,
+        effectiveCompany,
+        effectiveCompany
+      ),
     };
     updatedAgent.systemPrompt = generateSystemPrompt(updatedAgent);
     return updatedAgent;

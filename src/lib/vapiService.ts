@@ -8,10 +8,17 @@ export function generateSystemPrompt(config: Partial<AgentConfig>): string {
     : 'Общайся доброжелательно, приветливо, тепло и заботливо, обращаясь на уважительное "Вы".';
 
   const yclientsBlock = config.yclientsConfig && config.yclientsConfig.isEnabled
-    ? YclientsService.getPromptInstruction(config.yclientsConfig, config.niche || 'driving_school', config.voice)
+    ? YclientsService.getPromptInstruction(config.yclientsConfig, config.niche || 'custom', config.voice)
     : '';
 
-  return `Ты — ${voiceName}, профессиональный, быстрый и тактичный голосовой телефонный ИИ-администратор компании "${config.companyName || 'Компания'}" в городе ${config.city || 'Минск'}, Беларусь.
+  const businessActivityStr = config.businessActivity?.trim()
+    ? `сфера деятельности: ${config.businessActivity.trim()}`
+    : '';
+  const businessActivityLine = config.businessActivity?.trim()
+    ? `- Сфера деятельности: ${config.businessActivity.trim()}\n`
+    : '';
+
+  return `Ты — ${voiceName}, профессиональный, быстрый и тактичный голосовой телефонный ИИ-администратор компании "${config.companyName || 'Компания'}"${businessActivityStr ? ` (${businessActivityStr})` : ''} в городе ${config.city || 'Минск'}, Беларусь.
 
 ### ТВОЯ ЦЕЛЬ:
 1. Ответить на звонок мгновенно (за 0.5 секунды) и в начале разговора обязательно предупредить клиента, что разговор записывается, а для переключения на живого менеджера достаточно сказать «соедините с менеджером».
@@ -28,7 +35,7 @@ export function generateSystemPrompt(config: Partial<AgentConfig>): string {
 
 ### ДАННЫЕ О КОМПАНИИ:
 - Название: ${config.companyName || 'Не указано'}
-- Город и адрес: ${config.city || 'Минск'}, ${config.address || 'Не указан'}
+${businessActivityLine}- Город и адрес: ${config.city || 'Минск'}, ${config.address || 'Не указан'}
 - Контактный телефон: ${config.phone || 'Не указан'}
 - График работы: ${config.workingHours || 'Пн-Пт с 9:00 до 20:00'}
 

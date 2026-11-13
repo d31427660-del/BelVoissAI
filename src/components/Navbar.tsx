@@ -130,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-black/20 hidden sm:inline">/</span>
               <span className="text-black font-medium flex items-center gap-1.5 truncate max-w-[180px] sm:max-w-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="truncate">{user?.companyName || 'Автошкола "Драйв-Минск"'}</span>
+                <span className="truncate">{user?.companyName || 'Моя компания'}</span>
               </span>
             </div>
           )}

@@ -99,7 +99,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-                {agent.companyName}
+                {agent.companyName || 'Моя компания'}
               </h2>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${

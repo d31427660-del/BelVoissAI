@@ -235,7 +235,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Стоматология «Дент», СТО"
+                  placeholder="Название компании или ИП"
                   className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors"
                 />
               </div>
@@ -257,7 +257,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@company.by"
+                placeholder="name@company.by"
                 className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors"
               />
             </div>

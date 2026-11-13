@@ -489,7 +489,7 @@ if ($action === 'signup') {
             'INSERT INTO users (id, email, password_hash, company_name, niche, balance_minutes, rate_per_minute, spent_minutes, spent_total_byn, consent_99z_accepted_at)
              VALUES (?, ?, ?, ?, ?, 15.00, 0.45, 0.00, 0.00, NOW())'
         );
-        $insUser->execute([$userId, $email, $passwordHash, $companyName, 'driving_school']);
+        $insUser->execute([$userId, $email, $passwordHash, $companyName, 'custom']);
 
         $insTx = $pdo->prepare(
             'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, description)

@@ -204,7 +204,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <div className="p-2.5 rounded-[12px] bg-[#F5F3F1]/70 border border-black/[0.06] space-y-1">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-medium text-black truncate">
-                {agent.companyName}
+                {agent.companyName || user.companyName || 'Моя компания'}
               </span>
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${

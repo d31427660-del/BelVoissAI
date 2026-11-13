@@ -39,6 +39,7 @@ export interface AgentConfig {
   id: string;
   name: string;
   niche: BusinessNiche;
+  businessActivity?: string; // Произвольная сфера деятельности (напр., "Аренда спецтехники", "Юридические консультации")
   voice: VoiceId;
   speechRate: number; // 0.8 to 1.2
   formality: 'formal' | 'friendly';
