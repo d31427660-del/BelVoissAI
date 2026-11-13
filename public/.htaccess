@@ -95,7 +95,7 @@ Options -Indexes
   RewriteRule ^api/(config|bootstrap)\.php$ - [F,L]
 
   # Маршрутизация путей /api/<endpoint> на локальные PHP-обработчики ISPmanager (работает и на основном, и на временном домене)
-  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|calendar|telephony|vapi-webhook)/?$ api/$1.php [QSA,L]
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|calendar|telephony|vapi-webhook|telegram-webhook)/?$ api/$1.php [QSA,L]
 
   # Существующие статические файлы и директории отдавать напрямую
   RewriteCond %{REQUEST_FILENAME} -f [OR]

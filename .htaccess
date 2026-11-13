@@ -72,31 +72,40 @@ Options -Indexes
   RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1) [NC]
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Запросы к API -> dist/api/<file>.php (полный список всех модулей бэкенда)
-  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|telephony|calendar|vapi-webhook)/?$ dist/api/$1.php [QSA,L]
+  # Запросы к API -> dist/api/<file>.php (или api/<file>.php, если в корне)
+  RewriteCond %{DOCUMENT_ROOT}/dist/api/$1.php -f
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|telephony|calendar|vapi-webhook|telegram-webhook)/?$ dist/api/$1.php [QSA,L]
 
-  # Запрет доступа к служебным файлам исходников (.git, src, node_modules, api, scripts и архивам)
-  RewriteRule ^(\.git|src|node_modules|database|api|scripts|\.env|\.env\.example|package\.json|package-lock\.json|tsconfig\.json|vite\.config\.ts|voxi-ispmanager\.zip) - [F,L]
+  RewriteCond %{DOCUMENT_ROOT}/api/$1.php -f
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|telephony|calendar|vapi-webhook|telegram-webhook)/?$ api/$1.php [QSA,L]
+
+  # Запрет доступа к служебным файлам исходников (.git, src, node_modules, scripts и секретам)
+  RewriteRule ^(\.git|src|node_modules|database|scripts|\.env|\.env\.example|package\.json|package-lock\.json|tsconfig\.json|vite\.config\.ts) - [F,L]
 
   # Если запрос уже идет к файлу внутри dist/
   RewriteCond %{REQUEST_URI} ^/dist/
   RewriteRule ^ - [L]
 
-  # Если запрошенный файл существует внутри dist/ (assets, voices, icon.svg, manifest.webmanifest и др.)
+  # 1. Если сайт развернут с подпапкой dist/
   RewriteCond %{DOCUMENT_ROOT}/dist/$1 -f
   RewriteRule ^(.*)$ dist/$1 [L]
 
-  # Если запрошенная директория существует внутри dist/
   RewriteCond %{DOCUMENT_ROOT}/dist/$1 -d
   RewriteRule ^(.*)$ dist/$1/ [L]
 
-  # Корень сайта -> dist/index.html
+  RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
   RewriteRule ^$ dist/index.html [L]
 
-  # Все остальные клиентские маршруты SPA -> dist/index.html
+  RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ dist/index.html [L]
+
+  # 2. Если сайт развернут напрямую из содержимого dist в корень
+  RewriteCond %{DOCUMENT_ROOT}/index.html -f
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
 </IfModule>
 
 <FilesMatch "^\.">
