@@ -21,7 +21,7 @@ interface SimpleOverviewTabProps {
   agent: AgentConfig;
   callLogs: CallLog[];
   sipSettings: SipSettings;
-  onNavigateTab: (tab: 'overview' | 'agent' | 'calls' | 'integrations') => void;
+  onNavigateTab: (tab: 'overview' | 'agent' | 'leads' | 'phone' | 'calls' | 'integrations') => void;
   onOpenVoiceTest: () => void;
   onToggleActive: () => void;
   onOpenTopUp?: () => void;
@@ -199,18 +199,18 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
           <button
             type="button"
-            onClick={() => onNavigateTab('integrations')}
+            onClick={() => onNavigateTab('phone')}
             className="p-4 rounded-[12px] liquid-glass-cream hover:bg-white text-left transition-all group space-y-1.5 cursor-pointer"
           >
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-black">
                 <Network className="w-4 h-4 text-black" />
-                <span>3. Номер и Telegram</span>
+                <span>3. Подключение номера</span>
               </span>
               <ArrowRight className="w-3.5 h-3.5 text-[#777169] group-hover:text-black group-hover:translate-x-0.5 transition-all" />
             </div>
             <p className="text-[11px] text-[#59544F] leading-relaxed">
-              Укажите, куда присылать заявки в Telegram и какой номер подключить.
+              Настройте переадресацию или SIP и укажите номер для перевода.
             </p>
           </button>
         </div>
@@ -240,9 +240,9 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
         <button
           type="button"
-          onClick={() => onNavigateTab('calls')}
-          className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2 text-left hover:border-emerald-300 transition-all group"
-          title="Открыть журнал звонков"
+          onClick={() => onNavigateTab('leads')}
+          className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2 text-left hover:border-emerald-300 transition-all group cursor-pointer"
+          title="Открыть список заявок"
         >
           <div className="flex items-center justify-between text-slate-500 text-xs">
             <span className="font-medium group-hover:text-emerald-700 transition-colors">
@@ -257,7 +257,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           </div>
           <p className="text-[11px] text-emerald-700 font-medium flex items-center justify-between">
             <span>Вечерние и выходные звонки</span>
-            <span>Журнал звонков →</span>
+            <span>Все заявки →</span>
           </p>
         </button>
 
@@ -304,10 +304,10 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
           <button
             type="button"
-            onClick={() => onNavigateTab('calls')}
+            onClick={() => onNavigateTab('leads')}
             className="text-xs font-normal text-black hover:underline flex items-center gap-1 transition-colors cursor-pointer"
           >
-            <span>Все звонки ({callLogs.length})</span>
+            <span>Все заявки ({callLogs.length})</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>

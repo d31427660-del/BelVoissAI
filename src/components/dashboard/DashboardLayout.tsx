@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Widget5Icon as LayoutDashboard,
   CpuBoltIcon as Bot,
-  ShareCircleIcon as Network,
   PhoneCallingRoundedIcon as PhoneCall,
+  ChecklistIcon,
   SoundwaveCircleIcon as Radio,
   ArrowLeftIcon as ArrowLeft,
   Logout2Icon as LogOut,
@@ -16,8 +16,8 @@ import {
 import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession } from '../../types';
 import { SimpleOverviewTab } from './SimpleOverviewTab';
 import { SimpleAgentTab } from './SimpleAgentTab';
-import { IntegrationsTab } from './IntegrationsTab';
-import { CallLogsTab } from './CallLogsTab';
+import { LeadsTab } from './LeadsTab';
+import { PhoneTab } from './PhoneTab';
 import { GuideModal } from './GuideModal';
 
 interface DashboardLayoutProps {
@@ -59,7 +59,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onExitToLanding,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'calls' | 'integrations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'leads' | 'phone'>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
@@ -75,33 +75,35 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     setTimeout(() => setSaveToast(false), 2600);
   };
 
+  const leadsCount = callLogs.filter((c) => c.status === 'lead_captured').length || callLogs.length;
+
   const primaryNavItems = [
     {
       id: 'overview' as const,
       label: 'Главная',
-      subtitle: 'Статус бота и быстрые шаги',
+      subtitle: 'Статус бота и сводка',
       icon: <LayoutDashboard className="w-4 h-4 shrink-0" />,
       badge: undefined
     },
     {
       id: 'agent' as const,
       label: 'Настройка бота',
-      subtitle: 'Голос, услуги и цены',
+      subtitle: 'Голос, услуги и график',
       icon: <Bot className="w-4 h-4 shrink-0" />,
       badge: undefined
     },
     {
-      id: 'calls' as const,
-      label: 'Журнал звонков',
-      subtitle: 'Заявки и записи бесед',
-      icon: <PhoneCall className="w-4 h-4 shrink-0" />,
-      badge: `${callLogs.length}`
+      id: 'leads' as const,
+      label: 'Заявки',
+      subtitle: 'Контакты и Telegram',
+      icon: <ChecklistIcon className="w-4 h-4 shrink-0" />,
+      badge: `${leadsCount}`
     },
     {
-      id: 'integrations' as const,
-      label: 'Номер и заявки',
-      subtitle: 'Телефон, YCLIENTS, SMS, Telegram',
-      icon: <Network className="w-4 h-4 shrink-0" />,
+      id: 'phone' as const,
+      label: 'Подключение номера',
+      subtitle: 'Телефон и перевод звонков',
+      icon: <PhoneCall className="w-4 h-4 shrink-0" />,
       badge: undefined
     }
   ];
@@ -374,7 +376,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               agent={agent}
               callLogs={callLogs}
               sipSettings={sipSettings}
-              onNavigateTab={(t) => setActiveTab(t)}
+              onNavigateTab={(t) => {
+                if (t === 'calls' || t === 'leads') setActiveTab('leads');
+                else if (t === 'integrations' || t === 'phone') setActiveTab('phone');
+                else if (t === 'agent') setActiveTab('agent');
+                else setActiveTab('overview');
+              }}
               onOpenVoiceTest={onOpenVoiceTest}
               onToggleActive={() => onSaveAgent({ ...agent, isActive: !agent.isActive })}
               onOpenTopUp={onOpenTopUp}
@@ -389,25 +396,24 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             />
           )}
 
-          {activeTab === 'calls' && (
-            <CallLogsTab
+          {activeTab === 'leads' && (
+            <LeadsTab
               callLogs={callLogs}
               agent={agent}
-            />
-          )}
-
-          {activeTab === 'integrations' && (
-            <IntegrationsTab
-              agent={agent}
               onSaveAgent={onSaveAgent}
-              sipSettings={sipSettings}
-              onSaveSip={onSaveSip}
               telegramSettings={telegramSettings}
               onSaveTelegram={onSaveTelegram}
               webhookSettings={webhookSettings}
               onSaveWebhook={onSaveWebhook}
-              vapiApiKey={vapiApiKey}
-              onSaveVapiApiKey={onSaveVapiApiKey}
+            />
+          )}
+
+          {activeTab === 'phone' && (
+            <PhoneTab
+              agent={agent}
+              onSaveAgent={onSaveAgent}
+              sipSettings={sipSettings}
+              onSaveSip={onSaveSip}
             />
           )}
         </div>
