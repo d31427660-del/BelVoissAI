@@ -14,6 +14,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, SipSettings } from '../../types';
 import { testSipNode, testFallbackPhone } from '../../lib/vapiService';
+import { FieldLabel, FieldHint } from './FieldHelp';
 
 interface PhoneTabProps {
   agent: AgentConfig;
@@ -291,10 +292,15 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-medium text-black block mb-1">
-                  SIP Сервер / Адрес АТС
-                </label>
+                <FieldLabel
+                  htmlFor="sip-server"
+                  label="SIP Сервер / Адрес АТС"
+                  helpTitle="Адрес сервера SIP"
+                  helpText="Доменное имя или IP-адрес сервера телефонии вашего оператора с портом (например: sip.mts.by:5060, sip.a1.by:5060 или ims.beltelecom.by)."
+                  helpExample="sip.mts.by:5060"
+                />
                 <input
+                  id="sip-server"
                   type="text"
                   value={localSip.sipServer}
                   onChange={(e) => setLocalSip({ ...localSip, sipServer: e.target.value })}
@@ -304,10 +310,15 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-medium text-black block mb-1">
-                  SIP Логин / Номер линии
-                </label>
+                <FieldLabel
+                  htmlFor="sip-login"
+                  label="SIP Логин / Номер линии"
+                  helpTitle="Логин учетной записи SIP"
+                  helpText="Номер транка или логин от оператора связи. Выдается при подключении Виртуальной АТС или услуги SIP-транк."
+                  helpExample="375291234567"
+                />
                 <input
+                  id="sip-login"
                   type="text"
                   value={localSip.sipLogin}
                   onChange={(e) => setLocalSip({ ...localSip, sipLogin: e.target.value })}
@@ -318,9 +329,12 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-medium text-black">
-                    SIP Пароль
-                  </label>
+                  <FieldLabel
+                    htmlFor="sip-password"
+                    label="SIP Пароль"
+                    helpTitle="Пароль SIP-транка"
+                    helpText="Пароль для авторизации на сервере оператора связи. Передается в зашифрованном виде."
+                  />
                   <button
                     type="button"
                     onClick={() => setShowSipPassword(!showSipPassword)}
@@ -331,6 +345,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   </button>
                 </div>
                 <input
+                  id="sip-password"
                   type={showSipPassword ? 'text' : 'password'}
                   value={localSip.sipPassword || ''}
                   onChange={(e) => setLocalSip({ ...localSip, sipPassword: e.target.value })}
@@ -340,10 +355,15 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-medium text-black block mb-1">
-                  АОН (Caller ID для исходящих)
-                </label>
+                <FieldLabel
+                  htmlFor="sip-caller-id"
+                  label="АОН (Caller ID)"
+                  helpTitle="Номер звонящего (Caller ID)"
+                  helpText="Номер вашей компании в международном формате (+375), который будет отображаться у клиентов при исходящих звонках."
+                  helpExample="+375 (29) 112-44-55"
+                />
                 <input
+                  id="sip-caller-id"
                   type="text"
                   value={localSip.callerId || ''}
                   onChange={(e) => setLocalSip({ ...localSip, callerId: e.target.value })}
@@ -390,9 +410,14 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="staff-phone" className="text-xs font-medium text-black block mb-1">
-              Номер телефона администратора / мастера
-            </label>
+            <FieldLabel
+              htmlFor="staff-phone"
+              label="Номер телефона администратора / мастера"
+              required
+              helpTitle="Куда переводить звонок"
+              helpText="Укажите номер дежурного менеджера или мастера в Беларуси (+375). Если звонящий скажет «соедините с человеком» или у него возникнет сложный нестандартный вопрос, бот мгновенно переведет звонок на этот номер."
+              helpExample="+375 (29) 111-22-33"
+            />
             <input
               id="staff-phone"
               type="text"
@@ -407,9 +432,13 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
           </div>
 
           <div>
-            <label htmlFor="staff-whisper" className="text-xs font-medium text-black block mb-1">
-              Что бот скажет клиенту перед переводом
-            </label>
+            <FieldLabel
+              htmlFor="staff-whisper"
+              label="Что бот скажет клиенту перед переводом"
+              helpTitle="Фраза перед переводом"
+              helpText="Эту фразу бот вежливо произнесет клиенту в трубку, пока соединяет звонок с вашим сотрудником."
+              helpExample="Секунду, перевожу звонок на администратора..."
+            />
             <input
               id="staff-whisper"
               type="text"

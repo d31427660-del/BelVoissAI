@@ -19,6 +19,7 @@ import {
 import { CallLog, AgentConfig, TelegramSettings, WebhookSettings, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { sendTestTelegramCard } from '../../lib/vapiService';
+import { FieldLabel, FieldHint } from './FieldHelp';
 
 interface LeadsTabProps {
   callLogs: CallLog[];
@@ -230,9 +231,15 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         {localTg.isEnabled && (
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             <div className="sm:col-span-8">
-              <label htmlFor="tg-chat-id" className="text-[11px] font-medium text-black block mb-1">
-                Chat ID вашего Telegram (личный или группа)
-              </label>
+              <FieldLabel
+                htmlFor="tg-chat-id"
+                label="Chat ID вашего Telegram (личный или группа)"
+                required
+                helpTriggerLabel="Где взять ID?"
+                helpTitle="Как узнать свой ID в Telegram за 5 секунд"
+                helpText="1. Откройте в Telegram бота @voxi_bot и нажмите кнопку «Старт» (/start).&#10;2. Бот мгновенно пришлёт ваш цифровой Chat ID.&#10;3. Скопируйте цифры и вставьте в это поле.&#10;&#10;Если хотите получать заявки в общий чат с коллегами, просто добавьте бота @voxi_bot в группу и напишите /start."
+                helpExample="419283746 (личный чат) или -100192837465 (группа)"
+              />
               <input
                 id="tg-chat-id"
                 type="text"

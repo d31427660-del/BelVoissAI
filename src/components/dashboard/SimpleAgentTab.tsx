@@ -22,6 +22,7 @@ import { generateSystemPrompt } from '../../lib/vapiService';
 import { requestAiPromptImprovement, adaptGreetingForVoice } from '../../lib/botDialogueEngine';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { LiveBotTester } from './LiveBotTester';
+import { FieldLabel, FieldHint } from './FieldHelp';
 
 interface SimpleAgentTabProps {
   agent: AgentConfig;
@@ -391,9 +392,14 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
         {/* Название и Телефон */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="company-name" className="text-xs font-medium text-black block mb-1">
-              Название компании <span className="text-rose-500">*</span>
-            </label>
+            <FieldLabel
+              htmlFor="company-name"
+              label="Название компании"
+              required
+              helpTitle="Как написать название компании"
+              helpText="Напишите понятное на слух название без «ООО», «ЗАО» и «УНП». Как только вы измените название здесь, оно автоматически обновится и в приветствии бота."
+              helpExample="Автошкола Все категории&#10;Автосервис Минск-Моторс&#10;Стоматология Дент-Престиж"
+            />
             <input
               id="company-name"
               type="text"
@@ -409,9 +415,13 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
           </div>
 
           <div>
-            <label htmlFor="company-phone" className="text-xs font-medium text-black block mb-1">
-              Контактный телефон компании
-            </label>
+            <FieldLabel
+              htmlFor="company-phone"
+              label="Контактный телефон компании"
+              helpTitle="Телефон компании"
+              helpText="Укажите номер телефона вашей организации в Беларуси (+375). Бот озвучит этот номер, если клиент спросит, как связаться с офисом."
+              helpExample="+375 (29) 112-44-55"
+            />
             <input
               id="company-phone"
               type="text"
@@ -429,9 +439,13 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
         {/* Город и Адрес */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="company-city" className="text-xs font-medium text-black block mb-1">
-              Город
-            </label>
+            <FieldLabel
+              htmlFor="company-city"
+              label="Город"
+              helpTitle="Город обслуживания"
+              helpText="Город, в котором находится компания или филиал (Минск, Брест, Гродно и др.)."
+              helpExample="Минск"
+            />
             <input
               id="company-city"
               type="text"
@@ -443,9 +457,13 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
           </div>
 
           <div className="sm:col-span-2">
-            <label htmlFor="company-address" className="text-xs font-medium text-black block mb-1">
-              Точный адрес (улица, дом, метро / ориентир)
-            </label>
+            <FieldLabel
+              htmlFor="company-address"
+              label="Точный адрес (улица, дом, метро / ориентир)"
+              helpTitle="Как указать адрес для бота"
+              helpText="Укажите точный адрес с ориентиром или ближайшей станцией метро. Бот подробно подскажет клиенту, как проехать, где припарковаться и какой вход."
+              helpExample="г. Минск, ул. Тимирязева, 121 (ст.м. Пушкинская, въезд со двора)"
+            />
             <input
               id="company-address"
               type="text"
@@ -459,9 +477,13 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
         {/* График работы */}
         <div className="space-y-2">
-          <label htmlFor="company-hours" className="text-xs font-medium text-black block">
-            График работы компании:
-          </label>
+          <FieldLabel
+            htmlFor="company-hours"
+            label="График работы компании"
+            helpTitle="Как указать график работы"
+            helpText="Укажите рабочие дни и часы, а также выходные. Бот проверяет этот график, когда предлагает клиенту записаться на приём или визит."
+            helpExample="Пн-Пт: 09:00 - 20:00, Сб: 10:00 - 16:00, Вс: выходной"
+          />
           <input
             id="company-hours"
             type="text"
@@ -561,9 +583,13 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
         {/* Первое сообщение */}
         <div>
-          <label htmlFor="first-message" className="text-xs font-medium text-black block mb-1">
-            Приветствие бота (первая фраза при звонке):
-          </label>
+          <FieldLabel
+            htmlFor="first-message"
+            label="Приветствие бота (первая фраза при звонке)"
+            helpTitle="Как составить первое сообщение"
+            helpText="Первая фраза, которую услышит клиент при звонке. Рекомендуем поздороваться, назвать компанию, имя бота и задать открытый вопрос («Чем могу помочь?»). Предупреждение о записи разговора добавляется автоматически согласно Закону РБ 99-З."
+            helpExample="Здравствуйте! Автосервис Минск-Моторс, меня зовут Анна. Разговор записывается. Чем могу вам помочь?"
+          />
           <textarea
             id="first-message"
             rows={2}
@@ -659,9 +685,14 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
         <div className="p-5 pt-3 border-t border-black/[0.06] space-y-3 liquid-glass-cream">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[11px] text-[#777169]">
-              {isCustomPrompt ? 'Активна своя редакция правил' : 'Правила собираются автоматически из цен и графика'}
-            </span>
+            <FieldLabel
+              htmlFor="system-prompt"
+              label="Продвинутая инструкция поведения бота"
+              optionalText={isCustomPrompt ? 'своя редакция' : 'собирается автоматически'}
+              helpTitle="Что можно дописать в инструкцию"
+              helpText="Здесь вы можете описать любые особые правила вашей компании: например, «всегда спрашивай марку автомобиля» или «предлагай чай/кофе при записи». Бот строго следует этим указаниям."
+              helpExample="Обязательно спроси у клиента марку машины и удобное время записи."
+            />
             <button
               type="button"
               onClick={handleGenerateAiPrompt}
@@ -673,6 +704,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
           </div>
 
           <textarea
+            id="system-prompt"
             rows={5}
             value={formData.systemPrompt}
             onChange={(e) => {
