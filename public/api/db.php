@@ -169,6 +169,8 @@ function voxi_verify_admin_request(array $cfg, array $body = []): bool
     return false;
 }
 
+voxi_csrf_guard();
+
 $action = strtolower(trim((string)($_GET['action'] ?? '')));
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
@@ -390,7 +392,7 @@ if ($action === 'admin_add_minutes') {
     $stmtTarget->execute([$targetClientId]);
     $targetUser = $stmtTarget->fetch();
     if (!is_array($targetUser)) {
-        voxi_json(['ok' => false, 'notFoundInDb' => true, 'error' => 'Клиент находится в демо-списке'], 404);
+        voxi_json(['ok' => false, 'notFoundInDb' => true, 'error' => 'Клиент не найден в базе данных'], 404);
     }
 
     $rate = (float)($targetUser['rate_per_minute'] ?? 0.45);
@@ -507,14 +509,13 @@ if ($action === 'signup') {
         throw $txErr;
     }
 
-    $token = voxi_issue_session($pdo, $userId);
+    voxi_issue_session($pdo, $userId);
     $stmtUser = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
     $stmtUser->execute([$userId]);
     $createdUser = $stmtUser->fetch();
 
     voxi_json([
         'ok' => true,
-        'token' => $token,
         'user' => voxi_format_user_session($createdUser),
         'agent' => null,
         'sipSettings' => null,
@@ -542,10 +543,10 @@ if ($action === 'signin') {
         voxi_json(['ok' => false, 'error' => 'Неверный адрес электронной почты или пароль'], 401);
     }
 
-    $token = voxi_issue_session($pdo, (string)$userRow['id']);
+    voxi_issue_session($pdo, (string)$userRow['id']);
     $bundle = voxi_load_workspace_bundle($pdo, $userRow);
 
-    voxi_json(array_merge(['ok' => true, 'token' => $token], $bundle));
+    voxi_json(array_merge(['ok' => true], $bundle));
 }
 
 // --- POST ?action=signout ---
@@ -623,9 +624,9 @@ if ($action === 'confirm_reset_password') {
         'UPDATE users SET password_hash = ?, reset_token_hash = NULL, reset_token_expires_at = NULL WHERE id = ?'
     )->execute([$newHash, $userRow['id']]);
 
-    $token = voxi_issue_session($pdo, (string)$userRow['id']);
+    voxi_issue_session($pdo, (string)$userRow['id']);
     $bundle = voxi_load_workspace_bundle($pdo, $userRow);
-    voxi_json(array_merge(['ok' => true, 'token' => $token], $bundle));
+    voxi_json(array_merge(['ok' => true], $bundle));
 }
 
 // Все дальнейшие действия требуют авторизованной сессии

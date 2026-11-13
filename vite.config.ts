@@ -150,12 +150,6 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         );
       });
 
-      server.middlewares.use('/api/live-chat', async (_req: any, res: any) => {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.end(JSON.stringify({ ok: true, conversations: [] }));
-      });
-
       server.middlewares.use('/api/chat', async (_req: any, res: any) => {
         res.statusCode = 503;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');

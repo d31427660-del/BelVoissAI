@@ -68,14 +68,12 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>
   >([]);
   const [waveBars, setWaveBars] = useState<number[]>([22, 40, 68, 84, 56, 38, 65, 80, 50, 28]);
-  const [amdBanner, setAmdBanner] = useState<string | null>(null);
   const [transferBanner, setTransferBanner] = useState<string | null>(null);
 
   const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
   const transcriptRef = useRef<Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const connectTimerRef = useRef<number | null>(null);
-  const amdHangupTimerRef = useRef<number | null>(null);
   const ringtoneStopRef = useRef<(() => void) | null>(null);
   const lastBotMessageRef = useRef('');
   const callStateRef = useRef<CallState>('ready');
@@ -87,7 +85,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const callLoggedRef = useRef(false);
   const onCallCompletedRef = useRef(onCallCompleted);
   const handleHangupRef = useRef<() => void>(() => {});
-  const currentGreetingVariantRef = useRef<'A' | 'B'>('A');
 
   useEffect(() => {
     onCallCompletedRef.current = onCallCompleted;
@@ -107,7 +104,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       address: tmpl.address,
       durationSeconds: callDurationRef.current,
       messages: transcriptRef.current,
-      greetingVariant: currentGreetingVariantRef.current,
     });
     if (log) {
       callLoggedRef.current = true;
@@ -150,10 +146,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     if (connectTimerRef.current) {
       window.clearTimeout(connectTimerRef.current);
       connectTimerRef.current = null;
-    }
-    if (amdHangupTimerRef.current) {
-      window.clearTimeout(amdHangupTimerRef.current);
-      amdHangupTimerRef.current = null;
     }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -241,38 +233,23 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
             pricingAndServices: tmpl.pricingAndServices,
             knowledgeBase: tmpl.knowledgeBase,
             voice: activeVoice,
-            fillerPhrasesEnabled: true,
-            fillerDelayMs: 850,
           },
           priorHistory,
-          controller.signal,
-          (fillerText) => {
-            if (callStateRef.current === 'connected' && !controller.signal.aborted) {
-              setBotSpeaking(true);
-              speakBotMessage(fillerText, activeVoice);
-            }
-          }
+          controller.signal
         );
 
         if (callStateRef.current !== 'connected' || selectedNicheRef.current !== activeNiche || controller.signal.aborted) return;
 
-        const isAmdFromReply = reply.includes('[AMD_VOICEMAIL_DETECTED:');
         const isTransferFromReply = reply.includes('[WARM_TRANSFER_TRIGGERED:');
-        const isAmdFromQuery = /абонент временно недоступен|голосовая почта|оставьте сообщение/i.test(clean);
         const isTransferFromQuery = /соедините с человеком|позовите человека|живой оператор|переведите на оператора|переключите на администратора|перевожу вас на старшего администратора/i.test(clean) || reply.includes('Перевожу вас на старшего администратора');
 
-        const isAmd = isAmdFromReply || isAmdFromQuery;
         const isTransfer = isTransferFromReply || isTransferFromQuery;
 
-        let cleanReply = reply.replace(/\[(AMD_VOICEMAIL_DETECTED|WARM_TRANSFER_TRIGGERED)[^\]]*\]\s*/g, '');
+        let cleanReply = reply.replace(/\[(WARM_TRANSFER_TRIGGERED)[^\]]*\]\s*/g, '');
 
         if (isTransfer) {
           cleanReply = 'Перевожу вас на старшего администратора, секунду...';
           setTransferBanner('Перевод звонка: соединение со старшим администратором (+375 29 700-11-22)...');
-        } else if (isAmd) {
-          const carrier = reply.match(/\[AMD_VOICEMAIL_DETECTED:(.*?)\]/)?.[1] || 'МТС / А1';
-          cleanReply = `Обнаружен автоответчик сотового оператора (${carrier}). Вызов завершён без списания баланса.`;
-          setAmdBanner(`Обнаружен автоответчик оператора ${carrier}. Вызов завершён мгновенно (0 BYN списано, минуты сохранены).`);
         }
 
         setAiProvider(provider);
@@ -282,16 +259,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         setTranscript((prev) => [...prev, { speaker: 'assistant', text: cleanReply, time: aiTimeStr }]);
 
         speakBotMessage(cleanReply, activeVoice);
-
-        if (isAmd) {
-          if (amdHangupTimerRef.current) {
-            window.clearTimeout(amdHangupTimerRef.current);
-          }
-          amdHangupTimerRef.current = window.setTimeout(() => {
-            amdHangupTimerRef.current = null;
-            handleHangupRef.current();
-          }, 2400);
-        }
       } catch {
         if (controller.signal.aborted) {
           // Newer user speech already started; do not clobber active bot thinking/speaking flags
@@ -380,7 +347,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       setIsBotThinking(false);
       setIsMuted(false);
       setCustomText('');
-      setAmdBanner(null);
       setTransferBanner(null);
       VoiceSimulator.unlock();
 
@@ -400,11 +366,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         callStateRef.current = 'connected';
         setCallState('connected');
 
-        const variant: 'A' | 'B' = Math.random() >= 0.5 ? 'B' : 'A';
-        currentGreetingVariantRef.current = variant;
-        const rawGreeting = variant === 'B'
-          ? tmpl.firstMessage.replace('Здравствуйте!', 'Добрый день! Рады вашему звонку.')
-          : tmpl.firstMessage;
+        const rawGreeting = tmpl.firstMessage;
         const welcome = adaptGreetingForVoice(rawGreeting, targetVoice, tmpl.companyName, tmpl.companyName);
         const firstEntry = [{ speaker: 'assistant' as const, text: welcome, time: '00:01' }];
         transcriptRef.current = firstEntry;
@@ -745,32 +707,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 </div>
               </div>
 
-              {/* Carrier Voicemail AMD Alert Banner */}
-              {amdBanner && (
-                <div
-                  role="alert"
-                  aria-live="assertive"
-                  className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-300 text-purple-950 flex items-start gap-3 shadow-xs"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-purple-900">
-                        Детектор автоответчика (AMD)
-                      </span>
-                      <span className="text-[10px] font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full">
-                        0 BYN списано
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-purple-900 mt-0.5 font-medium leading-relaxed">
-                      {amdBanner}
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* Warm Handoff / Transfer UI Status Indicator */}
               {transferBanner && (
                 <div
@@ -968,13 +904,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                     className="px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold transition-colors shadow-2xs"
                   >
                     Соедините с человеком (Warm Handoff)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleUserMessage('Абонент временно недоступен. Оставьте сообщение после сигнала')}
-                    className="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-semibold transition-colors shadow-2xs"
-                  >
-                    Автоответчик МТС/А1 (Тест AMD 0 BYN)
                   </button>
                 </div>
               </div>

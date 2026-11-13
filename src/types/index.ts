@@ -8,21 +8,11 @@ export type BusinessNiche =
 export type VoiceId = 'anna' | 'maxim';
 export type CallSentiment = 'positive' | 'neutral' | 'negative';
 
-export interface PhoneticRule {
-  id: string;
-  word: string;
-  stressed: string;
-  ttsReplacement: string;
-  category: 'toponym' | 'surname' | 'abbr' | 'custom';
-  samplePhrase?: string;
-  enabled: boolean;
-}
-
 export interface YclientsSlotConfig {
   isEnabled: boolean;
   companyId: string;
   partnerToken: string;
-  platform: 'none' | 'yclients' | 'altegio' | 'dikidi' | 'bitrix24' | 'google_calendar';
+  platform: 'none' | 'yclients' | 'google_calendar';
   autoBookSlots: boolean;
   notifyClientSms: boolean;
   selectedStaff?: string;
@@ -45,32 +35,6 @@ export interface CallerNotificationConfig {
   testPhone?: string;
 }
 
-export interface WebWidgetConfig {
-  isEnabled: boolean;
-  primaryColor: string;
-  position: 'bottom-right' | 'bottom-left';
-  buttonText: string;
-  welcomeMessage: string;
-  autoOpenDelaySec?: number;
-  showWaveform: boolean;
-  accentTitle?: string;
-}
-
-export interface KnowledgeDocument {
-  id: string;
-  name: string;
-  sizeKb: number;
-  type: 'pdf' | 'docx' | 'txt' | 'csv';
-  uploadedAt: string;
-  status: 'ready' | 'processing' | 'error';
-  extractedText: string;
-  parsedText?: string;
-  size?: string;
-  summary?: string;
-  chunkCount?: number;
-  chunks?: string[];
-}
-
 export interface AgentConfig {
   id: string;
   name: string;
@@ -85,22 +49,10 @@ export interface AgentConfig {
   workingHours: string;
   pricingAndServices: string;
   knowledgeBase: string;
-  knowledgeDocuments?: KnowledgeDocument[];
   firstMessage: string;
-  // A/B Testing of Greetings (Priority 1)
-  abTestingEnabled?: boolean;
-  greetingA?: string;
-  greetingB?: string;
-  greetingSplitPercent?: number; // 50 means 50% A, 50% B
-  // Conversational Filler Phrases (Priority 1)
-  fillerPhrasesEnabled?: boolean;
-  fillerPhrasesDelayMs?: number; // default 900ms
   // Direct Caller Notifications (Priority 1)
   callerNotification?: CallerNotificationConfig;
-  // WebRTC Website Click-to-Call Widget (Priority 1)
-  webWidgetConfig?: WebWidgetConfig;
   systemPrompt: string;
-  phoneticRules?: PhoneticRule[];
   vapiAssistantId?: string;
   yclientsConfig?: YclientsSlotConfig;
   autoFollowUp?: {
@@ -134,11 +86,6 @@ export interface SipSettings {
   whisperMessage: string;
   sendSummaryBeforeTransfer?: boolean;
   sendTelegramSummaryOnTransfer: boolean;
-  // AMD - Answering Machine Detection (Priority 2)
-  amdEnabled: boolean;
-  amdSensitivity: 'normal' | 'high';
-  amdHangupImmediately: boolean;
-  amdProtectMinutes: boolean;
   // Law 99-Z & NCZPD Compliance
   piiMaskingEnabled: boolean;
   recordingDisclaimerEnabled: boolean;
@@ -204,14 +151,13 @@ export interface CallLog {
   callerName?: string;
   timestamp: string;
   durationSeconds: number;
-  status: 'lead_captured' | 'consultation' | 'forwarded' | 'spam' | 'voicemail_detected';
+  status: 'lead_captured' | 'consultation' | 'forwarded' | 'spam';
   dealValueByn: number;
   costByn?: number;
   audioDuration: string;
   summary: string;
   sentiment?: CallSentiment;
   tags?: string[];
-  greetingVariant?: 'A' | 'B';
   followUpSent?: boolean;
   followUpChannel?: 'telegram' | 'sms' | 'none';
   followUpText?: string;
@@ -229,12 +175,6 @@ export interface CallLog {
     reason: 'human_request' | 'conflict' | 'complex_query';
     summarySentToStaff: boolean;
   };
-  amdDetails?: {
-    detected: boolean;
-    carrierName?: string;
-    detectedPhrase?: string;
-    savedCostByn: number;
-  };
   capturedData: CapturedLeadData;
   transcript: TranscriptMessage[];
 }
@@ -246,48 +186,4 @@ export interface UserSession {
   balanceMinutes: number;
   ratePerMinute: number;
   spentMinutes: number;
-  isMock: boolean;
-}
-
-export interface MysteryAuditItem {
-  id: string;
-  companyName: string;
-  niche: BusinessNiche;
-  city: string;
-  phone: string;
-  callTime: string;
-  callStatus: 'no_answer' | 'busy' | 'late_answer' | 'answered';
-  ringsCount: number;
-  lostEstimatedByn: number;
-  aiDemoAudioText: string;
-  pitchMessage: string;
-}
-
-export interface LiveChatMessage {
-  id: string;
-  conversationId: string;
-  sender: 'admin' | 'visitor' | 'system';
-  senderName?: string;
-  text: string;
-  createdAt: string;
-  action?: 'voice_test' | 'telegram' | 'auth' | 'calculator';
-  readByAdmin?: boolean;
-  readByVisitor?: boolean;
-}
-
-export interface LiveChatConversation {
-  id: string;
-  visitorId: string;
-  visitorName: string;
-  visitorContact?: string;
-  visitorCity?: string;
-  visitorPage?: string;
-  startedAt: string;
-  lastMessageAt: string;
-  lastMessageText: string;
-  unreadByAdmin: number;
-  unreadByVisitor: number;
-  isVisitorOnline: boolean;
-  isAdminOnline: boolean;
-  messages: LiveChatMessage[];
 }

@@ -3,6 +3,9 @@ import { createRoot, hydrateRoot } from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import { installCsrfHeader } from './lib/installCsrfHeader';
+
+installCsrfHeader();
 
 if (typeof HTMLElement !== 'undefined' && !('popover' in HTMLElement.prototype)) {
   import('@oddbird/popover-polyfill');

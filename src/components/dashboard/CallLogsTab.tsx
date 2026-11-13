@@ -207,13 +207,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
             Переведён сотруднику
           </span>
         );
-      case 'voicemail_detected':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-            Автоответчик (0 BYN)
-          </span>
-        );
       case 'spam':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
@@ -346,7 +339,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                 htmlFor="call-logs-filter-all"
                 label="Результат разговора"
                 helpTitle="Что означают статусы звонков"
-                helpText="«Заявка получена» — клиент оставил контакты и время записи. «Вопрос клиента» — бот ответил по ценам или графику. «Переведён сотруднику» — звонок переключили на живого менеджера. «Автоответчик» — сработал AMD (0 списанных минут). «Реклама / спам» — бот вежливо завершил нецелевой звонок."
+                helpText="«Заявка получена» — клиент оставил контакты и время записи. «Вопрос клиента» — бот ответил по ценам или графику. «Переведён сотруднику» — звонок переключили на живого менеджера. «Реклама / спам» — бот вежливо завершил нецелевой звонок."
               />
               <div
                 className="flex flex-wrap items-center gap-1.5"
@@ -358,7 +351,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   { id: 'lead_captured', label: 'Заявки' },
                   { id: 'consultation', label: 'Вопросы' },
                   { id: 'forwarded', label: 'Переведённые' },
-                  { id: 'voicemail_detected', label: 'Автоответчик (AMD)' },
                   { id: 'spam', label: 'Спам' }
                 ].map((f) => (
                   <button
@@ -512,11 +504,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                         </div>
                         {call.tags && call.tags.length > 0 && (
                           <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                            {call.greetingVariant && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200">
-                                A/B: {call.greetingVariant}
-                              </span>
-                            )}
                             {call.bookedSlot && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-semibold border border-emerald-200">
                                 Слот {call.bookedSlot.time} ✓
@@ -737,32 +724,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   )}
                 </div>
 
-                {/* AMD Details Card */}
-                {activeCallDetail.amdDetails?.detected && (
-                  <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-200/80 space-y-2.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-purple-900 flex items-center gap-1.5">
-                        <ShieldCheck className="w-4 h-4 text-purple-600" />
-                        <span>Автоответчик сотовой сети РБ (AMD)</span>
-                      </span>
-                      <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200">
-                        0 BYN • Баланс сохранён
-                      </span>
-                    </div>
-                    <p className="text-xs text-purple-950 leading-relaxed font-medium">
-                      Оператор: <span className="font-bold">{activeCallDetail.amdDetails.carrierName || 'Сотовая сеть РБ'}</span>
-                    </p>
-                    {activeCallDetail.amdDetails.detectedPhrase && (
-                      <p className="text-[11px] text-purple-900 font-mono bg-white/90 p-2.5 rounded-xl border border-purple-200/70 leading-relaxed">
-                        «{activeCallDetail.amdDetails.detectedPhrase}»
-                      </p>
-                    )}
-                    <p className="text-[11px] text-purple-700 leading-relaxed">
-                      Бот мгновенно определил автоответчик и положил трубку без списания тарифных минут бизнеса.
-                    </p>
-                  </div>
-                )}
-
                 {/* Warm Handoff / Transfer Details Card */}
                 {activeCallDetail.transferDetails && (
                   <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-2.5">
@@ -809,7 +770,7 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                   </div>
                 )}
 
-                {/* Direct Caller SMS/Viber Card & A/B Greeting details */}
+                {/* Direct Caller SMS/Viber Card */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {activeCallDetail.callerFollowUpSent && (
                     <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 space-y-1.5">
@@ -843,17 +804,6 @@ export const CallLogsTab: React.FC<CallLogsTabProps> = ({ callLogs, agent }) => 
                     </div>
                   )}
                 </div>
-
-                {activeCallDetail.greetingVariant && (
-                  <div className="px-3 py-2 rounded-xl bg-purple-50/60 border border-purple-200/80 flex items-center justify-between text-xs">
-                    <span className="text-purple-900 font-medium">
-                      Вариант приветствия (A/B тест):
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 font-bold text-[11px]">
-                      Вариант {activeCallDetail.greetingVariant}
-                    </span>
-                  </div>
-                )}
 
                 {/* Extracted Lead Summary */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">

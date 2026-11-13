@@ -136,18 +136,19 @@ CREATE TABLE IF NOT EXISTS `minute_transactions` (
   CONSTRAINT `fk_minute_tx_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 7. Диалоги онлайн-чата поддержки на сайте (синхронизируются с Telegram)
-CREATE TABLE IF NOT EXISTS `live_chat_conversations` (
-  `id` VARCHAR(128) NOT NULL,
-  `visitor_id` VARCHAR(128) NOT NULL,
-  `visitor_name` VARCHAR(191) NOT NULL DEFAULT 'Гость сайта',
-  `visitor_contact` VARCHAR(191) DEFAULT NULL,
-  `visitor_city` VARCHAR(120) DEFAULT NULL,
-  `started_at` VARCHAR(64) NOT NULL,
-  `last_message_at` VARCHAR(64) NOT NULL,
-  `last_message_text` TEXT DEFAULT NULL,
-  `messages_json` LONGTEXT NOT NULL,
-  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+-- 7. Платёжные заказы bePaid: сумма и минуты фиксируются на сервере, вебхук сверяется с заказом
+CREATE TABLE IF NOT EXISTS `payment_orders` (
+  `id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `minutes` DECIMAL(10, 2) NOT NULL,
+  `amount_kopecks` INT UNSIGNED NOT NULL,
+  `currency` CHAR(3) NOT NULL DEFAULT 'BYN',
+  `status` VARCHAR(16) NOT NULL DEFAULT 'pending',
+  `is_test` TINYINT(1) NOT NULL DEFAULT 0,
+  `external_uid` VARCHAR(191) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `paid_at` DATETIME DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `live_chat_last_message_idx` (`last_message_at`)
+  KEY `payment_orders_user_idx` (`user_id`, `created_at`),
+  CONSTRAINT `fk_payment_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -56,6 +56,7 @@ Options -Indexes
 <IfModule mod_headers.c>
   Header always set Permissions-Policy "microphone=(self), camera=(), geolocation=()"
   Header always set X-Frame-Options "DENY"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
@@ -94,7 +95,7 @@ Options -Indexes
   RewriteRule ^api/(config|bootstrap)\.php$ - [F,L]
 
   # Маршрутизация путей /api/<endpoint> на локальные PHP-обработчики ISPmanager (работает и на основном, и на временном домене)
-  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|live-chat|calendar|telephony|vapi-webhook)/?$ api/$1.php [QSA,L]
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|calendar|telephony|vapi-webhook)/?$ api/$1.php [QSA,L]
 
   # Существующие статические файлы и директории отдавать напрямую
   RewriteCond %{REQUEST_FILENAME} -f [OR]

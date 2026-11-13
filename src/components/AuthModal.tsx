@@ -6,7 +6,6 @@ import {
   Buildings2Icon,
   ArrowRightIcon,
   ShieldCheckIcon,
-  BoltCircleIcon,
   EyeIcon,
   EyeClosedIcon
 } from '@solar-icons/react/bold-duotone';
@@ -98,20 +97,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleDemoLogin = (company = 'Автошкола "Драйв-Минск"') => {
-    const demoUser: UserSession = {
-      id: 'demo-user-bel-01',
-      email: 'owner@drive-minsk.by',
-      companyName: company,
-      balanceMinutes: 145,
-      ratePerMinute: 0.45,
-      spentMinutes: 55,
-      isMock: true
-    };
-    onLoginSuccess(demoUser);
-    onClose();
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -127,15 +112,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (mode === 'reset') {
       setLoading(true);
       try {
-        if (ispStatus.available && ispStatus.configured) {
-          if (!ispStatus.connected) {
-            throw new Error(ispStatus.error || 'База данных хостинга недоступна. Проверьте api/config.php');
-          }
-          const msg = await ispResetPassword(email.trim());
-          setInfoMessage(msg);
-        } else {
-          setInfoMessage('Демо-режим: используйте кнопки быстрого демо-входа выше без пароля.');
+        if (!ispStatus.available || !ispStatus.configured || !ispStatus.connected) {
+          throw new Error('Сервис временно недоступен. Попробуйте позже или напишите в поддержку.');
         }
+        const msg = await ispResetPassword(email.trim());
+        setInfoMessage(msg);
       } catch (err: unknown) {
         setErrorMessage(localizeAuthError(err instanceof Error ? err.message : 'Не удалось отправить письмо'));
       } finally {
@@ -170,50 +151,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
 
-    // 1. Авторизация через MySQL на хостинге ISPmanager (/api/db)
-    if (ispStatus.available && ispStatus.configured) {
-      try {
-        if (!ispStatus.connected) {
-          throw new Error(
-            ispStatus.error || 'Не удалось подключиться к БД MySQL в ISPmanager. Проверьте api/config.php'
-          );
-        }
-        if (mode === 'signup') {
-          const bundle = await ispSignUp(
-            email.trim(),
-            password,
-            companyName.trim() || 'Моя компания РБ'
-          );
-          onLoginSuccess(bundle.user, bundle);
-          onClose();
-        } else {
-          const bundle = await ispSignIn(email.trim(), password);
-          onLoginSuccess(bundle.user, bundle);
-          onClose();
-        }
-      } catch (err: unknown) {
-        const rawMsg = err instanceof Error ? err.message : 'Ошибка авторизации';
-        setErrorMessage(localizeAuthError(rawMsg));
-      } finally {
-        setLoading(false);
+    // Авторизация через MySQL на хостинге (/api/db). Песочного/демо-режима нет.
+    try {
+      if (!ispStatus.available || !ispStatus.configured || !ispStatus.connected) {
+        throw new Error('Сервис временно недоступен. Попробуйте позже или напишите в поддержку.');
       }
-      return;
-    }
-
-    // 2. Ознакомительный песочный режим (если локальная среда разработки без активной БД)
-    setTimeout(() => {
-      onLoginSuccess({
-        id: `usr_demo_${Date.now()}`,
-        email: email.trim(),
-        companyName: companyName.trim() || 'Моя компания РБ',
-        balanceMinutes: 15,
-        ratePerMinute: 0.45,
-        spentMinutes: 0,
-        isMock: true
-      });
-      setLoading(false);
+      const bundle =
+        mode === 'signup'
+          ? await ispSignUp(email.trim(), password, companyName.trim() || 'Моя компания РБ')
+          : await ispSignIn(email.trim(), password);
+      onLoginSuccess(bundle.user, bundle);
       onClose();
-    }, 300);
+    } catch (err: unknown) {
+      const rawMsg = err instanceof Error ? err.message : 'Ошибка авторизации';
+      setErrorMessage(localizeAuthError(rawMsg));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -252,42 +206,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       {/* Body */}
       <div className="p-7 space-y-5 max-h-[82vh] overflow-y-auto">
-
-        {/* Quick 1-Click Demo Login Banner */}
-        <div className="p-4 rounded-[12px] liquid-glass-cream space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-black font-medium text-xs">
-              <BoltCircleIcon size={16} className="text-black" aria-hidden="true" />
-              <span>Ознакомительный демо-стенд</span>
-            </div>
-            <span className="text-[10px] font-normal uppercase tracking-wide px-2 py-0.5 rounded-full liquid-glass-pill text-black">
-              Без пароля
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('Автошкола "Драйв-Минск"')}
-              className="px-3 py-2 rounded-full liquid-glass-pill text-black font-normal text-xs text-center transition-all hover:bg-white cursor-pointer"
-            >
-              Автошкола (Минск)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('СТО "Минск-Моторс"')}
-              className="px-3 py-2 rounded-full liquid-glass-pill text-black font-normal text-xs text-center transition-all hover:bg-white cursor-pointer"
-            >
-              СТО и Сервис
-            </button>
-          </div>
-        </div>
-
-        <div className="relative flex items-center justify-center">
-          <div className="border-t border-black/[0.06] w-full"></div>
-          <span className="bg-[#FAF8F5] px-3 text-xs text-[#777169] shrink-0">
-            или аккаунт компании
-          </span>
-        </div>
 
         {errorMessage && (
           <div role="alert" className="p-3.5 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-900 font-normal text-xs">

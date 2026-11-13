@@ -10,20 +10,18 @@ import { FaqSection } from './components/landing/FaqSection';
 import { CtaSection } from './components/landing/CtaSection';
 import { Footer, LegalDocType } from './components/Footer';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
-import { 
-  DEFAULT_AGENT_CONFIG, 
-  INITIAL_CALL_LOGS, 
-  DEFAULT_SIP_SETTINGS, 
-  DEFAULT_TELEGRAM_SETTINGS, 
+import {
+  DEFAULT_AGENT_CONFIG,
+  DEFAULT_SIP_SETTINGS,
+  DEFAULT_TELEGRAM_SETTINGS,
   DEFAULT_WEBHOOK_SETTINGS,
-  NICHE_TEMPLATES 
+  NICHE_TEMPLATES,
 } from './lib/mockData';
 import { generateSystemPrompt } from './lib/vapiService';
 import { adaptGreetingForVoice, ensureMandatoryGreetingNotice } from './lib/botDialogueEngine';
-import { LOCAL_STORAGE_KEYS } from './lib/storageKeys';
 import {
   getIspDbStatus,
-  getStoredIspToken,
+  hasSessionHint,
   ispGetMe,
   ispRecordCall,
   ispSaveAgent,
@@ -70,6 +68,11 @@ function getInitialLegalDocFromLocation(): LegalDocType | null {
   return null;
 }
 
+// Обязательное уведомление о записи разговора (закон РБ) — гарантируем и для ассистента из БД
+function withMandatoryNotice(a: AgentConfig): AgentConfig {
+  return { ...a, firstMessage: ensureMandatoryGreetingNotice(a.firstMessage || '') };
+}
+
 export function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'admin'>(getInitialViewFromLocation);
 
@@ -102,101 +105,23 @@ export function App() {
     return token ? { token, email } : null;
   });
   const [isRestoringSession, setIsRestoringSession] = useState<boolean>(() => {
-    return Boolean(getStoredIspToken());
+    return hasSessionHint();
   });
 
-  // User session: restore demo user from localStorage ONLY if demo mode; real sessions come via ISPmanager token
-  const [user, setUser] = useState<UserSession | null>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.DEMO_AUTH_USER);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.isMock) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return null;
-  });
+  // Единственный источник правды — сервер (MySQL). Сессия — HttpOnly-cookie; ничего не кэшируется в localStorage.
+  const [user, setUser] = useState<UserSession | null>(null);
 
-  // Agent configuration
   const [agent, setAgent] = useState<AgentConfig>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENT_CONFIG);
-      if (saved) {
-        const parsed: AgentConfig = JSON.parse(saved);
-        parsed.firstMessage = ensureMandatoryGreetingNotice(parsed.firstMessage);
-        if (parsed.greetingA) parsed.greetingA = ensureMandatoryGreetingNotice(parsed.greetingA);
-        if (parsed.greetingB) parsed.greetingB = ensureMandatoryGreetingNotice(parsed.greetingB);
-        return parsed;
-      }
-    } catch {
-      // fallback
-    }
     const def = { ...DEFAULT_AGENT_CONFIG };
     def.systemPrompt = generateSystemPrompt(def);
     return def;
   });
 
-  // Call logs: real users get empty / DB logs; demo users get showcase logs + persisted live test calls
-  const [callLogs, setCallLogs] = useState<CallLog[]>(() => {
-    try {
-      const savedUser = localStorage.getItem(LOCAL_STORAGE_KEYS.DEMO_AUTH_USER);
-      const isDemo = savedUser ? Boolean(JSON.parse(savedUser)?.isMock) : true;
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.CALL_LOGS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          if (isDemo) {
-            const existingIds = new Set(parsed.map((c: CallLog) => c.id));
-            const missingDemo = INITIAL_CALL_LOGS.filter((c) => !existingIds.has(c.id));
-            return [...parsed, ...missingDemo];
-          }
-          // Real user: never inject fake mock demo calls
-          const realLogs = parsed.filter((c: CallLog) => !INITIAL_CALL_LOGS.some((m) => m.id === c.id));
-          return realLogs;
-        }
-      }
-      if (isDemo) return INITIAL_CALL_LOGS;
-      return [];
-    } catch {
-      // fallback
-    }
-    return INITIAL_CALL_LOGS;
-  });
-
-  // SIP Settings
-  const [sipSettings, setSipSettings] = useState<SipSettings>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SIP_SETTINGS);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-    return DEFAULT_SIP_SETTINGS;
-  });
-
-  // Telegram Settings
-  const [telegramSettings, setTelegramSettings] = useState<TelegramSettings>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.TELEGRAM_SETTINGS);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-    return DEFAULT_TELEGRAM_SETTINGS;
-  });
-
-  // Webhook Settings
-  const [webhookSettings, setWebhookSettings] = useState<WebhookSettings>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.WEBHOOK_SETTINGS);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-    return DEFAULT_WEBHOOK_SETTINGS;
-  });
+  // Журнал звонков: реальные звонки из БД + тестовые звонки текущей вкладки (в памяти)
+  const [callLogs, setCallLogs] = useState<CallLog[]>([]);
+  const [sipSettings, setSipSettings] = useState<SipSettings>(DEFAULT_SIP_SETTINGS);
+  const [telegramSettings, setTelegramSettings] = useState<TelegramSettings>(DEFAULT_TELEGRAM_SETTINGS);
+  const [webhookSettings, setWebhookSettings] = useState<WebhookSettings>(DEFAULT_WEBHOOK_SETTINGS);
 
   const vapiApiKey = '';
 
@@ -211,6 +136,13 @@ export function App() {
   useEffect(() => {
     let cancelled = false;
 
+    if (!hasSessionHint()) {
+      setIsRestoringSession(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     (async () => {
       try {
         const ispStatus = await getIspDbStatus();
@@ -220,7 +152,7 @@ export function App() {
           const bundle = await ispGetMe();
           if (!cancelled && bundle) {
             setUser(bundle.user);
-            if (bundle.agent) setAgent(bundle.agent);
+            if (bundle.agent) setAgent(withMandatoryNotice(bundle.agent));
             if (bundle.sipSettings) setSipSettings(bundle.sipSettings);
             if (bundle.telegramSettings) setTelegramSettings(bundle.telegramSettings);
             if (bundle.webhookSettings) setWebhookSettings(bundle.webhookSettings);
@@ -249,15 +181,11 @@ export function App() {
     if (!paymentStatus) return;
 
     if (paymentStatus === 'success') {
-      const mins = Number(params.get('minutes') || 0);
-      setPaymentToast(
-        mins > 0
-          ? `Оплата через bePaid прошла успешно! Пакет +${mins} минут зачислен на ваш баланс.`
-          : 'Оплата через bePaid прошла успешно!'
-      );
-      if (mins > 0) {
-        setUser((prev) => (prev ? { ...prev, balanceMinutes: prev.balanceMinutes + mins } : prev));
-      }
+      // Баланс начисляет ТОЛЬКО серверный вебхук bePaid; здесь лишь перечитываем актуальное состояние
+      setPaymentToast('Оплата принята. Баланс обновится в течение минуты после подтверждения платежа банком.');
+      ispGetMe().then((bundle) => {
+        if (bundle) setUser(bundle.user);
+      });
       if (user) setCurrentView('dashboard');
       import('canvas-confetti').then(({ default: confetti }) => {
         confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
@@ -328,48 +256,6 @@ export function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, [user]);
 
-  // Sync ONLY demo user to localStorage (real users use Supabase session tokens)
-  useEffect(() => {
-    try {
-      if (user?.isMock) {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.DEMO_AUTH_USER, JSON.stringify(user));
-      } else {
-        localStorage.removeItem(LOCAL_STORAGE_KEYS.DEMO_AUTH_USER);
-      }
-    } catch {}
-  }, [user]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AGENT_CONFIG, JSON.stringify(agent));
-    } catch {}
-  }, [agent]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.SIP_SETTINGS, JSON.stringify(sipSettings));
-    } catch {}
-  }, [sipSettings]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.TELEGRAM_SETTINGS, JSON.stringify(telegramSettings));
-    } catch {}
-  }, [telegramSettings]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.WEBHOOK_SETTINGS, JSON.stringify(webhookSettings));
-    } catch {}
-  }, [webhookSettings]);
-
-  useEffect(() => {
-    if (user && !user.isMock) return;
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.CALL_LOGS, JSON.stringify(callLogs));
-    } catch {}
-  }, [callLogs, user]);
-
   const buildAgentForNicheAndVoice = (base: AgentConfig, niche: BusinessNiche, voiceOverride?: VoiceId): AgentConfig => {
     const template = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
     const nextVoice = voiceOverride || base.voice;
@@ -397,27 +283,12 @@ export function App() {
       if (prev.some((c) => c.id === newLog.id)) return prev;
       return [newLog, ...prev];
     });
-    if (user?.isMock) {
-      const usedMins = Math.max(1, Math.round(newLog.durationSeconds / 60));
-      setUser((prev) =>
-        prev
-          ? {
-              ...prev,
-              spentMinutes: prev.spentMinutes + usedMins,
-              balanceMinutes: Math.max(0, prev.balanceMinutes - usedMins),
-            }
-          : prev
-      );
-    } else if (user && !user.isMock) {
-      getIspDbStatus().then((st) => {
-        if (st.available && st.configured && st.connected) {
-          ispRecordCall(newLog)
-            .then((freshUser) => {
-              if (freshUser) setUser(freshUser);
-            })
-            .catch(() => {});
-        }
-      });
+    if (user) {
+      ispRecordCall(newLog)
+        .then((freshUser) => {
+          if (freshUser) setUser(freshUser);
+        })
+        .catch(() => {});
     }
 
     // Автоматическая отправка лида в CRM / 1C / Make по внешнему Webhook
@@ -444,38 +315,6 @@ export function App() {
         })
       }).catch(() => {});
     }
-  };
-
-  // Handle Niche Selection from Landing Page
-  const handleSelectNicheFromLanding = (niche: BusinessNiche) => {
-    const template = NICHE_TEMPLATES[niche];
-    const updatedAgent = buildAgentForNicheAndVoice(agent, niche);
-    setAgent(updatedAgent);
-
-    if (user) {
-      setUser({
-        ...user,
-        companyName: template.companyName
-      });
-    } else {
-      setCallLogs((prev) => {
-        const liveLogs = prev.filter((c) => c.id.startsWith('call-live-'));
-        const liveIds = new Set(liveLogs.map((c) => c.id));
-        return [...liveLogs, ...INITIAL_CALL_LOGS.filter((c) => !liveIds.has(c.id))];
-      });
-      setUser({
-        id: 'usr_bel_demo_1',
-        email: 'owner@drive-minsk.by',
-        companyName: template.companyName,
-        balanceMinutes: 145,
-        ratePerMinute: 0.45,
-        spentMinutes: 55,
-        isMock: true
-      });
-    }
-
-    setCurrentView('dashboard');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSelectPackage = (pkg: MinutePackage) => {
@@ -626,21 +465,6 @@ export function App() {
                 window.location.hash = '';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              onNavigateToUserDashboard={() => {
-                if (!user) {
-                  setUser({
-                    id: 'demo-admin-workspace',
-                    email: 'admin@voxi.by',
-                    companyName: agent.companyName || 'Автошкола «Драйв-Минск»',
-                    balanceMinutes: 145,
-                    ratePerMinute: 0.45,
-                    spentMinutes: 12,
-                    isMock: true,
-                  });
-                }
-                setCurrentView('dashboard');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
             />
           </Suspense>
         ) : (
@@ -660,46 +484,22 @@ export function App() {
                   if (updatedAgent.companyName && updatedAgent.companyName !== user.companyName) {
                     setUser(prev => prev ? { ...prev, companyName: updatedAgent.companyName } : prev);
                   }
-                  if (!user.isMock) {
-                    getIspDbStatus().then((st) => {
-                      if (st.available && st.configured && st.connected) {
-                        ispSaveAgent(updatedAgent).catch(() => {});
-                      }
-                    });
-                  }
+                  ispSaveAgent(updatedAgent).catch(() => {});
                 }}
                 sipSettings={sipSettings}
                 onSaveSip={(nextSip) => {
                   setSipSettings(nextSip);
-                  if (!user.isMock) {
-                    getIspDbStatus().then((st) => {
-                      if (st.available && st.configured && st.connected) {
-                        ispSaveIntegrations({ sipSettings: nextSip }).catch(() => {});
-                      }
-                    });
-                  }
+                  ispSaveIntegrations({ sipSettings: nextSip }).catch(() => {});
                 }}
                 telegramSettings={telegramSettings}
                 onSaveTelegram={(nextTg) => {
                   setTelegramSettings(nextTg);
-                  if (!user.isMock) {
-                    getIspDbStatus().then((st) => {
-                      if (st.available && st.configured && st.connected) {
-                        ispSaveIntegrations({ telegramSettings: nextTg }).catch(() => {});
-                      }
-                    });
-                  }
+                  ispSaveIntegrations({ telegramSettings: nextTg }).catch(() => {});
                 }}
                 webhookSettings={webhookSettings}
                 onSaveWebhook={(nextWh) => {
                   setWebhookSettings(nextWh);
-                  if (!user.isMock) {
-                    getIspDbStatus().then((st) => {
-                      if (st.available && st.configured && st.connected) {
-                        ispSaveIntegrations({ webhookSettings: nextWh }).catch(() => {});
-                      }
-                    });
-                  }
+                  ispSaveIntegrations({ webhookSettings: nextWh }).catch(() => {});
                 }}
                 vapiApiKey={vapiApiKey}
                 onSaveVapiApiKey={() => {}}
@@ -763,24 +563,13 @@ export function App() {
                 window.history.replaceState({}, '', window.location.pathname);
               }
 
+              // Тестовые звонки, сделанные до входа (в памяти вкладки), сохраняем в аккаунт
               const liveTestLogs = callLogs.filter((c) => c.id.startsWith('call-live-'));
-              if (loggedInUser.isMock) {
-                const liveIds = new Set(liveTestLogs.map((c) => c.id));
-                setCallLogs([...liveTestLogs, ...INITIAL_CALL_LOGS.filter((c) => !liveIds.has(c.id))]);
-              } else {
-                const dbLogs = Array.isArray(workspace?.callLogs) ? workspace!.callLogs! : [];
-                const dbIds = new Set(dbLogs.map((c) => c.id));
-                const unsavedLive = liveTestLogs.filter((c) => !dbIds.has(c.id));
-                setCallLogs([...unsavedLive, ...dbLogs]);
-
-                if (unsavedLive.length > 0) {
-                  getIspDbStatus().then((st) => {
-                    if (st.available && st.configured && st.connected) {
-                      unsavedLive.forEach((l) => ispRecordCall(l).catch(() => {}));
-                    }
-                  });
-                }
-              }
+              const dbLogs = Array.isArray(workspace?.callLogs) ? workspace!.callLogs! : [];
+              const dbIds = new Set(dbLogs.map((c) => c.id));
+              const unsavedLive = liveTestLogs.filter((c) => !dbIds.has(c.id));
+              setCallLogs([...unsavedLive, ...dbLogs]);
+              unsavedLive.forEach((l) => ispRecordCall(l).catch(() => {}));
 
               if (workspace?.sipSettings) setSipSettings(workspace.sipSettings);
               if (workspace?.telegramSettings) setTelegramSettings(workspace.telegramSettings);
@@ -790,43 +579,22 @@ export function App() {
                 setIsTopUpModalOpen(true);
               }
 
-              if (workspace?.agent && !pendingVoiceTestSelection) {
-                setAgent(workspace.agent);
-                setUser(loggedInUser);
-              } else if (pendingVoiceTestSelection) {
+              if (pendingVoiceTestSelection) {
+                // Выбор ниши/голоса из тестового звонка применяется к ассистенту нового/текущего аккаунта
                 const updated = buildAgentForNicheAndVoice(
-                  agent,
+                  workspace?.agent || agent,
                   pendingVoiceTestSelection.niche,
                   pendingVoiceTestSelection.voice
                 );
-                if (!loggedInUser.isMock && loggedInUser.companyName) {
-                  updated.companyName = loggedInUser.companyName;
-                }
-                setAgent(updated);
-                setUser({
-                  ...loggedInUser,
-                  companyName: loggedInUser.isMock ? updated.companyName : loggedInUser.companyName || updated.companyName,
-                });
-                setPendingVoiceTestSelection(null);
-                if (!loggedInUser.isMock) {
-                  getIspDbStatus().then((st) => {
-                    if (st.available && st.configured && st.connected) {
-                      ispSaveAgent(updated).catch(() => {});
-                    }
-                  });
-                }
-              } else if (loggedInUser.companyName.includes('СТО')) {
-                const updated = buildAgentForNicheAndVoice(agent, 'auto_service', 'maxim');
-                if (!loggedInUser.isMock) updated.companyName = loggedInUser.companyName;
+                if (loggedInUser.companyName) updated.companyName = loggedInUser.companyName;
+                updated.systemPrompt = generateSystemPrompt(updated);
                 setAgent(updated);
                 setUser(loggedInUser);
-                if (!loggedInUser.isMock) {
-                  getIspDbStatus().then((st) => {
-                    if (st.available && st.configured && st.connected) {
-                      ispSaveAgent(updated).catch(() => {});
-                    }
-                  });
-                }
+                setPendingVoiceTestSelection(null);
+                ispSaveAgent(updated).catch(() => {});
+              } else if (workspace?.agent) {
+                setAgent(withMandatoryNotice(workspace.agent));
+                setUser(loggedInUser);
               } else {
                 setUser(loggedInUser);
                 if (loggedInUser.companyName && loggedInUser.companyName !== agent.companyName) {
@@ -842,13 +610,7 @@ export function App() {
                   };
                   updated.systemPrompt = generateSystemPrompt(updated);
                   setAgent(updated);
-                  if (!loggedInUser.isMock) {
-                    getIspDbStatus().then((st) => {
-                      if (st.available && st.configured && st.connected) {
-                        ispSaveAgent(updated).catch(() => {});
-                      }
-                    });
-                  }
+                  ispSaveAgent(updated).catch(() => {});
                 }
               }
 
@@ -876,9 +638,6 @@ export function App() {
                 setPendingVoiceTestSelection({ niche: selectedNiche, voice: selectedVoice });
                 setIsAuthModalOpen(true);
               } else {
-                if (user.isMock) {
-                  setUser({ ...user, companyName: updated.companyName });
-                }
                 setCurrentView('dashboard');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }

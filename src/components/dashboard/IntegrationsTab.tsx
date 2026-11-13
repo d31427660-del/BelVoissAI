@@ -57,9 +57,6 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
     transferPhone: sipSettings.transferPhone || sipSettings.fallbackPhone || '+375 (29) 700-11-22',
     whisperMessage: sipSettings.whisperMessage || 'Секунду, перевожу звонок на дежурного менеджера, пожалуйста, оставайтесь на линии...',
     sendTelegramSummaryOnTransfer: sipSettings.sendTelegramSummaryOnTransfer ?? true,
-    amdEnabled: sipSettings.amdEnabled ?? true,
-    amdSensitivity: sipSettings.amdSensitivity || 'high',
-    amdHangupImmediately: sipSettings.amdHangupImmediately ?? true,
     piiMaskingEnabled: sipSettings.piiMaskingEnabled ?? true,
     recordingDisclaimerEnabled: sipSettings.recordingDisclaimerEnabled ?? true,
     disclaimerText:
@@ -471,8 +468,8 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                 htmlFor="tg-chat-id"
                 label="ID вашего чата или рабочей группы в Telegram"
                 helpTriggerLabel="Где взять ID?"
-                helpTitle="Как узнать свой ID в Telegram за 30 секунд"
-                helpText="1. Откройте в Telegram бесплатного бота @userinfobot и нажмите «Запустить» (Start). 2. Он сразу пришлёт цифру (например, 419283746) — скопируйте её и вставьте в это поле. Если хотите получать заявки в общую группу с сотрудниками, добавьте бота в группу."
+                helpTitle="Как узнать свой ID в Telegram за 3 секунды"
+                helpText="1. Нажмите «Запустить» (/start) в нашем боте Voxi.by в Telegram — он сразу пришлёт ваш персональный Chat ID. 2. Скопируйте цифры и вставьте в это поле. Если хотите получать звонки в рабочий чат с коллегами, просто добавьте бота в группу."
                 helpExample="419283746 (личный чат) или -100192837465 (рабочая группа)"
               />
               <input
@@ -489,7 +486,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                 className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
               />
               <FieldHint id="tg-chat-id-hint">
-                Цифровой номер чата руководителя или группы администраторов (можно узнать через @userinfobot).
+                Цифровой номер чата руководителя или группы (нажмите «Запустить» в боте в Telegram, чтобы получить номер).
               </FieldHint>
             </div>
 

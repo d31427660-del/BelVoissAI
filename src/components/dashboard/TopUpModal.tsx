@@ -344,9 +344,6 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
           packageId: isCustomMode ? null : currentPkg.id,
           customMinutes: isCustomMode ? customMinutes : null,
           paymentMethod,
-          userId: user.id,
-          email: user.email,
-          companyName: user.companyName,
         }),
       });
 
@@ -358,20 +355,6 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
         }
       }
 
-      // If user is in explicit demo-sandbox mode and bePaid keys aren't added yet, allow sandbox simulation
-      if (user.isMock) {
-        setIsProcessing(false);
-        setIsSuccess(true);
-        triggerConfetti();
-
-        setTimeout(() => {
-          onSuccessTopUp(finalMinutes, finalAmountByn);
-          setIsSuccess(false);
-          onClose();
-        }, 1400);
-        return;
-      }
-
       const errData = await response.json().catch(() => ({}));
       setErrorMsg(
         errData?.message ||
@@ -379,17 +362,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
           'Платёжный шлюз bePaid временно недоступен. Пожалуйста, выберите безналичный счёт или напишите в @voxi_support.'
       );
     } catch {
-      if (user.isMock) {
-        setIsSuccess(true);
-        triggerConfetti();
-        setTimeout(() => {
-          onSuccessTopUp(finalMinutes, finalAmountByn);
-          setIsSuccess(false);
-          onClose();
-        }, 1400);
-      } else {
-        setErrorMsg('Не удалось связаться с платёжным сервером bePaid.');
-      }
+      setErrorMsg('Не удалось связаться с платёжным сервером bePaid.');
     } finally {
       setIsProcessing(false);
     }
@@ -415,11 +388,6 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                 <h2 id="topup-modal-title" className="text-base font-medium text-black tracking-tight">
                   Пополнение баланса минут
                 </h2>
-                {user.isMock && (
-                  <span className="text-[10px] font-normal uppercase px-2 py-0.5 rounded-full liquid-glass-pill text-black">
-                    Демо-режим
-                  </span>
-                )}
               </div>
               <p className="text-xs text-[#59544F]">
                 Текущий баланс: <strong className="text-black font-medium">{user.balanceMinutes || 0} мин</strong> (~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN)
@@ -800,8 +768,6 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                   <span>
                     {paymentMethod === 'bank_invoice'
                       ? `Сформировать счёт на ${finalAmountByn} BYN`
-                      : user.isMock
-                      ? `Протестировать оплату (${finalAmountByn} BYN)`
                       : `Оплатить ${finalAmountByn} BYN через bePaid`}
                   </span>
                 </>

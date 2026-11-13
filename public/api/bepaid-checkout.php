@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+voxi_csrf_guard();
 
 if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     header('Allow: POST');
@@ -28,28 +29,24 @@ $body = voxi_read_json_body();
 $packageId = (string)($body['packageId'] ?? '');
 $customMinutes = isset($body['customMinutes']) && is_numeric($body['customMinutes']) ? (float)$body['customMinutes'] : null;
 $paymentMethod = (string)($body['paymentMethod'] ?? 'card');
-$userId = trim((string)($body['userId'] ?? 'guest')) ?: 'guest';
-$email = trim((string)($body['email'] ?? ''));
-$companyName = trim((string)($body['companyName'] ?? ''));
 
-// Серверная верификация пользователя из сессии: предотвращаем подделку userId клиентом
-if (voxi_is_db_configured($VOXI_CONFIG)) {
-    try {
-        $pdo = voxi_get_pdo($VOXI_CONFIG);
-        $authUser = voxi_find_authenticated_user($pdo);
-        if ($authUser) {
-            $userId = (string)$authUser['id'];
-            if ($email === '') {
-                $email = (string)$authUser['email'];
-            }
-            if ($companyName === '') {
-                $companyName = (string)$authUser['company_name'];
-            }
-        }
-    } catch (Throwable) {
-        // Fallback to sanitized payload
-    }
+// Оплата доступна только авторизованным пользователям: userId берётся ИСКЛЮЧИТЕЛЬНО из серверной сессии
+if (!voxi_is_db_configured($VOXI_CONFIG)) {
+    voxi_json(['configured' => false, 'error' => 'База данных не настроена'], 503);
 }
+try {
+    $pdo = voxi_get_pdo($VOXI_CONFIG);
+    $authUser = voxi_find_authenticated_user($pdo);
+} catch (Throwable) {
+    voxi_json(['error' => 'Сервис временно недоступен'], 503);
+}
+if (!$authUser) {
+    voxi_json(['error' => 'Войдите в личный кабинет, чтобы пополнить баланс'], 401);
+}
+voxi_enforce_rate_limit('bepaid_checkout', 10, 60);
+$userId = (string)$authUser['id'];
+$email = (string)$authUser['email'];
+$companyName = (string)$authUser['company_name'];
 
 $minutes = 300;
 $amountByn = 120;
@@ -76,7 +73,13 @@ $safeSiteUrl = in_array($hostWithoutPort, $allowedHosts, true)
     ? (($hostWithoutPort === 'localhost' || $hostWithoutPort === '127.0.0.1') ? "http://{$rawHost}" : "https://{$rawHost}")
     : 'https://voxi.by';
 $siteUrl = rtrim((string)($VOXI_CONFIG['public_site_url'] ?: $safeSiteUrl), '/');
-$trackingId = "{$userId}:{$minutes}:" . round(microtime(true) * 1000);
+// Заказ фиксирует сумму и минуты НА СЕРВЕРЕ: вебхук доверяет только этому заказу, а не данным из платежа
+$orderId = voxi_uuid();
+$pdo->prepare(
+    'INSERT INTO payment_orders (id, user_id, minutes, amount_kopecks, currency, status, is_test)
+     VALUES (?, ?, ?, ?, ?, ?, ?)'
+)->execute([$orderId, $userId, $minutes, $amountKopecks, 'BYN', 'pending', $isTest ? 1 : 0]);
+$trackingId = $orderId;
 $eripServiceNo = (string)($VOXI_CONFIG['bepaid_erip_service_no'] ?: '99999999');
 
 $checkout = [
@@ -84,7 +87,7 @@ $checkout = [
     'transaction_type' => 'payment',
     'attempts' => 3,
     'settings' => [
-        'success_url' => "{$siteUrl}/?payment=success&minutes={$minutes}",
+        'success_url' => "{$siteUrl}/?payment=success",
         'decline_url' => "{$siteUrl}/?payment=declined",
         'fail_url' => "{$siteUrl}/?payment=failed",
         'cancel_url' => "{$siteUrl}/?payment=cancelled",
@@ -106,7 +109,7 @@ if ($paymentMethod === 'erip') {
         'types' => ['erip'],
         'erip' => [
             'order_id' => substr((string)time(), -8),
-            'account_number' => $email !== '' ? $email : ($userId !== 'guest' ? $userId : 'voxi-client'),
+            'account_number' => $email !== '' ? $email : $userId,
             'service_no' => $eripServiceNo,
             'service_info' => [
                 $description,

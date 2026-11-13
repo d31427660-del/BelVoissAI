@@ -8,17 +8,19 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     voxi_json(['error' => 'Method Not Allowed'], 405);
 }
 
-// Verify optional webhook secret
+// Обязательная криптографическая проверка секрета вебхука телефонии
 $expectedSecret = trim((string)($VOXI_CONFIG['vapi_webhook_secret'] ?? ''));
-if ($expectedSecret !== '') {
-    $headerSecret = trim((string)($_SERVER['HTTP_X_VAPI_SECRET'] ?? ''));
-    $authHeader = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
-    if ($headerSecret === '' && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $m)) {
-        $headerSecret = trim($m[1]);
-    }
-    if ($headerSecret === '' || !hash_equals($expectedSecret, $headerSecret)) {
-        voxi_json(['error' => 'Unauthorized webhook secret'], 401);
-    }
+if ($expectedSecret === '') {
+    voxi_json(['error' => 'VAPI_WEBHOOK_SECRET is not configured on server'], 503);
+}
+
+$headerSecret = trim((string)($_SERVER['HTTP_X_VAPI_SECRET'] ?? ''));
+$authHeader = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
+if ($headerSecret === '' && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $m)) {
+    $headerSecret = trim($m[1]);
+}
+if ($headerSecret === '' || !hash_equals($expectedSecret, $headerSecret)) {
+    voxi_json(['error' => 'Unauthorized webhook secret'], 401);
 }
 
 $payload = voxi_read_json_body();

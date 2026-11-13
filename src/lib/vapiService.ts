@@ -7,16 +7,6 @@ export function generateSystemPrompt(config: Partial<AgentConfig>): string {
     ? 'Общайся строго вежливо, в уважительном деловом тоне, обращаясь на "Вы".' 
     : 'Общайся доброжелательно, приветливо, тепло и заботливо, обращаясь на уважительное "Вы".';
 
-  const activePhonetics = (config.phoneticRules || []).filter((r) => r.enabled);
-  const phoneticsBlock =
-    activePhonetics.length > 0
-      ? `\n### СЛОВАРЬ УДАРЕНИЙ И ТОПОНИМОВ РБ (Произноси строго с указанным ударением/заменой):\n` +
-        activePhonetics
-          .map((r) => `- "${r.word}" → произноси как "${r.stressed}" (для TTS: "${r.ttsReplacement}")`)
-          .join('\n') +
-        '\n'
-      : '';
-
   const yclientsBlock = config.yclientsConfig && config.yclientsConfig.isEnabled
     ? YclientsService.getPromptInstruction(config.yclientsConfig, config.niche || 'driving_school', config.voice)
     : '';
@@ -47,7 +37,7 @@ ${config.pricingAndServices || 'Уточняйте у оператора'}
 
 ### БАЗА ЗНАНИЙ И ОСОБЕННОСТИ:
 ${config.knowledgeBase || 'Стандартные условия'}
-${phoneticsBlock}${yclientsBlock}
+${yclientsBlock}
 ### ДЕЙСТВИЯ ПРИ НЕСТАНДАРТНЫХ СИТУАЦИЯХ:
 - Если клиент задает вопрос, ответа на который нет в базе знаний: вежливо скажи: "Я зафиксирую этот вопрос и наш старший специалист перезвонит вам в течение 10 минут с точным ответом. Подскажите, на этот номер перезвонить?".
 - В случае спама или рекламы: вежливо поблагодари за звонок и скажи, что компания в данных услугах не нуждается, затем вежливо попрощайся.

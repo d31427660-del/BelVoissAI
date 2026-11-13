@@ -103,6 +103,45 @@ function voxi_json(array $payload, int $status = 200): never
     exit;
 }
 
+/**
+ * Список доверенных хостов сайта (для проверки Origin / CSRF).
+ */
+function voxi_allowed_hosts(): array
+{
+    $cfg = $GLOBALS['VOXI_CONFIG'] ?? [];
+    $publicHost = strtolower((string)(parse_url((string)($cfg['public_site_url'] ?? ''), PHP_URL_HOST) ?? ''));
+    return array_values(array_filter(array_unique(['voxi.by', 'www.voxi.by', 'localhost', '127.0.0.1', $publicHost])));
+}
+
+/**
+ * CSRF-защита для эндпоинтов, вызываемых из браузера (cookie-сессия):
+ *  1) Origin / Referer (если присутствуют) обязаны принадлежать нашему сайту;
+ *  2) обязателен заголовок X-Requested-With: XMLHttpRequest — кросс-сайтовая форма
+ *     или <img>/<script> не может его выставить, а fetch с ним требует CORS-preflight,
+ *     который мы не разрешаем.
+ * Вебхуки платёжных/телефонных систем (server-to-server) эту функцию НЕ вызывают.
+ */
+function voxi_csrf_guard(): void
+{
+    $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
+        return;
+    }
+    $source = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
+    if ($source === '') {
+        $source = trim((string)($_SERVER['HTTP_REFERER'] ?? ''));
+    }
+    if ($source !== '') {
+        $host = strtolower((string)(parse_url($source, PHP_URL_HOST) ?? ''));
+        if (!in_array($host, voxi_allowed_hosts(), true)) {
+            voxi_json(['ok' => false, 'error' => 'Forbidden: cross-origin request'], 403);
+        }
+    }
+    if (strtolower(trim((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''))) !== 'xmlhttprequest') {
+        voxi_json(['ok' => false, 'error' => 'Forbidden: missing CSRF header'], 403);
+    }
+}
+
 function voxi_read_json_body(): array
 {
     $raw = file_get_contents('php://input');
@@ -196,7 +235,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
 {
     $markerFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR)
         . DIRECTORY_SEPARATOR
-        . 'voxi_schema_v2_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
+        . 'voxi_schema_v3_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
 
     if (is_file($markerFile) && (time() - (int)@filemtime($markerFile)) < 3600) {
         return;
@@ -322,19 +361,20 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           CONSTRAINT `fk_minute_tx_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        "CREATE TABLE IF NOT EXISTS `live_chat_conversations` (
-          `id` VARCHAR(128) NOT NULL,
-          `visitor_id` VARCHAR(128) NOT NULL,
-          `visitor_name` VARCHAR(191) NOT NULL DEFAULT 'Гость сайта',
-          `visitor_contact` VARCHAR(191) DEFAULT NULL,
-          `visitor_city` VARCHAR(120) DEFAULT NULL,
-          `started_at` VARCHAR(64) NOT NULL,
-          `last_message_at` VARCHAR(64) NOT NULL,
-          `last_message_text` TEXT DEFAULT NULL,
-          `messages_json` LONGTEXT NOT NULL,
-          `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        "CREATE TABLE IF NOT EXISTS `payment_orders` (
+          `id` CHAR(36) NOT NULL,
+          `user_id` CHAR(36) NOT NULL,
+          `minutes` DECIMAL(10, 2) NOT NULL,
+          `amount_kopecks` INT UNSIGNED NOT NULL,
+          `currency` CHAR(3) NOT NULL DEFAULT 'BYN',
+          `status` VARCHAR(16) NOT NULL DEFAULT 'pending',
+          `is_test` TINYINT(1) NOT NULL DEFAULT 0,
+          `external_uid` VARCHAR(191) DEFAULT NULL,
+          `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `paid_at` DATETIME DEFAULT NULL,
           PRIMARY KEY (`id`),
-          KEY `live_chat_last_message_idx` (`last_message_at`)
+          KEY `payment_orders_user_idx` (`user_id`, `created_at`),
+          CONSTRAINT `fk_payment_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
@@ -381,21 +421,7 @@ function voxi_get_pdo(array $cfg): PDO
 
 function voxi_extract_session_token(): string
 {
-    $headers = [
-        $_SERVER['HTTP_AUTHORIZATION'] ?? '',
-        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '',
-    ];
-    if (function_exists('getallheaders')) {
-        $all = getallheaders();
-        if (is_array($all)) {
-            $headers[] = (string)($all['Authorization'] ?? $all['authorization'] ?? '');
-        }
-    }
-    foreach ($headers as $hdr) {
-        if (is_string($hdr) && preg_match('/^Bearer\s+([a-f0-9]{32,128})$/i', trim($hdr), $m)) {
-            return strtolower($m[1]);
-        }
-    }
+    // Сессия хранится только в HttpOnly-cookie (недоступна из JS => защита от кражи при XSS)
     $cookie = (string)($_COOKIE['voxi_session'] ?? '');
     if (preg_match('/^[a-f0-9]{32,128}$/i', $cookie)) {
         return strtolower($cookie);
@@ -413,7 +439,7 @@ function voxi_set_session_cookie(string $token, int $ttlSeconds = 2592000): void
         'path' => '/',
         'secure' => $isHttps,
         'httponly' => true,
-        'samesite' => 'Lax',
+        'samesite' => 'Strict',
     ]);
 }
 
@@ -427,7 +453,7 @@ function voxi_clear_session_cookie(): void
         'path' => '/',
         'secure' => $isHttps,
         'httponly' => true,
-        'samesite' => 'Lax',
+        'samesite' => 'Strict',
     ]);
 }
 

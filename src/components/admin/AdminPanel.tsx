@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Widget5Icon as DashboardIcon,
   UsersGroupTwoRoundedIcon as UsersIcon,
-  ChatRoundDotsIcon,
   WalletMoneyIcon as WalletIcon,
   PhoneCallingRoundedIcon as TelephonyIcon,
   SettingsIcon,
@@ -17,9 +16,6 @@ import {
   BellIcon
 } from '@solar-icons/react/bold-duotone';
 import {
-  INITIAL_PLATFORM_CLIENTS,
-  INITIAL_TRANSACTIONS,
-  INITIAL_TELEPHONY_LOGS,
   PlatformClient,
   PlatformTransaction,
   PlatformTelephonyLog
@@ -31,17 +27,11 @@ import {
   ispAdminToggleClient,
 } from '../../lib/ispDbClient';
 
-const DEMO_AUTH_USER_KEY = 'voxi_demo_auth_user';
-
 interface AdminPanelProps {
   onExitToLanding: () => void;
-  onNavigateToUserDashboard?: () => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({
-  onExitToLanding,
-  onNavigateToUserDashboard
-}) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return Boolean(sessionStorage.getItem('voxi_admin_auth') === 'true' && sessionStorage.getItem('voxi_admin_token'));
@@ -50,20 +40,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [pinError, setPinError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'billing' | 'telephony' | 'settings'>('overview');
-  const [clients, setClients] = useState<PlatformClient[]>(() => {
-    try {
-      const saved = localStorage.getItem('voxi_admin_clients_v1');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [];
-  });
-  const [transactions, setTransactions] = useState<PlatformTransaction[]>(() => {
-    try {
-      const saved = localStorage.getItem('voxi_admin_transactions_v1');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [];
-  });
+  const [clients, setClients] = useState<PlatformClient[]>([]);
+  const [transactions, setTransactions] = useState<PlatformTransaction[]>([]);
   const [telephonyLogs, setTelephonyLogs] = useState<PlatformTelephonyLog[]>([]);
   const [adminToken, setAdminToken] = useState<string>(() => {
     try {
@@ -77,125 +55,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedClientForRefill, setSelectedClientForRefill] = useState<PlatformClient | null>(null);
   const [refillAmountMinutes, setRefillAmountMinutes] = useState<number>(50);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
-  const [tariffSettings, setTariffSettings] = useState<{
-    starterRate: string;
-    wholesaleRate: string;
-    freeDemoLimit: string;
-  }>(() => {
-    try {
-      const saved = localStorage.getItem('voxi_admin_settings_v1');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {
-      starterRate: '0.45',
-      wholesaleRate: '0.35',
-      freeDemoLimit: '15 минут',
-    };
-  });
+  // Единственный источник данных — БД MySQL (/api/db?action=admin_data). Никаких локальных копий и демо-данных.
+  const [dataError, setDataError] = useState<string | null>(null);
+  const loadAdminData = React.useCallback(async () => {
+    if (!adminToken) return;
+    const remote = await ispFetchAdminData(adminToken);
+    if (!remote || !remote.dbConnected) {
+      setIsDbConnected(false);
+      setDataError('Не удалось загрузить данные из БД. Проверьте подключение MySQL и повторите.');
+      return;
+    }
+    setIsDbConnected(true);
+    setDataError(null);
+    setClients(remote.clients as PlatformClient[]);
+    setTransactions(remote.transactions as PlatformTransaction[]);
+    setTelephonyLogs(remote.telephonyLogs as PlatformTelephonyLog[]);
+  }, [adminToken]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('voxi_admin_clients_v1', JSON.stringify(clients));
-    } catch {}
-  }, [clients]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('voxi_admin_transactions_v1', JSON.stringify(transactions));
-    } catch {}
-  }, [transactions]);
-
-  // Синхронизация реальных клиентов из MySQL (ISPmanager) и локальной сессии браузера
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    // 1. Подтягиваем локально зарегистрированного пользователя браузера (если есть)
-    try {
-      const rawLocalUser = localStorage.getItem(DEMO_AUTH_USER_KEY);
-      if (rawLocalUser) {
-        const localUser = JSON.parse(rawLocalUser);
-        if (localUser && localUser.id && localUser.email) {
-          setClients((prev) => {
-            const exists = prev.some((c) => c.id === localUser.id || c.email === localUser.email);
-            if (exists) {
-              return prev.map((c) =>
-                c.id === localUser.id || c.email === localUser.email
-                  ? {
-                      ...c,
-                      id: localUser.id,
-                      companyName: localUser.companyName || c.companyName,
-                      balanceMinutes: Number(localUser.balanceMinutes ?? c.balanceMinutes),
-                      spentMinutesTotal: Number(localUser.spentMinutesTotal ?? c.spentMinutesTotal),
-                      ratePerMinute: Number(localUser.ratePerMinute ?? c.ratePerMinute),
-                    }
-                  : c
-              );
-            }
-            const newClient: PlatformClient = {
-              id: String(localUser.id),
-              name: String(localUser.email),
-              companyName: String(localUser.companyName || 'Компания клиента РБ'),
-              unp: '193847561',
-              phone: '+375 (29) 111-22-33',
-              email: String(localUser.email),
-              niche: (localUser.niche || 'driving_school') as PlatformClient['niche'],
-              city: 'Минск',
-              balanceMinutes: Number(localUser.balanceMinutes ?? 15),
-              spentMinutesTotal: Number(localUser.spentMinutesTotal ?? 0),
-              spentBynTotal: Number(localUser.spentTotalByn ?? 0),
-              ratePerMinute: Number(localUser.ratePerMinute ?? 0.45),
-              sipProvider: 'mts',
-              sipStatus: 'connected',
-              isActive: true,
-              createdAt: new Date().toLocaleDateString('ru-RU'),
-              contractNumber: 'ДГ-2026/LIVE',
-            };
-            return [newClient, ...prev];
-          });
-        }
-      }
-    } catch {}
-
-    // 2. Подтягиваем реальные данные из БД MySQL ISPmanager (/api/db?action=admin_data)
-    if (!adminToken) return;
-    let cancelled = false;
-    ispFetchAdminData(adminToken).then((remote) => {
-      if (cancelled || !remote || !remote.dbConnected) return;
-      setIsDbConnected(true);
-      if (remote.clients.length > 0) {
-        setClients((prev) => {
-          const remoteIds = new Set(remote.clients.map((rc: PlatformClient) => rc.id));
-          const merged = [
-            ...(remote.clients as PlatformClient[]),
-            ...prev.filter((c) => !remoteIds.has(c.id)),
-          ];
-          return merged;
-        });
-      }
-      if (remote.transactions.length > 0) {
-        setTransactions((prev) => {
-          const remoteTxIds = new Set(remote.transactions.map((rt: PlatformTransaction) => rt.id));
-          return [
-            ...(remote.transactions as PlatformTransaction[]),
-            ...prev.filter((t) => !remoteTxIds.has(t.id)),
-          ];
-        });
-      }
-      if (remote.telephonyLogs.length > 0) {
-        setTelephonyLogs((prev) => {
-          const remoteLogIds = new Set(remote.telephonyLogs.map((rl: PlatformTelephonyLog) => rl.id));
-          return [
-            ...(remote.telephonyLogs as PlatformTelephonyLog[]),
-            ...prev.filter((l) => !remoteLogIds.has(l.id)),
-          ];
-        });
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, adminToken]);
+    void loadAdminData();
+  }, [isAuthenticated, loadAdminData]);
 
   const showToast = (msg: string) => {
     setActionNotice(msg);
@@ -352,72 +232,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleQuickAddMinutes = async (clientId: string, minutes: number) => {
     const safeMinutes = Math.max(1, Math.round(Number(minutes) || 0));
-    const targetClient = clients.find((c) => c.id === clientId);
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id === clientId) {
-          const nextBal = c.balanceMinutes + safeMinutes;
-          return { ...c, balanceMinutes: nextBal };
-        }
-        return c;
-      })
-    );
-
-    // Синхронизируем баланс с локальной сессией клиента (если это его аккаунт в этом браузере)
-    try {
-      const rawLocalUser = localStorage.getItem(DEMO_AUTH_USER_KEY);
-      if (rawLocalUser) {
-        const parsedUser = JSON.parse(rawLocalUser);
-        if (
-          parsedUser &&
-          (parsedUser.id === clientId || (targetClient && parsedUser.email === targetClient.email))
-        ) {
-          parsedUser.balanceMinutes = Number(parsedUser.balanceMinutes || 0) + safeMinutes;
-          localStorage.setItem(DEMO_AUTH_USER_KEY, JSON.stringify(parsedUser));
-        }
-      }
-    } catch {}
-
-    // Отправляем реальное начисление в MySQL (если БД ISPmanager подключена)
-    if (adminToken) {
-      ispAdminAddMinutes(adminToken, clientId, safeMinutes).catch(() => {});
+    const result = await ispAdminAddMinutes(adminToken, clientId, safeMinutes);
+    if (!result.ok) {
+      showToast('Не удалось начислить минуты: сервер отклонил операцию');
+      return;
     }
-
-    if (targetClient) {
-      const amountByn = Number((safeMinutes * targetClient.ratePerMinute).toFixed(2));
-      const newTx: PlatformTransaction = {
-        id: `tx_${Date.now()}`,
-        clientId: targetClient.id,
-        clientName: targetClient.companyName,
-        unp: targetClient.unp,
-        amountByn,
-        minutesAdded: safeMinutes,
-        paymentMethod: 'bank_transfer_act',
-        status: 'successful',
-        invoiceNumber: `СЧ-${new Date().getFullYear()}/${String(transactions.length + 101)}`,
-        createdAt: new Date().toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }),
-        actGenerated: true,
-      };
-      setTransactions((prev) => [newTx, ...prev]);
-    }
-    showToast(`Начислено +${safeMinutes} минут клиенту!`);
+    await loadAdminData();
+    showToast(`Начислено +${safeMinutes} минут клиенту`);
     setSelectedClientForRefill(null);
   };
 
-  const handleToggleClientActive = (clientId: string) => {
-    let nextState = true;
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id === clientId) {
-          nextState = !c.isActive;
-          return { ...c, isActive: nextState };
-        }
-        return c;
-      })
-    );
-    if (adminToken) {
-      ispAdminToggleClient(adminToken, clientId, nextState).catch(() => {});
+  const handleToggleClientActive = async (clientId: string) => {
+    const client = clients.find((c) => c.id === clientId);
+    if (!client) return;
+    const ok = await ispAdminToggleClient(adminToken, clientId, !client.isActive);
+    if (!ok) {
+      showToast('Не удалось изменить статус клиента');
+      return;
     }
+    await loadAdminData();
     showToast('Статус клиента обновлен');
   };
 
@@ -541,7 +374,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   isDbConnected ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'
                 }`}
               />
-              {isDbConnected ? 'MySQL: Онлайн' : 'БД: Live Sync'}
+              {isDbConnected ? 'MySQL: Онлайн' : 'MySQL: нет связи'}
             </span>
           </div>
         </div>
@@ -555,15 +388,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         )}
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {onNavigateToUserDashboard && (
-            <button
-              type="button"
-              onClick={onNavigateToUserDashboard}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full liquid-glass-dark hover:bg-white/10 text-zinc-300 hover:text-white text-xs font-normal transition-colors cursor-pointer"
-            >
-              <span>Кабинет клиента</span>
-            </button>
-          )}
 
           <div className="h-4 w-px bg-white/10 hidden md:block" />
 
@@ -659,6 +483,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         {/* Content Area */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+          {dataError && (
+            <div role="alert" className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200 flex items-center justify-between gap-3">
+              <span>{dataError}</span>
+              <button type="button" onClick={() => void loadAdminData()} className="underline cursor-pointer">Повторить</button>
+            </div>
+          )}
+
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -1138,49 +969,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-                <h3 className="font-semibold text-sm text-white">Базовые тарифы</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <label className="text-slate-400 block mb-1">Стартовый тариф за минуту (BYN):</label>
-                    <input
-                      type="text"
-                      value={tariffSettings.starterRate}
-                      onChange={(e) => setTariffSettings((prev) => ({ ...prev, starterRate: e.target.value }))}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Оптовый тариф за минуту (BYN):</label>
-                    <input
-                      type="text"
-                      value={tariffSettings.wholesaleRate}
-                      onChange={(e) => setTariffSettings((prev) => ({ ...prev, wholesaleRate: e.target.value }))}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Бесплатный демо-лимит при регистрации:</label>
-                    <input
-                      type="text"
-                      value={tariffSettings.freeDemoLimit}
-                      onChange={(e) => setTariffSettings((prev) => ({ ...prev, freeDemoLimit: e.target.value }))}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      localStorage.setItem('voxi_admin_settings_v1', JSON.stringify(tariffSettings));
-                    } catch {}
-                    showToast('Настройки тарифов сохранены');
-                  }}
-                  className="px-5 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
-                >
-                  Сохранить тарифы
-                </button>
+              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 shadow-xl">
+                <h3 className="font-semibold text-sm text-white">Действующие тарифы (только чтение)</h3>
+                <p className="text-xs text-slate-400">
+                  Тарифы и приветственный бонус задаются на сервере (api/bepaid-checkout.php, api/db.php) и не
+                  редактируются из браузера. Для изменения обновите код и задеплойте.
+                </p>
+                <ul className="text-xs text-slate-300 space-y-1">
+                  <li>Старт: 0.45 BYN/мин · от 300 мин: 0.40 · от 1000 мин: 0.35</li>
+                  <li>Приветственный бонус при регистрации: 15 минут</li>
+                </ul>
               </div>
             </div>
           )}

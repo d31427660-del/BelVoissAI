@@ -1,7 +1,7 @@
 // Neural TTS & audio wave controller for Voxi.by
 // Uses Yandex SpeechKit studio MP3 cache (cache-busted) + live-streamed Yandex SpeechKit API v1 (/api/tts)
 
-import { PhoneticRule, VoiceId } from '../types';
+import { VoiceId } from '../types';
 
 const VOICE_CACHE_VERSION = 'yc3';
 
@@ -15,7 +15,6 @@ export class VoiceSimulator {
   private static waveInterval: number | null = null;
   private static manifestCache: Record<string, string> | null = null;
   private static manifestPromise: Promise<Record<string, string>> | null = null;
-  private static phoneticRules: PhoneticRule[] = [];
 
   /**
    * Unlocks a reusable HTMLAudioElement inside a user click gesture
@@ -46,23 +45,6 @@ export class VoiceSimulator {
     } catch {
       // ignore
     }
-  }
-
-  public static setPhoneticRules(rules: PhoneticRule[]) {
-    this.phoneticRules = rules || [];
-  }
-
-  public static applyPhonetics(text: string, rules: PhoneticRule[] = this.phoneticRules): string {
-    if (!rules || rules.length === 0) return text;
-    let output = text;
-    for (const rule of rules) {
-      if (!rule.enabled || !rule.word.trim() || !rule.ttsReplacement.trim()) continue;
-      if (rule.word.trim() === rule.ttsReplacement.trim()) continue;
-      const escaped = rule.word.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(escaped, 'gi');
-      output = output.replace(regex, rule.ttsReplacement.trim());
-    }
-    return output;
   }
 
   private static normalizeKey(voice: string, text: string): string {
@@ -117,7 +99,7 @@ export class VoiceSimulator {
           return;
         }
 
-        const spokenText = this.applyPhonetics(text);
+        const spokenText = text;
         const textWithAnna = spokenText.replace(/меня зовут (Максим|Дмитрий)/gi, 'меня зовут Анна');
         const textWithMaxim = spokenText.replace(/меня зовут (Анна|Дмитрий)/gi, 'меня зовут Максим');
 

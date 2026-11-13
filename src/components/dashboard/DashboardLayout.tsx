@@ -64,10 +64,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
 
-  const displayCallLogs = user.isMock
-    ? callLogs.filter((c) => !c.niche || c.niche === agent.niche)
-    : callLogs;
-
   const handleGlobalSave = () => {
     const activeForm = document.getElementById('active-workspace-form') as HTMLFormElement | null;
     if (activeForm) {
@@ -99,7 +95,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       label: 'Журнал звонков',
       subtitle: 'Заявки и записи бесед',
       icon: <PhoneCall className="w-4 h-4 shrink-0" />,
-      badge: `${displayCallLogs.length}`
+      badge: `${callLogs.length}`
     },
     {
       id: 'integrations' as const,
@@ -376,7 +372,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <SimpleOverviewTab
               user={user}
               agent={agent}
-              callLogs={displayCallLogs}
+              callLogs={callLogs}
               sipSettings={sipSettings}
               onNavigateTab={(t) => setActiveTab(t)}
               onOpenVoiceTest={onOpenVoiceTest}
@@ -395,7 +391,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
           {activeTab === 'calls' && (
             <CallLogsTab
-              callLogs={displayCallLogs}
+              callLogs={callLogs}
               agent={agent}
             />
           )}

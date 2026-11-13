@@ -2,11 +2,15 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+voxi_csrf_guard();
 
 if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     header('Allow: POST');
     voxi_json(['error' => 'Method Not Allowed'], 405);
 }
+
+// Защита квоты YandexGPT Lite: не более 20 диалоговых реплик в минуту на IP
+voxi_enforce_rate_limit('chat', 20, 60);
 
 $yandexApiKey = trim((string)($VOXI_CONFIG['yandex_api_key'] ?? ''));
 $yandexIamToken = trim((string)($VOXI_CONFIG['yandex_iam_token'] ?? ''));

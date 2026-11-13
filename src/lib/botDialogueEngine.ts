@@ -1,9 +1,6 @@
-import { BusinessNiche, CallLog, KnowledgeDocument, CallerNotificationConfig, VoiceId } from '../types';
+import { BusinessNiche, CallLog, CallerNotificationConfig } from '../types';
 import { NICHE_TEMPLATES } from './mockData';
-import { queryKnowledgeDocuments } from './documentParser';
-import { detectCarrierVoicemail, detectWarmTransferRequest, AmdDetectionResult } from './amdDetector';
 import { formatCallerTemplate } from './callerNotificationService';
-import { getFillerPhrase, playSoftKeyboardCue } from './fillerPhrasesService';
 
 export interface DialogueContext {
   niche?: BusinessNiche;
@@ -14,21 +11,14 @@ export interface DialogueContext {
   workingHours?: string;
   pricingAndServices?: string;
   knowledgeBase?: string;
-  knowledgeDocuments?: KnowledgeDocument[];
   systemPrompt?: string;
   voice?: string;
-  fillerPhrasesEnabled?: boolean;
-  fillerDelayMs?: number;
-  abTestingEnabled?: boolean;
-  greetingA?: string;
-  greetingB?: string;
   warmTransfer?: {
     enabled: boolean;
     targetPhone?: string;
     triggers?: ('human_request' | 'conflict' | 'complex_query')[];
     whisperMessage?: string;
   };
-  amdEnabled?: boolean;
 }
 
 export interface DialogueTurn {
@@ -143,14 +133,6 @@ export function generateBotReply(query: string, context: DialogueContext): strin
   const hours = context.workingHours || template.workingHours || 'Пн-Пт с 09:00 до 20:00';
   const pricing = context.pricingAndServices || template.pricingAndServices || '';
 
-  // 0. AMD (Answering Machine Detection) check
-  if (context.amdEnabled !== false) {
-    const amd = detectCarrierVoicemail(q);
-    if (amd.isVoicemail) {
-      return `[AMD_VOICEMAIL_DETECTED:${amd.carrierName || 'Автоответчик'}] Обнаружен автоответчик оператора. Звонок завершен (0 BYN).`;
-    }
-  }
-
   // 0.1 Warm Handoff / Transfer check
   if (context.warmTransfer?.enabled !== false) {
     const transfer = detectWarmTransferRequest(q, context.warmTransfer?.triggers);
@@ -217,14 +199,6 @@ export function generateBotReply(query: string, context: DialogueContext): strin
         .join('. ');
 
       return `Сориентирую по стоимости в «${company}»: ${picked}. Записать вас на удобное время?`;
-    }
-
-    // Check uploaded knowledge documents for pricing before static fallback
-    if (context.knowledgeDocuments && context.knowledgeDocuments.length > 0) {
-      const docResult = queryKnowledgeDocuments(query, context.knowledgeDocuments);
-      if (docResult) {
-        return `Согласно прайс-листу из базы знаний («${docResult.sourceDocument}»): ${docResult.answer.replace(/[.]+$/, '')}. Записать вас на консультацию?`;
-      }
     }
 
     if (niche === 'driving_school') {
@@ -413,14 +387,6 @@ export function generateBotReply(query: string, context: DialogueContext): strin
     }
   }
 
-  // 10.1 Grounding in uploaded Knowledge Base files (PDF, Word, FAQ)
-  if (context.knowledgeDocuments && context.knowledgeDocuments.length > 0) {
-    const docResult = queryKnowledgeDocuments(query, context.knowledgeDocuments);
-    if (docResult) {
-      return `${docResult.answer.replace(/[.]+$/, '')}. Подсказать вам что-то ещё по услугам компании?`;
-    }
-  }
-
   // 11. Default contextual helpful reply
   return `Спасибо за вопрос! Компания «${company}» с радостью поможет. Уточните, пожалуйста: вас интересует расчет точной стоимости, адрес филиала или свободное время для записи?`;
 }
@@ -433,9 +399,8 @@ export async function requestBotReply(
   query: string,
   context: DialogueContext,
   history: DialogueTurn[] = [],
-  signal?: AbortSignal,
-  onFiller?: (phrase: string) => void
-): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback'; fillerUsed?: string }> {
+  signal?: AbortSignal
+): Promise<{ reply: string; provider: 'yandexgpt-lite' | 'local-fallback'}> {
   const localController = new AbortController();
   const timer = setTimeout(() => localController.abort(), 4500);
   const onParentAbort = () => localController.abort();
@@ -446,18 +411,6 @@ export async function requestBotReply(
     } else {
       signal.addEventListener('abort', onParentAbort, { once: true });
     }
-  }
-
-  let fillerPhrase: string | undefined;
-  let fillerTimer: any;
-
-  if (onFiller && context.fillerPhrasesEnabled !== false) {
-    const delay = context.fillerDelayMs || 850;
-    fillerTimer = setTimeout(() => {
-      fillerPhrase = getFillerPhrase(query, (context.voice as VoiceId) || 'anna');
-      playSoftKeyboardCue();
-      onFiller(fillerPhrase);
-    }, delay);
   }
 
   try {
@@ -479,7 +432,6 @@ export async function requestBotReply(
         return {
           reply: data.reply.trim(),
           provider: 'yandexgpt-lite',
-          fillerUsed: fillerPhrase,
         };
       }
     }
@@ -489,7 +441,6 @@ export async function requestBotReply(
     }
   } finally {
     clearTimeout(timer);
-    if (fillerTimer) clearTimeout(fillerTimer);
     if (signal) {
       signal.removeEventListener('abort', onParentAbort);
     }
@@ -498,7 +449,6 @@ export async function requestBotReply(
   return {
     reply: generateBotReply(query, context),
     provider: 'local-fallback',
-    fillerUsed: fillerPhrase,
   };
 }
 
@@ -542,22 +492,19 @@ export function createCallLogFromDialogue(params: {
   address?: string;
   durationSeconds: number;
   messages: Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>;
-  greetingVariant?: 'A' | 'B';
   callerNotification?: CallerNotificationConfig;
 }): CallLog | null {
-  const { niche, companyName, address, durationSeconds, messages, greetingVariant, callerNotification } = params;
+  const { niche, companyName, address, durationSeconds, messages, callerNotification } = params;
   const userMessages = messages.filter((m) => m.speaker === 'user');
   if (userMessages.length === 0) return null;
 
   const tmpl = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
   const combinedUserText = userMessages.map((m) => m.text).join(' ').toLowerCase();
 
-  // Check AMD & Warm Transfer detection across dialogue turns
-  const amdTriggered = userMessages.map((m) => detectCarrierVoicemail(m.text)).find((r) => r.isVoicemail);
+  // Warm Transfer detection across dialogue turns
   const transferTriggered = userMessages.map((m) => detectWarmTransferRequest(m.text)).find((r) => r.isTransferRequested);
 
   const isLeadCaptured =
-    !amdTriggered &&
     !transferTriggered &&
     /запиш|запис|бронир|забронир|18:30|11:30|14:00|16:30|17:00|09:30|10:00|завтра|сегодня|пятниц|суббот|вечерн|согласен|подходит|давай/.test(
       combinedUserText
@@ -633,9 +580,7 @@ export function createCallLogFromDialogue(params: {
   const sentiment: 'positive' | 'neutral' | 'negative' = isNegative ? 'negative' : isPositive ? 'positive' : 'neutral';
 
   const tags: string[] = [];
-  if (amdTriggered) {
-    tags.push('AMD', amdTriggered.carrierName || 'Автоответчик', '0 BYN', 'Защита минут');
-  } else if (transferTriggered) {
+  if (transferTriggered) {
     tags.push('Перевод', transferTriggered.reason === 'conflict' ? 'Претензия' : 'Оператор');
   } else if (isLeadCaptured) {
     tags.push('Запись');
@@ -657,21 +602,19 @@ export function createCallLogFromDialogue(params: {
   else if (niche === 'medical_clinic') tags.push('Клиника');
   else if (niche === 'beauty_salon') tags.push('Салон красоты');
 
-  const oneSentenceSummary = amdTriggered
-    ? `Сработал автоответчик оператора ${amdTriggered.carrierName || 'РБ'} («${amdTriggered.matchedPhrase || ''}»). Звонок завершен мгновенно для защиты минут (0 BYN).`
-    : transferTriggered
+  const oneSentenceSummary = transferTriggered
     ? `Вызов переведён сотруднику: ${transferTriggered.triggerPhrase}. Сводка передана дежурному персоналу.`
     : isLeadCaptured
     ? `Клиент ${finalCallerName} успешно записан на ${preferredDate || 'согласованное время'}.`
     : `Консультация клиента по услугам и прайс-листу компании.`;
 
-  const followUpSent = isLeadCaptured && !amdTriggered;
+  const followUpSent = isLeadCaptured;
   const followUpChannel: 'sms' | 'telegram' = 'sms';
   const followUpText = isLeadCaptured
     ? `Здравствуйте, ${finalCallerName}! Ваша запись подтверждена: ${preferredDate || 'согласованное время'}. Адрес: ${address || tmpl.address}. Ждём вас!`
     : undefined;
 
-  const callerFollowUpSent = isLeadCaptured && !amdTriggered && callerNotification?.isEnabled !== false;
+  const callerFollowUpSent = isLeadCaptured && callerNotification?.isEnabled !== false;
   const callerFollowUpChannel = callerNotification?.channel || 'sms';
   const callerFollowUpText = callerFollowUpSent
     ? formatCallerTemplate(callerNotification?.template || '', {
@@ -685,33 +628,29 @@ export function createCallLogFromDialogue(params: {
       })
     : undefined;
 
-  const finalStatus: CallLog['status'] = amdTriggered
-    ? 'voicemail_detected'
-    : transferTriggered
+  const finalStatus: CallLog['status'] =
+    transferTriggered
     ? 'forwarded'
     : isLeadCaptured
     ? 'lead_captured'
     : 'consultation';
 
-  const finalCostByn = amdTriggered ? 0.00 : Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100);
-
-  const finalGreetingVariant: 'A' | 'B' = greetingVariant || (Math.random() >= 0.5 ? 'B' : 'A');
+  const finalCostByn = Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100);
 
   return {
     id: `call-live-${Date.now()}`,
     niche,
     callerNumber: extractedPhone,
-    callerName: amdTriggered ? 'Автоответчик оператора' : finalCallerName,
+    callerName: finalCallerName,
     timestamp,
-    durationSeconds: amdTriggered ? 3 : safeDuration,
-    audioDuration: amdTriggered ? '0:03' : `${mins}:${secs}`,
+    durationSeconds: safeDuration,
+    audioDuration: `${mins}:${secs}`,
     costByn: finalCostByn,
     status: finalStatus,
     dealValueByn,
     summary: oneSentenceSummary,
-    sentiment: amdTriggered ? 'neutral' : sentiment,
+    sentiment: sentiment,
     tags,
-    greetingVariant: finalGreetingVariant,
     followUpSent,
     followUpChannel,
     followUpText,
@@ -733,14 +672,6 @@ export function createCallLogFromDialogue(params: {
           summarySentToStaff: true,
         }
       : undefined,
-    amdDetails: amdTriggered
-      ? {
-          detected: true,
-          carrierName: amdTriggered.carrierName,
-          detectedPhrase: amdTriggered.matchedPhrase,
-          savedCostByn: 0.45,
-        }
-      : undefined,
     capturedData: {
       clientName: finalCallerName,
       phone: extractedPhone.replace(' (Тест)', ''),
@@ -753,8 +684,69 @@ export function createCallLogFromDialogue(params: {
     },
     transcript: messages.map((m) => ({
       speaker: m.speaker === 'user' ? 'caller' : 'assistant',
-      text: m.text.replace(/\[(AMD_VOICEMAIL_DETECTED|WARM_TRANSFER_TRIGGERED)[^\]]*\]\s*/g, ''),
+      text: m.text.replace(/\[(WARM_TRANSFER_TRIGGERED)[^\]]*\]\s*/g, ''),
       time: m.time,
     })),
+  };
+}
+
+/**
+ * Detects a request to transfer the call to a human or a complaint/dispute.
+ */
+export function detectWarmTransferRequest(
+  text: string,
+  triggers: ('human_request' | 'conflict' | 'complex_query')[] = ['human_request', 'conflict', 'complex_query']
+): {
+  isTransferRequested: boolean;
+  reason?: 'human_request' | 'conflict' | 'complex_query';
+  triggerPhrase?: string;
+} {
+  const clean = text.toLowerCase().trim();
+
+  // 1. Human request
+  if (triggers.includes('human_request')) {
+    const humanMatch =
+      /(?:позовите|соедините|соедини|переведите|переведи|переключите|переключи|дайте|дай|хочу|нужен|поговорить с|разговаривать с|свяжите с)\s*(?:меня\s+)?(?:с\s+|на\s+)?(?:(?:живого|живым|дежурного|старшего|главного)\s+)?(?:человек|человеком|оператор|оператором|менеджер|менеджером|администратор|администратором|директор|директором|руководител|специалист|девушк)|живой\s+оператор|живой\s+менеджер|живой\s+человек|хватит\s+робота|не\s+робот|не\s+хочу\s+(?:говорить\s+)?с\s+роботом|дай\s+человека|переведи\s+на\s+человека|^(?:на\s+|к\s+)?(?:менеджер[ауом]?|оператор[ауом]?|живого\s+менеджера|живого\s+оператора)[.!?\s]*$/i;
+    const isLooseHumanReq =
+      (clean.includes('оператор') || clean.includes('человек') || clean.includes('менеджер') || clean.includes('администратор')) &&
+      (clean.includes('соедини') || clean.includes('позови') || clean.includes('переключи') || clean.includes('переведи') || clean.includes('дайте') || clean.includes('свяжи') || clean.includes('живой') || clean.includes('живым'));
+
+    if (humanMatch.test(clean) || isLooseHumanReq) {
+      return {
+        isTransferRequested: true,
+        reason: 'human_request',
+        triggerPhrase: 'Запрос живого сотрудника',
+      };
+    }
+  }
+
+  // 2. Conflict or complaint
+  if (triggers.includes('conflict')) {
+    const conflictMatch =
+      /жалоба|претензия|верните деньги|обман|мошенники|хамство|подам в суд|жалобную книгу|не согласен с ценой|ужасное обслуживание/i;
+    if (conflictMatch.test(clean)) {
+      return {
+        isTransferRequested: true,
+        reason: 'conflict',
+        triggerPhrase: 'Конфликтная ситуация / Претензия',
+      };
+    }
+  }
+
+  // 3. Complex query outside scope
+  if (triggers.includes('complex_query')) {
+    const complexMatch =
+      /сложный вопрос|нестандартная ситуация|тендер|бухгалтерия|безналичный расчет с юрлицом|оптовые поставки|договор сотрудничества/i;
+    if (complexMatch.test(clean)) {
+      return {
+        isTransferRequested: true,
+        reason: 'complex_query',
+        triggerPhrase: 'Сложный корпоративный запрос',
+      };
+    }
+  }
+
+  return {
+    isTransferRequested: false,
   };
 }

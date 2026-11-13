@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+voxi_csrf_guard();
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($method !== 'GET' && $method !== 'POST') {
@@ -9,6 +10,9 @@ if ($method !== 'GET' && $method !== 'POST') {
     http_response_code(405);
     exit('Method Not Allowed');
 }
+
+// Защита квоты Yandex SpeechKit: не более 30 запросов синтеза в минуту на IP
+voxi_enforce_rate_limit('tts', 30, 60);
 
 $body = $method === 'POST' ? voxi_read_json_body() : [];
 $rawText = trim((string)($_GET['text'] ?? $body['text'] ?? ''));

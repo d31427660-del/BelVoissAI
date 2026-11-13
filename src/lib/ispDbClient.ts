@@ -7,7 +7,9 @@ import {
   WebhookSettings,
 } from '../types';
 
-const ISP_TOKEN_KEY = 'voxi_isp_session_token';
+// Сессия живёт ТОЛЬКО в HttpOnly-cookie (недоступна JS). В localStorage хранится лишь непсекретный флаг-подсказка,
+// чтобы не делать лишний запрос /me для анонимных посетителей лендинга.
+const SESSION_HINT_KEY = 'voxi_has_session';
 
 export interface IspWorkspaceBundle {
   user: UserSession;
@@ -27,33 +29,21 @@ export interface IspDbStatus {
 
 let cachedStatusPromise: Promise<IspDbStatus> | null = null;
 
-export function getStoredIspToken(): string {
+export function hasSessionHint(): boolean {
   try {
-    return localStorage.getItem(ISP_TOKEN_KEY) || '';
+    return localStorage.getItem(SESSION_HINT_KEY) === '1';
   } catch {
-    return '';
+    return false;
   }
 }
 
-export function setStoredIspToken(token: string | null): void {
+function setSessionHint(active: boolean): void {
   try {
-    if (token) {
-      localStorage.setItem(ISP_TOKEN_KEY, token);
-    } else {
-      localStorage.removeItem(ISP_TOKEN_KEY);
-    }
+    if (active) localStorage.setItem(SESSION_HINT_KEY, '1');
+    else localStorage.removeItem(SESSION_HINT_KEY);
   } catch {
-    // ignore storage quota errors
+    // ignore storage errors
   }
-}
-
-function buildAuthHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const headers: Record<string, string> = { ...extra };
-  const token = getStoredIspToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
 }
 
 async function callIspDb(
@@ -64,9 +54,7 @@ async function callIspDb(
   const res = await fetch(`/api/db?action=${encodeURIComponent(action)}`, {
     method,
     credentials: 'same-origin',
-    headers: buildAuthHeaders(
-      method === 'POST' ? { 'Content-Type': 'application/json' } : {}
-    ),
+    headers: method === 'POST' ? { 'Content-Type': 'application/json' } : {},
     body: method === 'POST' ? JSON.stringify(options.body || {}) : undefined,
   });
 
@@ -105,8 +93,10 @@ export async function ispGetMe(): Promise<IspWorkspaceBundle | null> {
   try {
     const { isJson, data } = await callIspDb('me');
     if (!isJson || !data?.authenticated || !data?.user) {
+      setSessionHint(false);
       return null;
     }
+    setSessionHint(true);
     return {
       user: data.user as UserSession,
       agent: (data.agent as AgentConfig) || null,
@@ -136,9 +126,7 @@ export async function ispSignUp(
   if (!data.ok || !data.user) {
     throw new Error(data.error || 'Не удалось создать аккаунт');
   }
-  if (data.token) {
-    setStoredIspToken(String(data.token));
-  }
+  setSessionHint(true);
   return {
     user: data.user as UserSession,
     agent: (data.agent as AgentConfig) || null,
@@ -164,9 +152,7 @@ export async function ispSignIn(
   if (!data.ok || !data.user) {
     throw new Error(data.error || 'Неверный адрес электронной почты или пароль');
   }
-  if (data.token) {
-    setStoredIspToken(String(data.token));
-  }
+  setSessionHint(true);
   return {
     user: data.user as UserSession,
     agent: (data.agent as AgentConfig) || null,
@@ -183,7 +169,7 @@ export async function ispSignOut(): Promise<void> {
   } catch {
     // ignore network errors on logout
   } finally {
-    setStoredIspToken(null);
+    setSessionHint(false);
   }
 }
 
@@ -212,9 +198,7 @@ export async function ispConfirmResetPassword(
   if (!isJson || !data?.ok || !data?.user) {
     throw new Error(data?.error || 'Ссылка восстановления устарела или недействительна');
   }
-  if (data.token) {
-    setStoredIspToken(String(data.token));
-  }
+  setSessionHint(true);
   return {
     user: data.user as UserSession,
     agent: (data.agent as AgentConfig) || null,
