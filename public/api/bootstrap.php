@@ -621,3 +621,48 @@ function voxi_send_email(array $cfg, string $to, string $subjectText, string $pl
         . "Content-Type: text/plain; charset=UTF-8\r\n";
     return (bool)@mail($to, $encodedSubject, $plainBody, $headers);
 }
+
+/**
+ * Мгновенная отправка уведомления администратору платформы в Telegram
+ * (о новых регистрациях, оплатах, критических сбоях)
+ */
+function voxi_notify_admin_telegram(string $htmlText): bool
+{
+    global $VOXI_CONFIG;
+    $botToken = trim((string)($VOXI_CONFIG['telegram_bot_token'] ?? ''));
+    if ($botToken === '') {
+        return false;
+    }
+
+    $adminChatId = trim((string)($VOXI_CONFIG['telegram_admin_chat_id'] ?? ''));
+    if ($adminChatId === '') {
+        $cacheFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_admin_chat_id.txt';
+        if (is_file($cacheFile)) {
+            $adminChatId = trim((string)@file_get_contents($cacheFile));
+        }
+    }
+
+    if ($adminChatId === '') {
+        return false;
+    }
+
+    $ch = curl_init("https://api.telegram.org/bot{$botToken}/sendMessage");
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 5,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode([
+            'chat_id' => $adminChatId,
+            'text' => $htmlText,
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => false,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+    $res = @curl_exec($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    return $httpCode >= 200 && $httpCode < 300;
+}

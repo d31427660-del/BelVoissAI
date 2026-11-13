@@ -41,6 +41,7 @@ return [
     // --- 4. Уведомления администратора в Telegram (лиды и телефония) и доступ в #admin ---
     'admin_master_pin'        => $fnEnv ? voxi_env(['ADMIN_MASTER_PIN', 'VOXI_ADMIN_PIN'], '') : (getenv('ADMIN_MASTER_PIN') ?: (getenv('VOXI_ADMIN_PIN') ?: '')),
     'telegram_bot_token'      => $fnEnv ? voxi_env(['TELEGRAM_BOT_TOKEN', 'VOXI_TELEGRAM_BOT_TOKEN'], '') : (getenv('TELEGRAM_BOT_TOKEN') ?: (getenv('VOXI_TELEGRAM_BOT_TOKEN') ?: '')),
+    'telegram_admin_chat_id'  => $fnEnv ? voxi_env(['TELEGRAM_ADMIN_CHAT_ID', 'VOXI_ADMIN_CHAT_ID'], '') : (getenv('TELEGRAM_ADMIN_CHAT_ID') ?: (getenv('VOXI_ADMIN_CHAT_ID') ?: '')),
     'telegram_webhook_secret' => $fnEnv ? voxi_env(['TELEGRAM_WEBHOOK_SECRET'], '') : (getenv('TELEGRAM_WEBHOOK_SECRET') ?: ''),
 
     // --- 5. Резервный нейросетевой синтез речи и телефония Vapi.ai ---

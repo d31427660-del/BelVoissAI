@@ -514,6 +514,19 @@ if ($action === 'signup') {
     $stmtUser->execute([$userId]);
     $createdUser = $stmtUser->fetch();
 
+    // Мгновенное уведомление создателю платформы в Telegram о новом клиенте
+    $safeEmail = htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $safeCompany = htmlspecialchars($companyName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $nowStr = date('d.m.Y H:i:s');
+    $msgText = "🎉 <b>Новый пользователь на сайте Voxi.by!</b>\n\n"
+             . "🏢 Компания: <b>{$safeCompany}</b>\n"
+             . "📧 Email: <code>{$safeEmail}</code>\n"
+             . "🕒 Время: <b>{$nowStr}</b>\n"
+             . "🎁 Стартовый бонус: <b>15 минут</b> начислен\n"
+             . "🆔 ID: <code>{$userId}</code>\n\n"
+             . "👉 <a href=\"https://voxi.by/#admin\">Открыть панель администратора</a>";
+    @voxi_notify_admin_telegram($msgText);
+
     voxi_json([
         'ok' => true,
         'user' => voxi_format_user_session($createdUser),

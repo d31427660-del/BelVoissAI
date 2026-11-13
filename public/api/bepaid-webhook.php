@@ -134,6 +134,15 @@ try {
         ->execute([$externalUid, $orderId]);
 
     $pdo->commit();
+
+    // Мгновенное уведомление создателю платформы в Telegram об успешной оплате
+    $payMsg = "💰 <b>Успешная оплата на Voxi.by!</b>\n\n"
+            . "💵 Сумма: <b>{$amountByn} BYN</b>\n"
+            . "⏱ Начислено: <b>+{$minutes} минут</b>\n"
+            . "💳 Способ: <b>" . htmlspecialchars($paymentMethod, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</b>\n"
+            . "🆔 ID клиента: <code>{$userId}</code>\n"
+            . "🧾 Заказ: <code>{$orderId}</code>";
+    @voxi_notify_admin_telegram($payMsg);
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();

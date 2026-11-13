@@ -242,10 +242,13 @@ async function runAdminPanelTest() {
     console.log('Вводим правильный PIN-код (7788)...');
     await page.evaluate(() => {
       const input = document.querySelector('input[type="password"]');
-      if (input) input.value = '';
+      if (input) {
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     });
     await page.type('input[type="password"]', '7788');
-    await page.keyboard.press('Enter');
+    await page.click('button[type="submit"]');
 
     // Verify Admin Panel layout
     await page.waitForFunction(() => {
