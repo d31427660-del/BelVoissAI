@@ -1,4 +1,4 @@
-import{r as a,j as e}from"./vendor-BjXWrvmJ.js";import{q as P,b as W,s as y,a3 as Z,a4 as ee,R as te,h as se,a5 as ie,a6 as ne,a7 as le,t as ae}from"./icons-DsRaNpag.js";import{M as q}from"./index-haGyorvq.js";function w(m){return String(m||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}function T(m){const{invoiceNo:p,invoiceDate:c,companyName:l,unp:F,userEmail:h,minutes:f,ratePerMinute:o,totalByn:x}=m,r=w(p),g=w(c),n=w(l),b=F?w(F):"",d=h?w(h):"";return`<!DOCTYPE html>
+import{r as a,j as e}from"./vendor-BjXWrvmJ.js";import{q as P,b as W,s as y,a3 as Z,a4 as ee,R as te,h as se,a5 as ie,a6 as ne,a7 as le,t as ae}from"./icons-DsRaNpag.js";import{M as q}from"./index-ByrRKYjn.js";function w(m){return String(m||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}function T(m){const{invoiceNo:p,invoiceDate:c,companyName:l,unp:F,userEmail:h,minutes:f,ratePerMinute:o,totalByn:x}=m,r=w(p),g=w(c),n=w(l),b=F?w(F):"",d=h?w(h):"";return`<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">

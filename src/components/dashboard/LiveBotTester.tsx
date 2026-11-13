@@ -71,6 +71,8 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
       niche: liveAgent.niche,
       companyName: liveAgent.companyName,
       address: liveAgent.address,
+      phone: liveAgent.phone,
+      transferPhone: liveAgent.phone,
       durationSeconds: callDurationRef.current,
       messages: messagesRef.current,
       callerNotification: liveAgent.callerNotification,

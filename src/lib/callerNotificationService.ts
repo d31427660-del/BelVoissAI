@@ -44,12 +44,12 @@ export function formatCallerTemplate(template: string, vars: {
 
   result = result
     .replace(/\{ИМЯ\}/g, vars.clientName || 'клиент')
-    .replace(/\{КОМПАНИЯ\}/g, vars.companyName || 'Voxi AI')
+    .replace(/\{КОМПАНИЯ\}/g, vars.companyName || 'Компания')
     .replace(/\{УСЛУГА\}/g, vars.service || 'консультацию')
-    .replace(/\{ДАТА\}/g, vars.date || 'сегодня')
-    .replace(/\{ВРЕМЯ\}/g, vars.time || '18:30')
-    .replace(/\{АДРЕС\}/g, vars.address || 'г. Минск, ул. Сурганова, 24')
-    .replace(/\{ТЕЛЕФОН\}/g, vars.contactPhone || '+375 (29) 112-44-55');
+    .replace(/\{ДАТА\}/g, vars.date || 'согласованную дату')
+    .replace(/\{ВРЕМЯ\}/g, vars.time || 'согласованное время')
+    .replace(/\{АДРЕС\}/g, vars.address || '')
+    .replace(/\{ТЕЛЕФОН\}/g, vars.contactPhone || '');
 
   return result;
 }

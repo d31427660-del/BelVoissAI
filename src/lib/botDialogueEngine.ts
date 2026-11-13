@@ -490,11 +490,13 @@ export function createCallLogFromDialogue(params: {
   niche: BusinessNiche;
   companyName?: string;
   address?: string;
+  phone?: string;
+  transferPhone?: string;
   durationSeconds: number;
   messages: Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>;
   callerNotification?: CallerNotificationConfig;
 }): CallLog | null {
-  const { niche, companyName, address, durationSeconds, messages, callerNotification } = params;
+  const { niche, companyName, address, phone, transferPhone, durationSeconds, messages, callerNotification } = params;
   const userMessages = messages.filter((m) => m.speaker === 'user');
   if (userMessages.length === 0) return null;
 
@@ -667,7 +669,7 @@ export function createCallLogFromDialogue(params: {
       : undefined,
     transferDetails: transferTriggered
       ? {
-          targetPhone: '+375 (29) 700-11-22',
+          targetPhone: transferPhone || phone || '',
           reason: transferTriggered.reason || 'human_request',
           summarySentToStaff: true,
         }

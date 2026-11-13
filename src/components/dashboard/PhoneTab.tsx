@@ -36,8 +36,8 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
     ...sipSettings,
     byoSipMode: sipSettings.byoSipMode ?? true,
     fallbackEnabled: sipSettings.fallbackEnabled ?? true,
-    fallbackPhone: sipSettings.fallbackPhone || agent.phone || '+375 (29) 700-11-22',
-    transferPhone: sipSettings.transferPhone || sipSettings.fallbackPhone || agent.phone || '+375 (29) 700-11-22',
+    fallbackPhone: sipSettings.fallbackPhone || agent.phone || '',
+    transferPhone: sipSettings.transferPhone || sipSettings.fallbackPhone || agent.phone || '',
     whisperMessage:
       sipSettings.whisperMessage ||
       'Секунду, перевожу звонок на дежурного менеджера, пожалуйста, оставайтесь на линии...',

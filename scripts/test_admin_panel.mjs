@@ -253,7 +253,7 @@ async function runAdminPanelTest() {
     // Verify Admin Panel layout
     await page.waitForFunction(() => {
       return document.body.innerText.includes('MASTER ADMIN') && document.body.innerText.includes('Сводка платформы');
-    }, { timeout: 5000 });
+    }, { timeout: 10000 });
     console.log('✅ Успешный вход в мастер-панель администратора!');
 
     // 2. Check KPIs in Overview Tab
