@@ -237,7 +237,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 required
                 helpTriggerLabel="Где взять ID?"
                 helpTitle="Как узнать свой ID в Telegram за 5 секунд"
-                helpText="1. Откройте в Telegram бота @voxi_bot и нажмите кнопку «Старт» (/start).&#10;2. Бот мгновенно пришлёт ваш цифровой Chat ID.&#10;3. Скопируйте цифры и вставьте в это поле.&#10;&#10;Если хотите получать заявки в общий чат с коллегами, просто добавьте бота @voxi_bot в группу и напишите /start."
+                helpText="1. Откройте в Telegram бота @userinfobot (https://t.me/userinfobot) и нажмите кнопку «Старт» (/start).&#10;2. Бот мгновенно пришлёт ваш цифровой Id (например: 419283746).&#10;3. Скопируйте цифры и вставьте в это поле.&#10;&#10;Если хотите получать заявки в группу с коллегами, просто добавьте @userinfobot в группу или перешлите сообщение из группы."
                 helpExample="419283746 (личный чат) или -100192837465 (группа)"
               />
               <input
@@ -251,14 +251,14 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
               <p className="text-[10px] text-[#777169] mt-1">
                 Чтобы узнать свой ID: откройте в Telegram бота{' '}
                 <a
-                  href="https://t.me/voxi_bot"
+                  href="https://t.me/userinfobot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-blue-600 underline"
+                  className="font-medium text-blue-600 underline hover:text-blue-800"
                 >
-                  @voxi_bot
+                  @userinfobot
                 </a>{' '}
-                и нажмите «Старт». Он сразу пришлёт ваш Chat ID.
+                и нажмите «Старт». Он сразу пришлёт ваш цифровой Id.
               </p>
             </div>
 
