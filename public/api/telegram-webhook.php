@@ -3,11 +3,35 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
-$botToken = trim((string)($VOXI_CONFIG['telegram_bot_token'] ?? ''));
+// Токен бота: читаем из URL-параметра ?token=... или из конфигурации .env
+$botToken = trim((string)($_GET['token'] ?? ($VOXI_CONFIG['telegram_bot_token'] ?? '')));
 $webhookSecret = trim((string)($VOXI_CONFIG['telegram_webhook_secret'] ?? ''));
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
-// --- 1. Вспомогательное действие: регистрация вебхука в Telegram (Setup) ---
+// --- 1. Проверка статуса вебхука прямо из браузера (Диагностика) ---
+// Пример: GET /api/telegram-webhook.php?action=check&token=YOUR_BOT_TOKEN
+if (isset($_GET['action']) && $_GET['action'] === 'check') {
+    $tokenToCheck = $botToken;
+    if ($tokenToCheck === '') {
+        voxi_json(['ok' => false, 'error' => 'Укажите токен бота: ?action=check&token=123:ABC...'], 400);
+    }
+    $ch = curl_init("https://api.telegram.org/bot{$tokenToCheck}/getWebhookInfo");
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+    ]);
+    $rawRes = curl_exec($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $parsed = json_decode((string)$rawRes, true) ?: [];
+    voxi_json([
+        'ok' => true,
+        'httpCode' => $httpCode,
+        'webhookInfo' => $parsed['result'] ?? $parsed,
+    ]);
+}
+
+// --- 2. Вспомогательное действие: регистрация вебхука в Telegram (Setup) ---
 // Пример вызова: GET /api/telegram-webhook.php?action=setup&pin=YOUR_ADMIN_PIN
 if (isset($_GET['action']) && $_GET['action'] === 'setup') {
     $pin = trim((string)($_GET['pin'] ?? ''));
@@ -92,13 +116,19 @@ function voxi_tg_reply(string $botToken, string|int $chatId, string $htmlText, ?
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 5,
-        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_CONNECTTIMEOUT => 4,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
     ]);
-    @curl_exec($ch);
+    $res = curl_exec($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
     curl_close($ch);
+
+    if ($httpCode !== 200) {
+        error_log("[voxi_tg] sendMessage failed (HTTP {$httpCode}): err={$err} res={$res}");
+    }
 }
 
 $message = $update['message'] ?? null;
