@@ -51,10 +51,16 @@ async function callIspDb(
   options: { method?: 'GET' | 'POST'; body?: Record<string, unknown> } = {}
 ): Promise<{ status: number; isJson: boolean; data: any }> {
   const method = options.method || 'GET';
+  const headers: Record<string, string> = {
+    'X-Requested-With': 'XMLHttpRequest',
+  };
+  if (method === 'POST') {
+    headers['Content-Type'] = 'application/json';
+  }
   const res = await fetch(`/api/db?action=${encodeURIComponent(action)}`, {
     method,
     credentials: 'same-origin',
-    headers: method === 'POST' ? { 'Content-Type': 'application/json' } : {},
+    headers,
     body: method === 'POST' ? JSON.stringify(options.body || {}) : undefined,
   });
 
@@ -263,23 +269,55 @@ export async function ispAdminLogin(pin: string): Promise<{
   }
 }
 
-export async function ispFetchAdminData(adminToken: string): Promise<{
+export interface IspAdminDataResult {
   dbConnected: boolean;
+  configured?: boolean;
+  error?: string;
+  details?: string;
+  hint?: string;
+  envLoaded?: boolean;
+  envFile?: string | null;
+  searchPaths?: string[];
+  dbHost?: string;
+  dbName?: string;
+  dbUser?: string;
   clients: any[];
   transactions: any[];
   telephonyLogs: any[];
   monthlyInvoices: any[];
-} | null> {
+}
+
+export async function ispFetchAdminData(adminToken: string): Promise<IspAdminDataResult | null> {
   try {
     const { isJson, data } = await callIspDb('admin_data', {
       method: 'POST',
       body: { adminToken },
     });
-    if (!isJson || !data?.ok || !data?.dbConnected) {
+    if (!isJson || !data || typeof data !== 'object') {
       return null;
+    }
+    if (!data.ok || !data.dbConnected) {
+      return {
+        dbConnected: false,
+        configured: Boolean(data.configured),
+        error: data.error ? String(data.error) : 'Не удалось загрузить данные из БД MySQL (HTTP 503)',
+        details: data.details ? String(data.details) : undefined,
+        hint: data.hint ? String(data.hint) : undefined,
+        envLoaded: Boolean(data.envLoaded),
+        envFile: data.envFile ? String(data.envFile) : null,
+        searchPaths: Array.isArray(data.searchPaths) ? data.searchPaths : undefined,
+        dbHost: data.dbHost ? String(data.dbHost) : undefined,
+        dbName: data.dbName ? String(data.dbName) : undefined,
+        dbUser: data.dbUser ? String(data.dbUser) : undefined,
+        clients: [],
+        transactions: [],
+        telephonyLogs: [],
+        monthlyInvoices: [],
+      };
     }
     return {
       dbConnected: true,
+      configured: true,
       clients: Array.isArray(data.clients) ? data.clients : [],
       transactions: Array.isArray(data.transactions) ? data.transactions : [],
       telephonyLogs: Array.isArray(data.telephonyLogs) ? data.telephonyLogs : [],

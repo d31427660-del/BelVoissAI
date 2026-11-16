@@ -222,6 +222,13 @@ if ($action === 'status') {
             'driver' => 'mysql-ispmanager',
             'configured' => false,
             'connected' => false,
+            'error' => 'База данных ещё не настроена в .env (заполните DB_NAME, DB_USER, DB_PASS)',
+            'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
+            'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
+            'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
+            'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
+            'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
+            'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
         ]);
     }
     try {
@@ -231,6 +238,11 @@ if ($action === 'status') {
             'driver' => 'mysql-ispmanager',
             'configured' => true,
             'connected' => true,
+            'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
+            'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
+            'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
+            'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
+            'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
         ]);
     } catch (Throwable $e) {
         voxi_json([
@@ -239,6 +251,13 @@ if ($action === 'status') {
             'configured' => true,
             'connected' => false,
             'error' => 'Ошибка подключения к MySQL в ISPmanager. Проверьте DB_NAME, DB_USER и DB_PASS в .env.',
+            'details' => $e->getMessage(),
+            'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
+            'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
+            'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
+            'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
+            'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
+            'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
         ], 503);
     }
 }
@@ -247,7 +266,15 @@ if (!voxi_is_db_configured($VOXI_CONFIG)) {
     voxi_json([
         'ok' => false,
         'configured' => false,
-        'error' => 'База данных ISPmanager ещё не указана в api/config.php (заполните db_name, db_user, db_pass).',
+        'connected' => false,
+        'error' => 'База данных MySQL ещё не указана в .env или api/config.php (заполните DB_NAME, DB_USER, DB_PASS).',
+        'hint' => 'Создайте БД в ISPmanager (хостинг hoster.by) и запишите параметры в файл .env в корне сайта.',
+        'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
+        'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
+        'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
+        'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
+        'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
+        'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
     ], 503);
 }
 
@@ -257,7 +284,15 @@ try {
     voxi_json([
         'ok' => false,
         'configured' => true,
-        'error' => 'Не удалось подключиться к БД MySQL на хостинге. Проверьте имя БД, логин и пароль в api/config.php.',
+        'connected' => false,
+        'error' => 'Не удалось подключиться к БД MySQL в ISPmanager. Проверьте имя БД, логин и пароль в .env или api/config.php.',
+        'details' => $e->getMessage(),
+        'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
+        'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
+        'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
+        'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
+        'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
+        'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
     ], 503);
 }
 

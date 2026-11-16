@@ -74,15 +74,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   // Единственный источник данных — БД MySQL (/api/db?action=admin_data). Никаких локальных копий и демо-данных.
   const [dataError, setDataError] = useState<string | null>(null);
+  const [dbDiag, setDbDiag] = useState<{
+    error?: string;
+    details?: string;
+    hint?: string;
+    envLoaded?: boolean;
+    envFile?: string | null;
+    searchPaths?: string[];
+    dbHost?: string;
+    dbName?: string;
+    dbUser?: string;
+  } | null>(null);
+
   const loadAdminData = React.useCallback(async () => {
     if (!adminToken) return;
     const remote = await ispFetchAdminData(adminToken);
     if (!remote || !remote.dbConnected) {
       setIsDbConnected(false);
-      setDataError('Не удалось загрузить данные из БД. Проверьте подключение MySQL и повторите.');
+      setDbDiag(remote);
+      const errMsg = remote?.error
+        ? `${remote.error}${remote.details ? ` [${remote.details}]` : ''}`
+        : 'Не удалось загрузить данные из БД. Проверьте подключение MySQL и повторите.';
+      setDataError(errMsg);
       return;
     }
     setIsDbConnected(true);
+    setDbDiag(null);
     setDataError(null);
     setClients(remote.clients as PlatformClient[]);
     setTransactions(remote.transactions as PlatformTransaction[]);
@@ -560,9 +577,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
         {/* Content Area */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {dataError && (
-            <div role="alert" className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200 flex items-center justify-between gap-3">
-              <span>{dataError}</span>
-              <button type="button" onClick={() => void loadAdminData()} className="underline cursor-pointer">Повторить</button>
+            <div role="alert" className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-xs text-rose-200 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="font-semibold text-sm text-rose-300 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+                    База данных MySQL: Нет связи с сервером (HTTP 503)
+                  </div>
+                  <p className="text-zinc-300">{dataError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadAdminData()}
+                  className="px-3.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 font-medium transition-colors cursor-pointer shrink-0"
+                >
+                  Проверить снова
+                </button>
+              </div>
+
+              {dbDiag && (
+                <div className="pt-3 border-t border-rose-500/20 text-[11px] text-zinc-300 space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-black/40 p-3 rounded-lg border border-white/5 font-mono">
+                    <div><span className="text-zinc-500">Хост MySQL:</span> {dbDiag.dbHost || '127.0.0.1'}</div>
+                    <div><span className="text-zinc-500">База данных:</span> {dbDiag.dbName || 'voxitest'}</div>
+                    <div><span className="text-zinc-500">Пользователь:</span> {dbDiag.dbUser || 'voxiadmin'}</div>
+                    <div><span className="text-zinc-500">Файл .env:</span> {dbDiag.envLoaded && dbDiag.envFile ? dbDiag.envFile : 'не найден на сервере'}</div>
+                  </div>
+                  {dbDiag.hint && (
+                    <div className="text-amber-200 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                      💡 <strong>Как настроить в ISPmanager (хостинг hoster.by):</strong> {dbDiag.hint}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

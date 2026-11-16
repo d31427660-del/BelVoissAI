@@ -48,13 +48,15 @@ function voxi_load_dotenv(): void
 {
     $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
     // Проверяем файлы от общих к частным (чтобы более близкий .env переопределял)
-    $candidates = array_unique(array_filter([
+    $candidates = array_values(array_unique(array_filter([
         dirname(__DIR__, 2) . '/.env',
         dirname(__DIR__) . '/.env',
         $docRoot !== '' ? dirname($docRoot) . '/.env' : '',
         $docRoot !== '' ? "{$docRoot}/.env" : '',
         __DIR__ . '/.env',
-    ]));
+    ])));
+    $GLOBALS['VOXI_ENV_SEARCH_PATHS'] = $candidates;
+    $GLOBALS['VOXI_ENV_LOADED_FILE'] = null;
 
     foreach ($candidates as $envFile) {
         if (!is_file($envFile) || !is_readable($envFile)) {
@@ -64,6 +66,7 @@ function voxi_load_dotenv(): void
         if (!is_array($lines)) {
             continue;
         }
+        $GLOBALS['VOXI_ENV_LOADED_FILE'] = $envFile;
         foreach ($lines as $line) {
             $trimmed = trim($line);
             if ($trimmed === '' || str_starts_with($trimmed, '#')) {
@@ -233,10 +236,14 @@ function voxi_is_db_configured(array $cfg): bool
 
 function voxi_ensure_column(PDO $pdo, string $table, string $column, string $definition): void
 {
-    $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");
-    $stmt->execute([$column]);
-    if (!$stmt->fetch()) {
-        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    try {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");
+        $stmt->execute([$column]);
+        if (!$stmt->fetch()) {
+            $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+        }
+    } catch (Throwable $e) {
+        error_log("voxi_ensure_column error ({$table}.{$column}): " . $e->getMessage());
     }
 }
 
@@ -244,7 +251,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
 {
     $markerFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR)
         . DIRECTORY_SEPARATOR
-        . 'voxi_schema_v4_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
+        . 'voxi_schema_v5_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
 
     if (is_file($markerFile) && (time() - (int)@filemtime($markerFile)) < 3600) {
         return;
@@ -285,8 +292,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           PRIMARY KEY (`id`),
           UNIQUE KEY `sessions_token_hash_unique` (`token_hash`),
           KEY `sessions_user_id_idx` (`user_id`),
-          KEY `sessions_expires_at_idx` (`expires_at`),
-          CONSTRAINT `fk_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          KEY `sessions_expires_at_idx` (`expires_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `assistants` (
@@ -312,8 +318,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
-          UNIQUE KEY `assistants_user_id_unique` (`user_id`),
-          CONSTRAINT `fk_assistants_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          UNIQUE KEY `assistants_user_id_unique` (`user_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `integrations` (
@@ -333,8 +338,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `webhook_json` LONGTEXT DEFAULT NULL,
           `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
-          UNIQUE KEY `integrations_user_id_unique` (`user_id`),
-          CONSTRAINT `fk_integrations_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          UNIQUE KEY `integrations_user_id_unique` (`user_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `call_logs` (
@@ -354,8 +358,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `audio_url` VARCHAR(512) DEFAULT NULL,
           `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
-          KEY `call_logs_user_timestamp_idx` (`user_id`, `call_timestamp`),
-          CONSTRAINT `fk_call_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          KEY `call_logs_user_timestamp_idx` (`user_id`, `call_timestamp`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `minute_transactions` (
@@ -370,8 +373,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
           UNIQUE KEY `minute_tx_external_uid_unique` (`external_uid`),
-          KEY `minute_tx_user_created_idx` (`user_id`, `created_at`),
-          CONSTRAINT `fk_minute_tx_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          KEY `minute_tx_user_created_idx` (`user_id`, `created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `payment_orders` (
@@ -388,8 +390,7 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           `paid_at` DATETIME DEFAULT NULL,
           PRIMARY KEY (`id`),
-          KEY `payment_orders_user_idx` (`user_id`, `created_at`),
-          CONSTRAINT `fk_payment_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          KEY `payment_orders_user_idx` (`user_id`, `created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `monthly_invoices` (
@@ -412,13 +413,35 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
           UNIQUE KEY `uniq_monthly_invoice_user_period` (`user_id`, `period_ym`),
-          KEY `monthly_invoices_status_due_idx` (`status`, `due_date`),
-          CONSTRAINT `fk_monthly_invoices_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+          KEY `monthly_invoices_user_id_idx` (`user_id`),
+          KEY `monthly_invoices_status_due_idx` (`status`, `due_date`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
     foreach ($statements as $sql) {
-        $pdo->exec($sql);
+        try {
+            $pdo->exec($sql);
+        } catch (Throwable $e) {
+            error_log('voxi_ensure_schema statement error: ' . $e->getMessage());
+        }
+    }
+
+    // Безопасное добавление внешних ключей (если поддерживается кодировкой и версией MySQL)
+    $foreignKeys = [
+        ['user_sessions', 'fk_sessions_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+        ['assistants', 'fk_assistants_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+        ['integrations', 'fk_integrations_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+        ['call_logs', 'fk_call_logs_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+        ['minute_transactions', 'fk_minute_tx_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+        ['payment_orders', 'fk_payment_orders_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+        ['monthly_invoices', 'fk_monthly_invoices_user', 'FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE'],
+    ];
+    foreach ($foreignKeys as [$tbl, $cName, $fDef]) {
+        try {
+            $pdo->exec("ALTER TABLE `{$tbl}` ADD CONSTRAINT `{$cName}` {$fDef}");
+        } catch (Throwable $ignored) {
+            // Игнорируем, если ключ уже создан или на сервере несовпадение кодировок
+        }
     }
 
     // Безопасная миграция существующих таблиц
@@ -456,10 +479,33 @@ function voxi_get_pdo(array $cfg): PDO
         try {
             $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
             $pdo = new PDO($dsn, $user, $pass, $options);
-            voxi_ensure_schema($pdo, $name);
+            try {
+                voxi_ensure_schema($pdo, $name);
+            } catch (Throwable $se) {
+                error_log('voxi_ensure_schema non-fatal error: ' . $se->getMessage());
+            }
             return $pdo;
         } catch (Throwable $e) {
             $lastException = $e;
+        }
+    }
+
+    // Резервная попытка через локальные unix-сокеты (характерно для shared хостинга ISPmanager / hoster.by)
+    $sockets = ['/var/run/mysqld/mysqld.sock', '/tmp/mysql.sock', '/var/lib/mysql/mysql.sock'];
+    foreach ($sockets as $sock) {
+        if (@file_exists($sock)) {
+            try {
+                $dsn = "mysql:unix_socket={$sock};dbname={$name};charset=utf8mb4";
+                $pdo = new PDO($dsn, $user, $pass, $options);
+                try {
+                    voxi_ensure_schema($pdo, $name);
+                } catch (Throwable $se) {
+                    error_log('voxi_ensure_schema socket non-fatal error: ' . $se->getMessage());
+                }
+                return $pdo;
+            } catch (Throwable $e) {
+                $lastException = $e;
+            }
         }
     }
 

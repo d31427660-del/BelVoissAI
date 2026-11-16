@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   `rate_per_minute` DECIMAL(6, 2) NOT NULL DEFAULT 0.45,
   `spent_minutes` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
   `spent_total_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `number_rental_mode` VARCHAR(16) NOT NULL DEFAULT 'rental',
+  `monthly_subscription_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+  `credit_limit_byn` DECIMAL(10, 2) NOT NULL DEFAULT 100.00,
+  `billing_status` VARCHAR(16) NOT NULL DEFAULT 'active',
   `consent_99z_accepted_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `reset_token_hash` VARCHAR(64) DEFAULT NULL,
   `reset_token_expires_at` DATETIME DEFAULT NULL,
@@ -140,6 +144,8 @@ CREATE TABLE IF NOT EXISTS `minute_transactions` (
 CREATE TABLE IF NOT EXISTS `payment_orders` (
   `id` CHAR(36) NOT NULL,
   `user_id` CHAR(36) NOT NULL,
+  `invoice_id` CHAR(36) DEFAULT NULL,
+  `order_kind` VARCHAR(24) NOT NULL DEFAULT 'invoice_payment',
   `minutes` DECIMAL(10, 2) NOT NULL,
   `amount_kopecks` INT UNSIGNED NOT NULL,
   `currency` CHAR(3) NOT NULL DEFAULT 'BYN',
@@ -151,4 +157,30 @@ CREATE TABLE IF NOT EXISTS `payment_orders` (
   PRIMARY KEY (`id`),
   KEY `payment_orders_user_idx` (`user_id`, `created_at`),
   CONSTRAINT `fk_payment_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Помесячные постоплатные счета (закрываются 1-го числа в 00:05 + 7 дней грейс-период)
+CREATE TABLE IF NOT EXISTS `monthly_invoices` (
+  `id` CHAR(36) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `period_ym` CHAR(7) NOT NULL,
+  `invoice_number` VARCHAR(64) NOT NULL,
+  `billable_minutes` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `free_minutes_used` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `rate_per_minute` DECIMAL(6, 2) NOT NULL DEFAULT 0.45,
+  `minutes_amount_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `subscription_fee_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+  `paid_early_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `total_amount_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+  `status` VARCHAR(16) NOT NULL DEFAULT 'open',
+  `issued_at` DATETIME DEFAULT NULL,
+  `due_date` DATETIME DEFAULT NULL,
+  `paid_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_monthly_invoice_user_period` (`user_id`, `period_ym`),
+  KEY `monthly_invoices_user_id_idx` (`user_id`),
+  KEY `monthly_invoices_status_due_idx` (`status`, `due_date`),
+  CONSTRAINT `fk_monthly_invoices_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
