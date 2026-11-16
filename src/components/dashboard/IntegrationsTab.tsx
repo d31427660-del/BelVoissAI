@@ -49,7 +49,10 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
 }) => {
   const [localSip, setLocalSip] = useState<SipSettings>({
     ...sipSettings,
-    byoSipMode: sipSettings.byoSipMode ?? true,
+    provider: sipSettings.provider || 'a1',
+    sipServer: sipSettings.sipServer || 'sip.a1.by:5060',
+    assignedDid: sipSettings.assignedDid || '+375 (44) 500-10-01',
+    byoSipMode: sipSettings.byoSipMode ?? false,
     fallbackEnabled: sipSettings.fallbackEnabled ?? true,
     fallbackPhone: sipSettings.fallbackPhone || '+375 (29) 700-11-22',
     fallbackTrigger: sipSettings.fallbackTrigger || 'human_request',
@@ -63,6 +66,7 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
       sipSettings.disclaimerText ||
       'Для удобства обслуживания наш разговор записывается.'
   });
+  const [copiedUssd, setCopiedUssd] = useState<string | null>(null);
 
   const [localTg, setLocalTg] = useState<TelegramSettings>(telegramSettings);
   const [localWh, setLocalWh] = useState<WebhookSettings>(webhookSettings);
@@ -96,12 +100,9 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
   const [isTestingCallerSms, setIsTestingCallerSms] = useState(false);
   const [callerSmsResult, setCallerSmsResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const [showSipPassword, setShowSipPassword] = useState(false);
   const [showCrmKey, setShowCrmKey] = useState(false);
   const [showWhSecret, setShowWhSecret] = useState(false);
 
-  const [isTestingSip, setIsTestingSip] = useState(false);
-  const [sipTestResult, setSipTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [isSyncingVapi, setIsSyncingVapi] = useState(false);
   const [vapiSyncResult, setVapiSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -138,18 +139,6 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
     onSaveWebhook(localWh);
     setSavedNotice('Все настройки номера, CRM, Webhook и уведомлений успешно сохранены!');
     setTimeout(() => setSavedNotice(null), 3000);
-  };
-
-  const handleTestSip = async () => {
-    setIsTestingSip(true);
-    setSipTestResult(null);
-    const res = await testSipNode({
-      sipServer: localSip.sipServer,
-      sipLogin: localSip.sipLogin,
-      callerId: localSip.callerId,
-    });
-    setIsTestingSip(false);
-    setSipTestResult(res);
   };
 
   const handleSyncVapi = async () => {
@@ -350,12 +339,20 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
     setTimeout(() => setDownloadDpaNotice(false), 4500);
   };
 
-  const providers = [
-    { id: 'mts', label: 'МТС Беларусь', server: 'sip.mts.by:5060' },
-    { id: 'a1', label: 'А1 (Виртуальная АТС)', server: 'sip.a1.by:5060' },
-    { id: 'beltelecom', label: 'Белтелеком (Максифон / IMS)', server: 'ims.beltelecom.by:5060' },
-    { id: 'axatel', label: 'Другой оператор РБ', server: 'by.unitalk.cloud:5060' }
-  ];
+  const assignedGatewayNumber = localSip.assignedDid?.trim() || '+375 (44) 500-10-01';
+  const assignedGatewayE164 = '+' + (assignedGatewayNumber.replace(/\D+/g, '') || '375445001001');
+  const ussdNoAnswer = `**61*${assignedGatewayE164}**10#`;
+  const ussdAlways = `**21*${assignedGatewayE164}#`;
+
+  const handleCopyUssd = (code: string) => {
+    try {
+      void navigator.clipboard.writeText(code);
+      setCopiedUssd(code);
+      setTimeout(() => setCopiedUssd(null), 2000);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   const crmOptions = [
     { id: 'none' as const, label: 'Пока без календаря (только Telegram / Webhook)' },
@@ -859,9 +856,9 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
         </details>
       </fieldset>
 
-      {/* STEP 2: Company Phone Number (Clean Light Theme, Plain Language) */}
+      {/* STEP 2: Company Phone Number (Call Forwarding via Voxi A1 Virtual PBX) */}
       <fieldset className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5">
-        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
               <Phone className="w-4 h-4" />
@@ -871,228 +868,146 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                 Шаг 2. Ваш телефонный номер для приёма звонков
               </legend>
               <p className="text-xs text-slate-500 mt-0.5">
-                Подключается ваш действующий номер МТС, А1 или Белтелеком — менять номер в рекламе не придётся
+                Менять номер в рекламе не нужно — вызовы переадресуются на персональный шлюз Voxi (Виртуальная АТС А1)
               </p>
             </div>
           </div>
+
+          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 self-start">
+            Шлюз А1 ВАТС готов к работе
+          </span>
         </div>
 
-        {/* Operator Choice */}
-        <div>
-          <FieldLabel
-            htmlFor="sip-provider-mts"
-            label="Ваш оператор связи в Беларуси"
-            helpTitle="Какой тариф нужен у оператора?"
-            helpText="Подойдёт любой корпоративный номер с подключённой услугой «Виртуальная АТС» или «SIP-линия» у МТС, А1, Белтелеком или другого белорусского оператора. Данные для входа выдаёт менеджер оператора."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5" aria-describedby="sip-provider-hint">
-            {providers.map((p) => {
-              const isSelected = localSip.provider === p.id;
-              const radioId = `sip-provider-${p.id}`;
-              return (
-                <label
-                  key={p.id}
-                  htmlFor={radioId}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all block ${
-                    isSelected
-                      ? 'border-blue-600 bg-blue-50/70 text-blue-900 shadow-xs'
-                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                  }`}
-                >
-                  <input
-                    id={radioId}
-                    type="radio"
-                    name="sipProvider"
-                    value={p.id}
-                    checked={isSelected}
-                    onChange={() => setLocalSip({ ...localSip, provider: p.id as any, sipServer: p.server })}
-                    className="visually-hidden"
-                  />
-                  <div className="text-xs font-semibold">{p.label}</div>
-                  <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">{p.server}</div>
-                </label>
-              );
-            })}
-          </div>
-          <FieldHint id="sip-provider-hint">
-            При выборе оператора адрес его сервера подставится в поле ниже автоматически.
-          </FieldHint>
-        </div>
-
-        {/* 4 Phone Fields with Explicit Hints & Popovers */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <FieldLabel
-              htmlFor="sip-caller-id"
-              label="Ваш рабочий номер телефона"
-              helpTitle="Какой номер указывать"
-              helpText="Укажите основной номер компании, на который звонят ваши клиенты с сайта, карт или соцсетей."
-              helpExample="+375 (29) 600-10-20 или +375 (17) 300-10-20"
-            />
-            <input
-              id="sip-caller-id"
-              name="callerId"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              aria-describedby="sip-caller-id-hint"
-              value={localSip.callerId}
-              onChange={(e) => setLocalSip({ ...localSip, callerId: formatBelarusPhone(e.target.value) })}
-              placeholder="+375 (29) 600-10-20"
-              className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
-            />
-            <FieldHint id="sip-caller-id-hint">
-              Номер вашей компании, который видят и набирают клиенты.
-            </FieldHint>
-          </div>
-
-          <div>
-            <FieldLabel
-              htmlFor="sip-server"
-              label="Адрес сервера оператора"
-              helpTriggerLabel="Где взять?"
-              helpTitle="Что такое адрес сервера оператора"
-              helpText="Это адрес интернет-телефонии вашего оператора связи. Для МТС, А1 и Белтелеком мы уже заполнили стандартный адрес. Меняйте его, только если техподдержка оператора прислала другой адрес."
-              helpExample="sip.mts.by:5060 или sip.a1.by:5060"
-            />
-            <input
-              id="sip-server"
-              name="sipServer"
-              type="text"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              aria-describedby="sip-server-hint"
-              value={localSip.sipServer}
-              onChange={(e) => setLocalSip({ ...localSip, sipServer: e.target.value })}
-              placeholder="sip.mts.by:5060"
-              className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
-            />
-            <FieldHint id="sip-server-hint">
-              Заполняется сам при выборе оператора выше (обычно менять не нужно).
-            </FieldHint>
-          </div>
-
-          <div>
-            <FieldLabel
-              htmlFor="sip-login"
-              label="Логин от телефонии"
-              helpTriggerLabel="Где взять?"
-              helpTitle="Где найти логин от телефонии"
-              helpText="Зайдите в личный кабинет «Виртуальной АТС» у вашего оператора (МТС, А1 или Белтелеком) в раздел «Пользователи / SIP-учётные записи» или запросите параметры подключения у вашего корпоративного менеджера."
-              helpExample="375296001020 или user_101"
-            />
-            <input
-              id="sip-login"
-              name="sipLogin"
-              type="text"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              aria-describedby="sip-login-hint"
-              value={localSip.sipLogin}
-              onChange={(e) => setLocalSip({ ...localSip, sipLogin: e.target.value })}
-              placeholder="Напр.: 375296001020"
-              className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
-            />
-            <FieldHint id="sip-login-hint">
-              Учётное имя линии из личного кабинета Виртуальной АТС вашего оператора.
-            </FieldHint>
-          </div>
-
-          <div>
-            <FieldLabel
-              htmlFor="sip-password"
-              label="Пароль от телефонии"
-              helpTriggerLabel="Где взять?"
-              helpTitle="Где найти пароль от телефонии"
-              helpText="Выдаётся вместе с логином в кабинете Виртуальной АТС оператора (внимание: это отдельный пароль именно для звонков, а не пароль от входа на сайт МТС или А1)."
-            />
-            <div className="relative">
-              <input
-                id="sip-password"
-                name="sipPassword"
-                type={showSipPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                aria-describedby="sip-password-hint sip-password-visibility-warning"
-                value={localSip.sipPassword || ''}
-                onChange={(e) => setLocalSip({ ...localSip, sipPassword: e.target.value })}
-                placeholder="Пароль SIP-учётной записи"
-                className="w-full pl-3 pr-9 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <FieldLabel
+                htmlFor="sip-caller-id-easy"
+                label="Ваш рабочий номер телефона"
+                helpTitle="Какой номер указывать"
+                helpText="Укажите номер вашей компании, на который звонят клиенты с сайта, визиток, карт и соцсетей."
+                helpExample="+375 (29) 600-10-20 или +375 (17) 300-10-20"
               />
-              <button
-                type="button"
-                onClick={() => setShowSipPassword((v) => !v)}
-                aria-pressed={showSipPassword}
-                aria-label={showSipPassword ? 'Скрыть пароль телефонии' : 'Показать пароль телефонии'}
-                aria-describedby="sip-password-visibility-warning"
-                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700"
-              >
-                {showSipPassword ? <EyeClosedIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-              </button>
-              <span id="sip-password-visibility-warning" className="visually-hidden">
-                Внимание: нажатие отобразит пароль телефонии на экране.
-              </span>
+              <input
+                id="sip-caller-id-easy"
+                name="callerId"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={localSip.callerId}
+                onChange={(e) => setLocalSip({ ...localSip, callerId: formatBelarusPhone(e.target.value) })}
+                placeholder="+375 (29) 600-10-20"
+                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+              />
+              <FieldHint id="sip-caller-id-easy-hint">
+                Ваш рекламный номер остаётся неизменным для всех клиентов.
+              </FieldHint>
             </div>
-            <FieldHint id="sip-password-hint">
-              Пароль к телефонной линии (указан рядом с логином в настройках АТС).
-            </FieldHint>
+
+            <div>
+              <FieldLabel
+                htmlFor="sip-assigned-did"
+                label="Персональный шлюз Voxi (Виртуальная АТС А1)"
+                helpTitle="Что это за номер?"
+                helpText="Многоканальный технический номер в облачной Виртуальной АТС А1, закреплённый за вашей компанией. На него перенаправляются звонки для мгновенного ответа ИИ."
+              />
+              <input
+                id="sip-assigned-did"
+                type="text"
+                readOnly
+                value={assignedGatewayNumber}
+                className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-300 text-blue-900 font-bold text-xs font-mono focus:outline-none"
+              />
+              <FieldHint id="sip-assigned-did-hint">
+                Закреплён за вашей организацией в единой АТС Voxi.by.
+              </FieldHint>
+            </div>
           </div>
-        </div>
 
-        {/* Light Connection Check Bar (Replaces old dark terminal!) */}
-        <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
-                <span className={`w-2 h-2 rounded-full ${sipTestResult ? (sipTestResult.ok ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-emerald-500'}`} />
-                <span>
-                  {agent.vapiAssistantId && !agent.vapiAssistantId.startsWith('asst_mock_')
-                    ? `Шлюз Vapi активен (ID: ${agent.vapiAssistantId})`
-                    : 'Статус подключения номера и голосового шлюза'}
-                </span>
-              </div>
-              <p className={`text-[11px] ${sipTestResult && !sipTestResult.ok ? 'text-rose-700 font-medium' : 'text-slate-600'}`}>
-                {sipTestResult?.message ||
-                  'Проверьте сетевую доступность SIP-сервера оператора и синхронизируйте голосового ассистента с Vapi.ai.'}
-              </p>
+          <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80 space-y-3">
+            <div className="text-xs font-bold text-slate-900">
+              Включение ИИ-администратора на вашем телефоне (наберите код с мобильного):
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleTestSip}
-                disabled={isTestingSip}
-                className="px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-100/60 text-emerald-800 border border-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isTestingSip ? 'animate-spin' : ''}`} />
-                <span>{isTestingSip ? 'Проверяем SIP...' : 'Проверить SIP-узел'}</span>
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-white border border-blue-200/80 flex flex-col justify-between gap-2 shadow-2xs">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900">Режим 1: Если не ответили за 10 сек</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Рекомендуем
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                    Сначала звонит ваш телефон. Если менеджер занят или не поднял трубку за 10 секунд — вызов перехватывает ИИ.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <code className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">
+                    {ussdNoAnswer}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyUssd(ussdNoAnswer)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    {copiedUssd === ussdNoAnswer ? '✓ Скопировано' : 'Скопировать код'}
+                  </button>
+                </div>
+              </div>
 
+              <div className="p-3 rounded-xl bg-white border border-blue-200/80 flex flex-col justify-between gap-2 shadow-2xs">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900">Режим 2: Все звонки сразу на ИИ 24/7</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                      Автопилот
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                    ИИ отвечает мгновенно на каждый звонок и переключает на человека только по прямой просьбе клиента.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <code className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">
+                    {ussdAlways}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyUssd(ussdAlways)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    {copiedUssd === ussdAlways ? '✓ Скопировано' : 'Скопировать код'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-600 pt-1">
+              <span>
+                Наберите код на смартфоне и нажмите кнопку вызова. Для отмены переадресации наберите <code className="font-mono font-semibold text-slate-800">##002#</code>.
+              </span>
               <button
                 type="button"
                 onClick={handleSyncVapi}
                 disabled={isSyncingVapi}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer shrink-0 self-start sm:self-auto"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{isSyncingVapi ? 'Публикуем в Vapi...' : 'Синхронизировать с Vapi.ai'}</span>
+                <span>{isSyncingVapi ? 'Синхронизируем...' : 'Обновить ассистента на линии'}</span>
               </button>
             </div>
-          </div>
 
-          {vapiSyncResult && (
-            <div className={`p-2.5 rounded-lg border text-xs font-medium ${
-              vapiSyncResult.ok
-                ? 'bg-white border-emerald-300 text-emerald-800'
-                : 'bg-rose-50 border-rose-200 text-rose-800'
-            }`}>
-              {vapiSyncResult.message}
-            </div>
-          )}
+            {vapiSyncResult && (
+              <div className={`p-2.5 rounded-lg border text-xs font-medium ${
+                vapiSyncResult.ok
+                  ? 'bg-white border-emerald-300 text-emerald-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
+              }`}>
+                {vapiSyncResult.message}
+              </div>
+            )}
+          </div>
         </div>
       </fieldset>
 

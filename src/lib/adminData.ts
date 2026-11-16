@@ -13,6 +13,10 @@ export interface PlatformClient {
   spentBynTotal: number;
   sipProvider: 'mts' | 'a1' | 'life' | 'beltelecom' | 'other';
   sipStatus: 'connected' | 'warning' | 'disconnected';
+  assignedDid?: string;
+  sipServer?: string;
+  sipLogin?: string;
+  vapiAssistantId?: string;
   isActive: boolean;
   createdAt: string;
   contractNumber: string;

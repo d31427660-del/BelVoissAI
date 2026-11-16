@@ -129,7 +129,7 @@ function startStaticServer(baseDir) {
               }));
               return;
             }
-            if (action === 'admin_add_minutes' || action === 'admin_toggle_client') {
+            if (action === 'admin_add_minutes' || action === 'admin_toggle_client' || action === 'admin_update_client_sip') {
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ ok: true }));
               return;
@@ -315,6 +315,32 @@ async function runAdminPanelTest() {
       return document.body.innerText.includes('Начислено +50 минут');
     }, { timeout: 3000 });
     console.log('✅ Начисление минут выполнено успешно');
+
+    // Test A1 line assignment modal
+    console.log('Тестируем модальное окно привязки линии А1 ВАТС...');
+    await page.evaluate(() => {
+      const lineBtn = Array.from(document.querySelectorAll('button')).find((b) =>
+        b.innerText.includes('Линия А1')
+      );
+      if (lineBtn) lineBtn.click();
+    });
+
+    await page.waitForFunction(() => {
+      return document.body.innerText.includes('Привязка номера из Виртуальной АТС А1');
+    }, { timeout: 3000 });
+    console.log('✅ Модальное окно «Линия А1» открывается');
+
+    await page.evaluate(() => {
+      const saveBtn = Array.from(document.querySelectorAll('button')).find((b) =>
+        b.innerText.includes('Сохранить линию А1')
+      );
+      if (saveBtn) saveBtn.click();
+    });
+
+    await page.waitForFunction(() => {
+      return document.body.innerText.includes('закреплена за клиентом') || !document.querySelector('[aria-label="Настройка линии Виртуальной АТС А1"]');
+    }, { timeout: 3000 });
+    console.log('✅ Привязка линии ВАТС А1 успешно отработала');
 
     // 4. Switch to Billing tab
     console.log('\n--- ШАГ 4: Финансы, чеки и акты выполненных работ РБ ---');

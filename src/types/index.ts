@@ -72,6 +72,7 @@ export interface SipSettings {
   sipLogin: string;
   sipPassword?: string;
   callerId: string;
+  assignedDid?: string; // Выделенный номер из пула Виртуальной АТС А1 платформы для переадресации
   status: 'connected' | 'disconnected' | 'testing';
   lastPing?: string;
   // BYO-SIP & Fallback

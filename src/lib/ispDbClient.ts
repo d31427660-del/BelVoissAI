@@ -332,3 +332,26 @@ export async function ispAdminToggleClient(
     return false;
   }
 }
+
+export async function ispAdminUpdateClientSip(
+  adminToken: string,
+  payload: {
+    clientId: string;
+    assignedDid: string;
+    sipProvider?: string;
+    sipServer?: string;
+    sipLogin?: string;
+    sipPassword?: string;
+    vapiAssistantId?: string;
+  }
+): Promise<boolean> {
+  try {
+    const { isJson, data } = await callIspDb('admin_update_client_sip', {
+      method: 'POST',
+      body: { adminToken, ...payload },
+    });
+    return Boolean(isJson && data?.ok);
+  } catch {
+    return false;
+  }
+}

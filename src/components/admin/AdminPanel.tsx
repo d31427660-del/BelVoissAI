@@ -25,6 +25,7 @@ import {
   ispFetchAdminData,
   ispAdminAddMinutes,
   ispAdminToggleClient,
+  ispAdminUpdateClientSip,
 } from '../../lib/ispDbClient';
 
 interface AdminPanelProps {
@@ -54,6 +55,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
   const [clientSearch, setClientSearch] = useState<string>('');
   const [selectedClientForRefill, setSelectedClientForRefill] = useState<PlatformClient | null>(null);
   const [refillAmountMinutes, setRefillAmountMinutes] = useState<number>(50);
+  const [selectedClientForSip, setSelectedClientForSip] = useState<PlatformClient | null>(null);
+  const [sipFormDid, setSipFormDid] = useState<string>('+375 (44) 500-10-01');
+  const [sipFormServer, setSipFormServer] = useState<string>('sip.a1.by:5060');
+  const [sipFormLogin, setSipFormLogin] = useState<string>('');
+  const [sipFormPassword, setSipFormPassword] = useState<string>('');
+  const [sipFormVapiId, setSipFormVapiId] = useState<string>('');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   // Единственный источник данных — БД MySQL (/api/db?action=admin_data). Никаких локальных копий и демо-данных.
   const [dataError, setDataError] = useState<string | null>(null);
@@ -252,6 +259,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
     }
     await loadAdminData();
     showToast('Статус клиента обновлен');
+  };
+
+  const handleSaveClientSip = async () => {
+    if (!selectedClientForSip) return;
+    const ok = await ispAdminUpdateClientSip(adminToken, {
+      clientId: selectedClientForSip.id,
+      assignedDid: sipFormDid.trim(),
+      sipProvider: 'a1',
+      sipServer: sipFormServer.trim() || 'sip.a1.by:5060',
+      sipLogin: sipFormLogin.trim(),
+      sipPassword: sipFormPassword.trim(),
+      vapiAssistantId: sipFormVapiId.trim(),
+    });
+    if (!ok) {
+      showToast('Не удалось сохранить настройки линии А1');
+      return;
+    }
+    await loadAdminData();
+    showToast(`Линия ВАТС А1 (${sipFormDid.trim()}) закреплена за клиентом`);
+    setSelectedClientForSip(null);
   };
 
   // KPI calculations
@@ -699,6 +726,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                               <span className="w-2 h-2 rounded-full bg-emerald-500" />
                               {client.sipProvider}
                             </span>
+                            {client.assignedDid && (
+                              <div className="text-[10px] font-mono text-blue-400 mt-0.5">
+                                {client.assignedDid}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3.5">
                             <button
@@ -714,16 +746,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                             </button>
                           </td>
                           <td className="px-4 py-3.5 text-right">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedClientForRefill(client);
-                                setRefillAmountMinutes(50);
-                              }}
-                              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
-                            >
-                              + Минуты
-                            </button>
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedClientForSip(client);
+                                  setSipFormDid(client.assignedDid || '+375 (44) 500-10-01');
+                                  setSipFormServer(client.sipServer || 'sip.a1.by:5060');
+                                  setSipFormLogin(client.sipLogin || '');
+                                  setSipFormPassword('');
+                                  setSipFormVapiId(client.vapiAssistantId || '');
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-300 border border-slate-700 font-medium text-xs transition-colors cursor-pointer"
+                              >
+                                Линия А1
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedClientForRefill(client);
+                                  setRefillAmountMinutes(50);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
+                              >
+                                + Минуты
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -800,6 +848,118 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                       <button
                         type="button"
                         onClick={() => setSelectedClientForRefill(null)}
+                        className="px-4 py-2.5 rounded-full bg-white/10 text-zinc-300 hover:text-white text-xs cursor-pointer"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* A1 Virtual PBX Line Assignment Modal */}
+              {selectedClientForSip && (
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Настройка линии Виртуальной АТС А1"
+                  className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+                >
+                  <div className="bg-black border border-white/10 rounded-[16px] p-6 max-w-md w-full space-y-4 shadow-2xl">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-white text-sm">
+                        Привязка номера из Виртуальной АТС А1
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedClientForSip(null)}
+                        className="text-zinc-400 hover:text-white cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="text-xs text-zinc-300">
+                      Клиент: <span className="font-semibold text-white">{selectedClientForSip.companyName}</span>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">
+                        Этот номер отобразится у клиента в кабинете для включения переадресации (`**21*...#`).
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block text-zinc-300 mb-1">
+                          Выделенный номер А1 ВАТС (для переадресации клиента):
+                        </label>
+                        <input
+                          type="text"
+                          value={sipFormDid}
+                          onChange={(e) => setSipFormDid(e.target.value)}
+                          placeholder="+375 (44) 500-10-01"
+                          className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-zinc-300 mb-1">SIP-сервер А1:</label>
+                          <input
+                            type="text"
+                            value={sipFormServer}
+                            onChange={(e) => setSipFormServer(e.target.value)}
+                            placeholder="sip.a1.by:5060"
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Логин SIP-сотрудника:</label>
+                          <input
+                            type="text"
+                            value={sipFormLogin}
+                            onChange={(e) => setSipFormLogin(e.target.value)}
+                            placeholder="user_101 / 37544..."
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Пароль SIP-сотрудника:</label>
+                          <input
+                            type="password"
+                            value={sipFormPassword}
+                            onChange={(e) => setSipFormPassword(e.target.value)}
+                            placeholder="Оставьте пустым, если не менялся"
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Vapi Assistant ID:</label>
+                          <input
+                            type="text"
+                            value={sipFormVapiId}
+                            onChange={(e) => setSipFormVapiId(e.target.value)}
+                            placeholder="asst_..."
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveClientSip}
+                        className="flex-1 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
+                      >
+                        Сохранить линию А1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedClientForSip(null)}
                         className="px-4 py-2.5 rounded-full bg-white/10 text-zinc-300 hover:text-white text-xs cursor-pointer"
                       >
                         Отмена

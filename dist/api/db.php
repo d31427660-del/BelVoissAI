@@ -261,7 +261,8 @@ if ($action === 'admin_data') {
     // 1. Все зарегистрированные клиенты
     $stmtUsers = $pdo->query(
         'SELECT u.*, a.city AS agent_city, a.phone AS agent_phone, a.voice AS agent_voice, a.is_active AS agent_active,
-                i.sip_provider, i.sip_caller_id
+                a.vapi_assistant_id,
+                i.sip_provider, i.sip_caller_id, i.sip_server, i.sip_login, i.sip_json
          FROM users u
          LEFT JOIN assistants a ON a.user_id = u.id
          LEFT JOIN integrations i ON i.user_id = u.id
@@ -271,6 +272,11 @@ if ($action === 'admin_data') {
     $userRows = $stmtUsers ? $stmtUsers->fetchAll() : [];
     $clients = [];
     foreach ($userRows as $u) {
+        $sipDecoded = !empty($u['sip_json']) ? json_decode((string)$u['sip_json'], true) : [];
+        if (!is_array($sipDecoded)) {
+            $sipDecoded = [];
+        }
+        $assignedDid = trim((string)($sipDecoded['assignedDid'] ?? ''));
         $clients[] = [
             'id' => (string)$u['id'],
             'name' => (string)$u['email'],
@@ -286,8 +292,12 @@ if ($action === 'admin_data') {
             'ratePerMinute' => round((float)($u['rate_per_minute'] ?? 0.45), 2),
             'sipProvider' => in_array(($u['sip_provider'] ?? ''), ['mts', 'a1', 'beltelecom', 'life'], true)
                 ? (string)$u['sip_provider']
-                : 'mts',
+                : 'a1',
             'sipStatus' => 'connected',
+            'assignedDid' => $assignedDid,
+            'sipServer' => (string)($u['sip_server'] ?: 'sip.a1.by:5060'),
+            'sipLogin' => (string)($u['sip_login'] ?? ''),
+            'vapiAssistantId' => (string)($u['vapi_assistant_id'] ?? ''),
             'isActive' => !isset($u['agent_active']) || (bool)$u['agent_active'],
             'createdAt' => !empty($u['created_at']) ? date('d.m.Y', strtotime((string)$u['created_at'])) : date('d.m.Y'),
             'contractNumber' => 'ДГ-' . date('Y') . '/' . substr((string)$u['id'], 0, 4),
@@ -451,6 +461,87 @@ if ($action === 'admin_toggle_client') {
             ->execute([$isActive, $targetClientId]);
     }
     voxi_json(['ok' => true]);
+}
+
+// --- POST ?action=admin_update_client_sip ---
+if ($action === 'admin_update_client_sip') {
+    if (!voxi_verify_admin_request($VOXI_CONFIG, $body)) {
+        voxi_json(['ok' => false, 'error' => 'Требуется авторизация администратора'], 401);
+    }
+    $targetClientId = trim((string)($body['clientId'] ?? ''));
+    if ($targetClientId === '') {
+        voxi_json(['ok' => false, 'error' => 'Не указан ID клиента'], 400);
+    }
+
+    $assignedDid = mb_substr(trim((string)($body['assignedDid'] ?? '')), 0, 64);
+    $sipProvider = in_array(($body['sipProvider'] ?? 'a1'), ['a1', 'mts', 'beltelecom', 'life'], true)
+        ? (string)$body['sipProvider']
+        : 'a1';
+    $sipServer = mb_substr(trim((string)($body['sipServer'] ?? 'sip.a1.by:5060')), 0, 191);
+    $sipLogin = mb_substr(trim((string)($body['sipLogin'] ?? '')), 0, 191);
+    $sipPassword = trim((string)($body['sipPassword'] ?? ''));
+    $vapiAssistantId = mb_substr(trim((string)($body['vapiAssistantId'] ?? '')), 0, 128);
+
+    $stmtInt = $pdo->prepare('SELECT * FROM integrations WHERE user_id = ? LIMIT 1');
+    $stmtInt->execute([$targetClientId]);
+    $existingInt = $stmtInt->fetch();
+
+    $sipJson = [];
+    if (is_array($existingInt) && !empty($existingInt['sip_json'])) {
+        $decoded = json_decode((string)$existingInt['sip_json'], true);
+        if (is_array($decoded)) {
+            $sipJson = $decoded;
+        }
+    }
+
+    $sipJson['provider'] = $sipProvider;
+    $sipJson['sipServer'] = $sipServer;
+    $sipJson['sipLogin'] = $sipLogin;
+    if ($sipPassword !== '') {
+        $sipJson['sipPassword'] = $sipPassword;
+    }
+    $sipJson['assignedDid'] = $assignedDid;
+    $sipJson['byoSipMode'] = false;
+    $sipJson['status'] = 'connected';
+
+    $callerId = (string)($sipJson['callerId'] ?? $assignedDid);
+
+    $stmtUpsert = $pdo->prepare(
+        'INSERT INTO integrations (
+           id, user_id, sip_provider, sip_server, sip_login, sip_caller_id, sip_status, sip_json
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           sip_provider = VALUES(sip_provider),
+           sip_server = VALUES(sip_server),
+           sip_login = VALUES(sip_login),
+           sip_status = VALUES(sip_status),
+           sip_json = VALUES(sip_json),
+           updated_at = NOW()'
+    );
+    $stmtUpsert->execute([
+        voxi_uuid(),
+        $targetClientId,
+        $sipProvider,
+        $sipServer,
+        $sipLogin,
+        $callerId,
+        'connected',
+        json_encode($sipJson, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+
+    if ($vapiAssistantId !== '') {
+        $pdo->prepare('UPDATE assistants SET vapi_assistant_id = ?, updated_at = NOW() WHERE user_id = ?')
+            ->execute([$vapiAssistantId, $targetClientId]);
+    }
+
+    voxi_json([
+        'ok' => true,
+        'clientId' => $targetClientId,
+        'assignedDid' => $assignedDid,
+        'sipServer' => $sipServer,
+        'sipLogin' => $sipLogin,
+        'vapiAssistantId' => $vapiAssistantId,
+    ]);
 }
 
 // --- POST ?action=signup ---

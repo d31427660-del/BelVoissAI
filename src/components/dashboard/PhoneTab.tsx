@@ -29,13 +29,10 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
   sipSettings,
   onSaveSip
 }) => {
-  const [connectionType, setConnectionType] = useState<'forwarding' | 'sip'>(
-    sipSettings.sipLogin ? 'sip' : 'forwarding'
-  );
-
   const [localSip, setLocalSip] = useState<SipSettings>({
     ...sipSettings,
-    byoSipMode: sipSettings.byoSipMode ?? true,
+    assignedDid: sipSettings.assignedDid || '+375 (44) 500-10-01',
+    byoSipMode: false,
     fallbackEnabled: sipSettings.fallbackEnabled ?? true,
     fallbackPhone: sipSettings.fallbackPhone || agent.phone || '',
     transferPhone: sipSettings.transferPhone || sipSettings.fallbackPhone || agent.phone || '',
@@ -48,35 +45,25 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
       'Для контроля качества обслуживания наш разговор записывается.'
   });
 
-  const [showSipPassword, setShowSipPassword] = useState(false);
-  const [copiedNumber, setCopiedNumber] = useState(false);
+  const [copiedUssd, setCopiedUssd] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
-
-  // Testing states
-  const [isTestingSip, setIsTestingSip] = useState(false);
-  const [sipTestResult, setSipTestResult] = useState<{ ok: boolean; message: string; latencyMs?: number } | null>(null);
 
   const [isTestingTransfer, setIsTestingTransfer] = useState(false);
   const [transferTestResult, setTransferTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const voxiGatewayNumber = '+375 (17) 388-77-90';
+  const assignedGatewayNumber = localSip.assignedDid?.trim() || '+375 (44) 500-10-01';
+  const assignedGatewayE164 = '+' + (assignedGatewayNumber.replace(/\D+/g, '') || '375445001001');
+  const ussdNoAnswer = `**61*${assignedGatewayE164}**10#`;
+  const ussdAlways = `**21*${assignedGatewayE164}#`;
 
-  const handleCopyGateway = () => {
-    navigator.clipboard.writeText('+375173887790');
-    setCopiedNumber(true);
-    setTimeout(() => setCopiedNumber(false), 2500);
-  };
-
-  const handleTestSip = async () => {
-    setIsTestingSip(true);
-    setSipTestResult(null);
-    const result = await testSipNode({
-      sipServer: localSip.sipServer,
-      sipLogin: localSip.sipLogin,
-      callerId: localSip.callerId || localSip.sipLogin
-    });
-    setIsTestingSip(false);
-    setSipTestResult(result);
+  const handleCopyUssd = (code: string) => {
+    try {
+      void navigator.clipboard.writeText(code);
+      setCopiedUssd(code);
+      setTimeout(() => setCopiedUssd(null), 2000);
+    } catch {
+      // ignore
+    }
   };
 
   const handleTestTransfer = async () => {
@@ -150,251 +137,128 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
         )}
       </AnimatePresence>
 
-      {/* CARD 1: Как принимать звонки (Способ подключения) */}
+      {/* CARD 1: Как принимать звонки (Переадресация через ВАТС А1) */}
       <div className="p-5 sm:p-6 rounded-[16px] liquid-glass-card space-y-5">
-        <div>
-          <h3 className="text-sm font-medium text-black">
-            1. Как бот должен принимать звонки
-          </h3>
-          <p className="text-xs text-[#777169] mt-0.5">
-            Выберите удобный вариант подключения телефонного номера вашей компании
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-black/[0.08]">
+          <div>
+            <h3 className="text-sm font-medium text-black">
+              1. Подключение телефонного номера
+            </h3>
+            <p className="text-xs text-[#777169] mt-0.5">
+              Менять номер в рекламе не нужно — вызовы переадресуются на персональный шлюз Voxi (Виртуальная АТС А1)
+            </p>
+          </div>
+          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 self-start">
+            Шлюз А1 ВАТС готов
+          </span>
         </div>
 
-        {/* Selection Tabs: Переадресация vs Прямой SIP */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setConnectionType('forwarding')}
-            className={`p-4 rounded-[12px] text-left transition-all border cursor-pointer ${
-              connectionType === 'forwarding'
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'liquid-glass-cream text-black border-black/[0.06] hover:bg-white'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium">Переадресация звонков</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                connectionType === 'forwarding' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                Рекомендуем
-              </span>
-            </div>
-            <p className={`text-[11px] leading-relaxed ${connectionType === 'forwarding' ? 'text-white/80' : 'text-[#777169]'}`}>
-              Ваш номер не меняется. Клиенты звонят вам, а если линия занята или не берут трубку — отвечает бот.
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <FieldLabel
+              htmlFor="caller-id"
+              label="Ваш рабочий номер телефона"
+              helpTitle="Какой номер указывать"
+              helpText="Укажите действующий номер компании, на который звонят клиенты с сайта, карт или рекламы."
+              helpExample="+375 (29) 600-10-20"
+            />
+            <input
+              id="caller-id"
+              type="text"
+              value={localSip.callerId || ''}
+              onChange={(e) => setLocalSip({ ...localSip, callerId: e.target.value })}
+              placeholder="+375 (29) 600-10-20"
+              className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+            />
+            <p className="text-[11px] text-[#777169] mt-1">
+              Ваш рекламный номер остаётся неизменным для всех клиентов.
             </p>
-          </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setConnectionType('sip')}
-            className={`p-4 rounded-[12px] text-left transition-all border cursor-pointer ${
-              connectionType === 'sip'
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'liquid-glass-cream text-black border-black/[0.06] hover:bg-white'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium">Прямое подключение (SIP)</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                connectionType === 'sip' ? 'bg-white/20 text-white' : 'bg-black/[0.05] text-[#59544F]'
-              }`}>
-                Для виртуальных АТС
-              </span>
-            </div>
-            <p className={`text-[11px] leading-relaxed ${connectionType === 'sip' ? 'text-white/80' : 'text-[#777169]'}`}>
-              Подключение через логин и пароль от А1, МТС или Белтелеком напрямую в телефонию Voxi.
+          <div>
+            <FieldLabel
+              htmlFor="gateway-number"
+              label="Персональный шлюз Voxi (Виртуальная АТС А1)"
+              helpTitle="Номер голосового шлюза"
+              helpText="Многоканальный номер в облачной Виртуальной АТС А1 платформы Voxi.by, закреплённый за вашей компанией."
+            />
+            <input
+              id="gateway-number"
+              type="text"
+              readOnly
+              value={assignedGatewayNumber}
+              className="w-full px-3 py-2 rounded-[8px] bg-black/[0.04] border border-black/[0.12] text-xs text-black font-mono font-bold focus:outline-none"
+            />
+            <p className="text-[11px] text-[#777169] mt-1">
+              Закреплён за вашей организацией в единой АТС Voxi.by.
             </p>
-          </button>
+          </div>
         </div>
 
-        {/* Content for Переадресация */}
-        {connectionType === 'forwarding' && (
-          <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-[10px] bg-white border border-black/[0.08]">
+        {/* Инструкция по переадресации */}
+        <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-3">
+          <div className="text-xs font-medium text-black">
+            Включение ИИ-администратора на вашем телефоне (наберите код с мобильного):
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
               <div>
-                <div className="text-[11px] text-[#777169]">Номер шлюза Voxi для переадресации:</div>
-                <div className="text-base font-semibold text-black font-mono tracking-tight mt-0.5">
-                  {voxiGatewayNumber}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-black">Режим 1: Если не ответили за 10 сек</span>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Рекомендуем
+                  </span>
                 </div>
+                <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
+                  Сначала звонит ваш телефон. Если менеджер занят или не поднял трубку за 10 секунд — отвечает ИИ.
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyGateway}
-                className="px-3 py-1.5 rounded-[8px] bg-black/[0.05] hover:bg-black/[0.08] text-black text-xs font-medium inline-flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
-              >
-                {copiedNumber ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedNumber ? 'Скопировано!' : 'Скопировать номер'}</span>
-              </button>
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
+                <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded">
+                  {ussdNoAnswer}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => handleCopyUssd(ussdNoAnswer)}
+                  className="px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
+                >
+                  {copiedUssd === ussdNoAnswer ? '✓ Скопировано' : 'Скопировать код'}
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="text-xs font-medium text-black">Как включить переадресацию за 1 минуту:</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px]">
-                <div className="p-2.5 rounded-[8px] bg-white border border-black/[0.06]">
-                  <div className="font-semibold text-black mb-0.5">А1</div>
-                  <div className="text-[#59544F]">
-                    Наберите код: <code className="bg-black/[0.05] px-1 py-0.5 rounded font-mono font-semibold">**61*+375173887790#</code> или включите в приложении «Мой А1».
-                  </div>
+            <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-black">Режим 2: Все звонки сразу на ИИ 24/7</span>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                    Автопилот
+                  </span>
                 </div>
-
-                <div className="p-2.5 rounded-[8px] bg-white border border-black/[0.06]">
-                  <div className="font-semibold text-black mb-0.5">МТС</div>
-                  <div className="text-[#59544F]">
-                    Наберите код: <code className="bg-black/[0.05] px-1 py-0.5 rounded font-mono font-semibold">**61*+375173887790#</code> или в приложении «Мой МТС».
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-[8px] bg-white border border-black/[0.06]">
-                  <div className="font-semibold text-black mb-0.5">Белтелеком (городской)</div>
-                  <div className="text-[#59544F]">
-                    В кабинете «Мой Белтелеком» в разделе «Переадресация при не ответе» укажите номер шлюза.
-                  </div>
-                </div>
+                <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
+                  ИИ отвечает мгновенно на каждый звонок и переключает на человека только по прямой просьбе клиента.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
+                <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded">
+                  {ussdAlways}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => handleCopyUssd(ussdAlways)}
+                  className="px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
+                >
+                  {copiedUssd === ussdAlways ? '✓ Скопировано' : 'Скопировать код'}
+                </button>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Content for SIP */}
-        {connectionType === 'sip' && (
-          <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-black block">
-                Выберите вашего оператора:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {sipProviders.map((p) => {
-                  const isSelected = localSip.provider === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() =>
-                        setLocalSip({
-                          ...localSip,
-                          provider: p.id,
-                          sipServer: p.server
-                        })
-                      }
-                      className={`p-2.5 rounded-[8px] text-xs font-medium text-center border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-black text-white border-black'
-                          : 'bg-white text-black border-black/[0.08] hover:border-black/20'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <FieldLabel
-                  htmlFor="sip-server"
-                  label="SIP Сервер / Адрес АТС"
-                  helpTitle="Адрес сервера SIP"
-                  helpText="Доменное имя или IP-адрес сервера телефонии вашего оператора с портом (например: sip.mts.by:5060, sip.a1.by:5060 или ims.beltelecom.by)."
-                  helpExample="sip.mts.by:5060"
-                />
-                <input
-                  id="sip-server"
-                  type="text"
-                  value={localSip.sipServer}
-                  onChange={(e) => setLocalSip({ ...localSip, sipServer: e.target.value })}
-                  placeholder="sip.mts.by:5060"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div>
-                <FieldLabel
-                  htmlFor="sip-login"
-                  label="SIP Логин / Номер линии"
-                  helpTitle="Логин учетной записи SIP"
-                  helpText="Номер транка или логин от оператора связи. Выдается при подключении Виртуальной АТС или услуги SIP-транк."
-                  helpExample="375291234567"
-                />
-                <input
-                  id="sip-login"
-                  type="text"
-                  value={localSip.sipLogin}
-                  onChange={(e) => setLocalSip({ ...localSip, sipLogin: e.target.value })}
-                  placeholder="37529XXXXXXX"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <FieldLabel
-                    htmlFor="sip-password"
-                    label="SIP Пароль"
-                    helpTitle="Пароль SIP-транка"
-                    helpText="Пароль для авторизации на сервере оператора связи. Передается в зашифрованном виде."
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSipPassword(!showSipPassword)}
-                    className="text-[10px] text-[#777169] hover:text-black flex items-center gap-1 cursor-pointer"
-                  >
-                    {showSipPassword ? <EyeClosedIcon className="w-3 h-3" /> : <EyeIcon className="w-3 h-3" />}
-                    <span>{showSipPassword ? 'Скрыть' : 'Показать'}</span>
-                  </button>
-                </div>
-                <input
-                  id="sip-password"
-                  type={showSipPassword ? 'text' : 'password'}
-                  value={localSip.sipPassword || ''}
-                  onChange={(e) => setLocalSip({ ...localSip, sipPassword: e.target.value })}
-                  placeholder="Пароль от телефонии"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div>
-                <FieldLabel
-                  htmlFor="sip-caller-id"
-                  label="АОН (Caller ID)"
-                  helpTitle="Номер звонящего (Caller ID)"
-                  helpText="Номер вашей компании в международном формате (+375), который будет отображаться у клиентов при исходящих звонках."
-                  helpExample="+375 (29) 112-44-55"
-                />
-                <input
-                  id="sip-caller-id"
-                  type="text"
-                  value={localSip.callerId || ''}
-                  onChange={(e) => setLocalSip({ ...localSip, callerId: e.target.value })}
-                  placeholder="+375 (29) ..."
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-black/[0.06]">
-              <button
-                type="button"
-                onClick={handleTestSip}
-                disabled={isTestingSip}
-                className="px-3.5 py-1.5 rounded-[8px] bg-white hover:bg-black/[0.04] text-black border border-black/[0.12] text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isTestingSip ? 'animate-spin' : ''}`} />
-                <span>{isTestingSip ? 'Проверяем связь с АТС...' : 'Проверить подключение SIP'}</span>
-              </button>
-
-              {sipTestResult && (
-                <span className={`text-[11px] font-medium flex items-center gap-1 ${
-                  sipTestResult.ok ? 'text-emerald-700' : 'text-rose-600'
-                }`}>
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>{sipTestResult.message}</span>
-                </span>
-              )}
-            </div>
+          <div className="text-[11px] text-[#777169] pt-1">
+            Наберите код на смартфоне и нажмите кнопку вызова. Для отмены переадресации наберите <code className="font-mono font-semibold text-black">##002#</code>.
           </div>
-        )}
+        </div>
       </div>
 
       {/* CARD 2: Перевод звонка на сотрудника */}
