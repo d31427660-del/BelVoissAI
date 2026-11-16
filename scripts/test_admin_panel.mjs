@@ -125,13 +125,35 @@ function startStaticServer(baseDir) {
                     timestamp: '14:22:10',
                     transcriptSnippet: 'Запись на категорию B подтверждена'
                   }
+                ],
+                monthlyInvoices: [
+                  {
+                    id: 'inv-1',
+                    userId: 'client-1',
+                    companyName: 'Автошкола «Салют»',
+                    email: 'salut@voxi.by',
+                    periodYm: '2026-11',
+                    invoiceNumber: 'СЧ-202611-CLIE',
+                    billableMinutes: 40,
+                    freeMinutesUsed: 15,
+                    ratePerMinute: 0.45,
+                    minutesAmountByn: 18,
+                    subscriptionFeeByn: 15,
+                    paidEarlyByn: 0,
+                    totalAmountByn: 33,
+                    remainingDueByn: 33,
+                    status: 'issued',
+                    issuedAt: '01.12.2026',
+                    dueDate: '08.12.2026',
+                    paidAt: null
+                  }
                 ]
               }));
               return;
             }
-            if (action === 'admin_add_minutes' || action === 'admin_toggle_client' || action === 'admin_update_client_sip') {
+            if (action === 'admin_add_minutes' || action === 'admin_toggle_client' || action === 'admin_update_client_sip' || action === 'admin_update_client_billing' || action === 'admin_mark_invoice_paid' || action === 'admin_close_month') {
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: true }));
+              res.end(JSON.stringify({ ok: true, closedCount: 1, overdueSuspendedCount: 0 }));
               return;
             }
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -352,9 +374,9 @@ async function runAdminPanelTest() {
     });
 
     await page.waitForFunction(() => {
-      return document.body.innerText.includes('Финансы, Платежи и Акты') && document.body.innerText.includes('Акт (PDF)');
+      return document.body.innerText.includes('Ежемесячные счета (Постоплата)') && document.body.innerText.includes('Акт (PDF)');
     }, { timeout: 4000 });
-    console.log('✅ Раздел финансов и генерации актов РБ проверен');
+    console.log('✅ Раздел постоплатных счетов и генерации актов РБ проверен');
 
     // 5. Switch to Telephony tab
     console.log('\n--- ШАГ 5: Мониторинг звонков и AMD фильтрации ---');

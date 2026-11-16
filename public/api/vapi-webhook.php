@@ -184,28 +184,7 @@ try {
         ]);
 
         if (!$isVoicemail && $usedMinutes > 0) {
-            $pdo->prepare(
-                'UPDATE users
-                 SET balance_minutes = GREATEST(0, balance_minutes - ?),
-                     spent_minutes = spent_minutes + ?,
-                     spent_total_byn = spent_total_byn + ?,
-                     updated_at = NOW()
-                 WHERE id = ?'
-            )->execute([$usedMinutes, $usedMinutes, $costByn, $userId]);
-
-            $pdo->prepare(
-                'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, external_uid, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-            )->execute([
-                voxi_uuid(),
-                $userId,
-                'call',
-                -$usedMinutes,
-                -$costByn,
-                'vapi_sip',
-                $callId,
-                "Звонок {$callerNumber} ({$durationSec} сек)",
-            ]);
+            voxi_record_postpaid_usage($pdo, $userId, $usedMinutes, $callId, $callerNumber, $durationSec);
         }
     }
     $pdo->commit();

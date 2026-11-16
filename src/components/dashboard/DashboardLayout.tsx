@@ -110,8 +110,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const allNavItems = primaryNavItems;
   const currentNav = allNavItems.find(n => n.id === activeTab) || primaryNavItems[0];
-  const isLowBalance = (user.balanceMinutes || 0) < 25;
-  const balanceByn = ((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1);
+  const billing = user.billing;
+  const freeMins = billing ? billing.freeMinutesRemaining : (user.balanceMinutes || 0);
+  const unpaidDebtByn = billing ? billing.unpaidDebtByn : 0;
+  const isSuspended = billing?.billingStatus === 'suspended' || (billing?.overdueInvoicesCount || 0) > 0;
 
   const renderNavButton = (item: typeof allNavItems[number]) => {
     const isActive = activeTab === item.id;
@@ -230,32 +232,42 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </nav>
         </div>
 
-        {/* Bottom Sidebar: Minute Balance & Actions */}
+        {/* Bottom Sidebar: Monthly Postpaid Billing */}
         <div className="p-4 border-t border-black/[0.06] space-y-3 bg-[#F5F3F1]/40">
           <div className="space-y-2 p-3.5 rounded-[12px] liquid-glass-card">
             <div className="flex items-center justify-between text-xs">
               <span className="flex items-center gap-1.5 font-normal text-black">
                 <Wallet className="w-3.5 h-3.5 text-black" />
-                <span>Остаток минут:</span>
+                <span>К оплате за месяц:</span>
               </span>
-              <span className={`font-mono font-medium text-sm ${isLowBalance ? 'text-amber-600' : 'text-black'}`}>
-                {user.balanceMinutes} мин
+              <span className={`font-mono font-medium text-sm ${isSuspended ? 'text-rose-600' : 'text-black'}`}>
+                {unpaidDebtByn.toFixed(2)} BYN
               </span>
             </div>
 
             <div className="flex items-center justify-between text-[11px] text-[#777169]">
-              <span>~{balanceByn} BYN</span>
-              <span className="text-[10px] text-emerald-700 font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/60">
-                Не сгорают
+              <span>
+                {freeMins > 0 ? `Бонус: ${freeMins.toFixed(1)} мин` : `Тариф: ${(user.ratePerMinute || 0.45).toFixed(2)} BYN/мин`}
+              </span>
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+                isSuspended
+                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                  : 'text-emerald-700 bg-emerald-50 border-emerald-200/60'
+              }`}>
+                {isSuspended ? 'Просрочка' : 'Постоплата'}
               </span>
             </div>
 
             <button
               type="button"
               onClick={onOpenTopUp}
-              className="w-full mt-1 py-1.5 px-3 rounded-full liquid-glass-pill text-black text-xs font-normal transition-colors flex items-center justify-center gap-1.5 cursor-pointer hover:bg-white"
+              className={`w-full mt-1 py-1.5 px-3 rounded-full text-xs font-normal transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                isSuspended
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'liquid-glass-pill text-black hover:bg-white'
+              }`}
             >
-              <span>+ Пополнить баланс</span>
+              <span>{unpaidDebtByn > 0 ? 'Счета и оплата' : 'Детализация месяца'}</span>
             </button>
           </div>
 
@@ -322,13 +334,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <button
               type="button"
               onClick={onOpenTopUp}
-              title="Пополнить пакет минут"
+              title="Счета и досрочная оплата за месяц"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal liquid-glass-pill text-black hover:bg-white transition-all cursor-pointer"
             >
               <Wallet className="w-3.5 h-3.5 text-black" />
-              <span>{user.balanceMinutes} мин</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black text-white ml-0.5 font-normal">
-                + Пополнить
+              <span>{unpaidDebtByn.toFixed(2)} BYN</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-0.5 font-normal ${
+                isSuspended ? 'bg-rose-600 text-white' : 'bg-black text-white'
+              }`}>
+                {isSuspended ? 'Оплатить долг' : 'Счёт месяца'}
               </span>
             </button>
           </div>

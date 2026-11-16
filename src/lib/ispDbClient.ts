@@ -268,6 +268,7 @@ export async function ispFetchAdminData(adminToken: string): Promise<{
   clients: any[];
   transactions: any[];
   telephonyLogs: any[];
+  monthlyInvoices: any[];
 } | null> {
   try {
     const { isJson, data } = await callIspDb('admin_data', {
@@ -282,6 +283,7 @@ export async function ispFetchAdminData(adminToken: string): Promise<{
       clients: Array.isArray(data.clients) ? data.clients : [],
       transactions: Array.isArray(data.transactions) ? data.transactions : [],
       telephonyLogs: Array.isArray(data.telephonyLogs) ? data.telephonyLogs : [],
+      monthlyInvoices: Array.isArray(data.monthlyInvoices) ? data.monthlyInvoices : [],
     };
   } catch {
     return null;
@@ -347,6 +349,81 @@ export async function ispAdminUpdateClientSip(
 ): Promise<boolean> {
   try {
     const { isJson, data } = await callIspDb('admin_update_client_sip', {
+      method: 'POST',
+      body: { adminToken, ...payload },
+    });
+    return Boolean(isJson && data?.ok);
+  } catch {
+    return false;
+  }
+}
+
+export async function ispUpdateNumberRentalMode(
+  numberRentalMode: 'rental' | 'own_sip'
+): Promise<UserSession | null> {
+  try {
+    const { isJson, data } = await callIspDb('update_number_rental_mode', {
+      method: 'POST',
+      body: { numberRentalMode },
+    });
+    if (isJson && data?.ok && data?.user) {
+      return data.user as UserSession;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function ispAdminCloseMonth(
+  adminToken: string,
+  periodYm?: string
+): Promise<{ ok: boolean; closedCount?: number; overdueSuspendedCount?: number }> {
+  try {
+    const { isJson, data } = await callIspDb('admin_close_month', {
+      method: 'POST',
+      body: { adminToken, periodYm: periodYm || '' },
+    });
+    if (isJson && data?.ok) {
+      return {
+        ok: true,
+        closedCount: Number(data.closedCount || 0),
+        overdueSuspendedCount: Number(data.overdueSuspendedCount || 0),
+      };
+    }
+    return { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function ispAdminMarkInvoicePaid(
+  adminToken: string,
+  invoiceId: string
+): Promise<boolean> {
+  try {
+    const { isJson, data } = await callIspDb('admin_mark_invoice_paid', {
+      method: 'POST',
+      body: { adminToken, invoiceId },
+    });
+    return Boolean(isJson && data?.ok);
+  } catch {
+    return false;
+  }
+}
+
+export async function ispAdminUpdateClientBilling(
+  adminToken: string,
+  payload: {
+    clientId: string;
+    creditLimitByn: number;
+    ratePerMinute: number;
+    numberRentalMode: 'rental' | 'own_sip';
+    billingStatus: 'active' | 'grace' | 'suspended';
+  }
+): Promise<boolean> {
+  try {
+    const { isJson, data } = await callIspDb('admin_update_client_billing', {
       method: 'POST',
       body: { adminToken, ...payload },
     });

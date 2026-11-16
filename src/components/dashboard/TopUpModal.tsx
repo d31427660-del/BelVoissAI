@@ -3,7 +3,6 @@ import {
   CloseCircleIcon, 
   WalletMoneyIcon, 
   CheckCircleIcon, 
-  FlameIcon,
   Card2Icon as CreditCardIcon,
   BillCheckIcon as ReceiptIcon,
   ShieldCheckIcon,
@@ -12,7 +11,6 @@ import {
   CopyIcon,
   AltArrowLeftIcon as ArrowLeftIcon
 } from '@solar-icons/react/bold-duotone';
-import { MINUTE_PACKAGES } from '../../lib/mockData';
 import { MinutePackage, UserSession } from '../../types';
 
 function escapeHtml(value: string): string {
@@ -173,17 +171,17 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
   initialPackage,
   onSuccessTopUp
 }) => {
-  const [selectedPackageId, setSelectedPackageId] = useState<string>(
-    initialPackage && initialPackage.id !== 'custom' ? initialPackage.id : 'pack_300'
-  );
-  const [isCustomMode, setIsCustomMode] = useState<boolean>(initialPackage?.id === 'custom');
-  const [customMinutes, setCustomMinutes] = useState<number>(
-    initialPackage?.id === 'custom' ? initialPackage.minutes : 200
-  );
-  const [paymentMethod, setPaymentMethod] = useState<'erip' | 'card' | 'bank_invoice'>('erip');
+  const billing = user.billing;
+  const invoices = billing?.invoices || [];
+  const unpaidClosedInvoices = invoices.filter((inv) => inv.status === 'issued' || inv.status === 'overdue');
+  const currentOpenInvoice = billing?.currentInvoice || invoices.find((inv) => inv.status === 'open') || null;
+  const defaultTargetInvoice = unpaidClosedInvoices[0] || currentOpenInvoice;
+
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>(defaultTargetInvoice?.id || '');
+  const [paymentMethod, setPaymentMethod] = useState<'erip' | 'card' | 'bank_invoice'>('card');
   const [unpInput, setUnpInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isSuccess] = useState(false);
   const [invoiceReady, setInvoiceReady] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [copiedRequisites, setCopiedRequisites] = useState(false);
@@ -193,15 +191,11 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    if (!initialPackage) return;
-    if (initialPackage.id === 'custom') {
-      setIsCustomMode(true);
-      setCustomMinutes(initialPackage.minutes);
-    } else {
-      setSelectedPackageId(initialPackage.id);
-      setIsCustomMode(false);
+    const target = unpaidClosedInvoices[0] || currentOpenInvoice;
+    if (target && !invoices.some((i) => i.id === selectedInvoiceId && i.status !== 'paid')) {
+      setSelectedInvoiceId(target.id);
     }
-  }, [initialPackage]);
+  }, [isOpen, billing]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -232,19 +226,12 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
     }
   };
 
-  const currentPkg = MINUTE_PACKAGES.find(p => p.id === selectedPackageId) || MINUTE_PACKAGES[1];
-
-  const getCustomRate = (mins: number) => {
-    if (mins >= 1000) return 0.35;
-    if (mins >= 300) return 0.40;
-    return 0.45;
-  };
-
-  const finalMinutes = isCustomMode ? customMinutes : currentPkg.minutes;
-  const finalAmountByn = isCustomMode 
-    ? Math.round(customMinutes * getCustomRate(customMinutes))
-    : currentPkg.priceByn;
-  const finalRate = isCustomMode ? getCustomRate(customMinutes) : currentPkg.ratePerMinute;
+  const selectedInvoice =
+    invoices.find((i) => i.id === selectedInvoiceId) || defaultTargetInvoice || null;
+  const finalMinutes = selectedInvoice ? selectedInvoice.billableMinutes : 0;
+  const finalAmountByn = selectedInvoice ? selectedInvoice.remainingDueByn : 0;
+  const finalRate = selectedInvoice ? selectedInvoice.ratePerMinute : (user.ratePerMinute || 0.45);
+  const isEarlyPayment = selectedInvoice?.status === 'open';
 
   const triggerConfetti = async () => {
     try {
@@ -327,8 +314,13 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
   const handlePay = async () => {
     setErrorMsg(null);
 
+    if (finalAmountByn < 0.5) {
+      setErrorMsg('Минимальная сумма оплаты через bePaid — 0.50 BYN. Сейчас долг меньше этой суммы.');
+      return;
+    }
+
     if (paymentMethod === 'bank_invoice') {
-      const num = `VX-${Date.now().toString().slice(-6)}`;
+      const num = selectedInvoice?.invoiceNumber || `VX-${Date.now().toString().slice(-6)}`;
       setInvoiceNumber(num);
       setInvoiceReady(true);
       return;
@@ -341,8 +333,8 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          packageId: isCustomMode ? null : currentPkg.id,
-          customMinutes: isCustomMode ? customMinutes : null,
+          invoiceId: selectedInvoice?.id || '',
+          payEarly: isEarlyPayment,
           paymentMethod,
         }),
       });
@@ -359,7 +351,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
       setErrorMsg(
         errData?.message ||
           errData?.error ||
-          'Платёжный шлюз bePaid временно недоступен. Пожалуйста, выберите безналичный счёт или напишите в @voxi_support.'
+          'Платёжный шлюз bePaid временно недоступен. Пожалуйста, попробуйте позже или напишите в @voxi_support.'
       );
     } catch {
       setErrorMsg('Не удалось связаться с платёжным сервером bePaid.');
@@ -386,11 +378,11 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 id="topup-modal-title" className="text-base font-medium text-black tracking-tight">
-                  Пополнение баланса минут
+                  Счета и оплата по итогам месяца
                 </h2>
               </div>
               <p className="text-xs text-[#59544F]">
-                Текущий баланс: <strong className="text-black font-medium">{user.balanceMinutes || 0} мин</strong> (~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN)
+                Общая задолженность: <strong className="text-black font-medium">{(billing?.unpaidDebtByn ?? 0).toFixed(2)} BYN</strong> • Лимит: {(billing?.creditLimitByn ?? 100).toFixed(0)} BYN
               </p>
             </div>
           </div>
@@ -529,96 +521,104 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                 </div>
               )}
 
-              {/* Packages Selector */}
-              <div>
-                <div className="flex items-center justify-between mb-3 text-xs">
-                  <span className="font-medium text-black">Выберите пакет минут:</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsCustomMode(!isCustomMode)}
-                    className="text-black hover:underline font-normal cursor-pointer"
-                  >
-                    {isCustomMode ? 'Выбрать готовый пакет' : 'Указать свое количество'}
-                  </button>
+              {/* Postpaid Summary Banner */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="p-3 rounded-[12px] liquid-glass-cream border border-black/[0.06]">
+                  <span className="text-[11px] text-[#777169] block">Бесплатный бонус</span>
+                  <strong className="text-sm font-mono text-emerald-700">
+                    {(billing?.freeMinutesRemaining ?? user.balanceMinutes ?? 0).toFixed(1)} мин
+                  </strong>
+                  <span className="text-[10px] text-[#777169] block mt-0.5">Не идут в счёт месяца</span>
                 </div>
 
-                {!isCustomMode ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {MINUTE_PACKAGES.map((pkg) => {
-                      const isSelected = selectedPackageId === pkg.id;
+                <div className="p-3 rounded-[12px] liquid-glass-cream border border-black/[0.06]">
+                  <span className="text-[11px] text-[#777169] block">Аренда номера А1</span>
+                  <strong className="text-sm font-mono text-black">
+                    {(billing?.monthlySubscriptionByn ?? 15).toFixed(2)} BYN/мес
+                  </strong>
+                  <span className="text-[10px] text-[#777169] block mt-0.5">
+                    {billing?.numberRentalMode === 'own_sip' ? 'Свой SIP (0 BYN)' : 'Выделенный номер ВАТС'}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-[12px] liquid-glass-cream border border-black/[0.06]">
+                  <span className="text-[11px] text-[#777169] block">Закрытие периода</span>
+                  <strong className="text-sm font-mono text-black">1-го числа в 00:05</strong>
+                  <span className="text-[10px] text-[#777169] block mt-0.5">7 дней на оплату без паузы</span>
+                </div>
+              </div>
+
+              {/* Monthly Invoices Selector */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-black">Выберите счёт для оплаты или погасите текущий месяц досрочно:</span>
+                </div>
+
+                {invoices.length === 0 ? (
+                  <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] text-xs text-[#59544F]">
+                    Текущий расчётный период открыт. Выставленные счета появятся здесь 1-го числа.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {invoices.map((inv) => {
+                      const isSelected = selectedInvoice?.id === inv.id;
+                      const isPaid = inv.status === 'paid';
+                      const statusLabel =
+                        inv.status === 'paid'
+                          ? 'Оплачен'
+                          : inv.status === 'overdue'
+                          ? `Просрочен (до ${inv.dueDate})`
+                          : inv.status === 'issued'
+                          ? `Выставлен (до ${inv.dueDate})`
+                          : 'Текущий месяц (досрочно)';
+                      const statusColor =
+                        inv.status === 'paid'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : inv.status === 'overdue'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : inv.status === 'issued'
+                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                          : 'bg-blue-50 text-blue-700 border-blue-200';
+
                       return (
                         <button
-                          key={pkg.id}
+                          key={inv.id}
                           type="button"
-                          onClick={() => setSelectedPackageId(pkg.id)}
-                          aria-pressed={isSelected}
-                          className={`cursor-pointer p-4 rounded-[12px] transition-all text-left relative flex flex-col justify-between ${
-                            isSelected
-                              ? 'bg-black text-white shadow-md'
-                              : 'liquid-glass-cream text-black hover:border-black/20'
+                          disabled={isPaid}
+                          onClick={() => setSelectedInvoiceId(inv.id)}
+                          className={`w-full p-3.5 rounded-[12px] border text-left transition-all flex items-center justify-between gap-3 ${
+                            isPaid
+                              ? 'bg-slate-50 border-black/[0.05] opacity-70 cursor-default'
+                              : isSelected
+                              ? 'bg-black text-white border-black shadow-sm cursor-pointer'
+                              : 'liquid-glass-cream border-black/[0.08] hover:border-black/25 cursor-pointer'
                           }`}
                         >
-                          {pkg.savingsPercent && (
-                            <span className={`absolute -top-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-normal flex items-center gap-0.5 shadow-xs ${
-                              isSelected ? 'bg-white text-black' : 'liquid-glass-btn-primary text-white'
-                            }`}>
-                              <FlameIcon size={11} />
-                              −{pkg.savingsPercent}%
-                            </span>
-                          )}
-
-                          <div>
-                            <span className={`text-[11px] font-normal block mb-0.5 ${isSelected ? 'text-white/70' : 'text-[#777169]'}`}>
-                              {pkg.name}
-                            </span>
-                            <div className={`text-lg font-medium tracking-tight ${isSelected ? 'text-white' : 'text-black'}`}>
-                              {pkg.minutes} мин
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-semibold font-mono">{inv.periodYm}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                isSelected && !isPaid ? 'bg-white/15 text-white border-white/20' : statusColor
+                              }`}>
+                                {statusLabel}
+                              </span>
                             </div>
-                            <div className={`text-[11px] mt-1 font-mono ${isSelected ? 'text-white/70' : 'text-[#777169]'}`}>
-                              {pkg.ratePerMinute.toFixed(2)} BYN / мин
+                            <div className={`text-[11px] mt-1 font-mono ${isSelected && !isPaid ? 'text-white/75' : 'text-[#59544F]'}`}>
+                              {inv.billableMinutes} мин × {inv.ratePerMinute.toFixed(2)} + {inv.subscriptionFeeByn.toFixed(2)} аренда
+                              {inv.paidEarlyByn > 0 ? ` − ${inv.paidEarlyByn.toFixed(2)} погашено` : ''}
                             </div>
                           </div>
-
-                          <div className={`mt-4 pt-3 border-t flex items-baseline justify-between w-full ${
-                            isSelected ? 'border-white/15' : 'border-black/[0.06]'
-                          }`}>
-                            <span className={`text-base font-medium ${isSelected ? 'text-white' : 'text-black'}`}>
-                              {pkg.priceByn} BYN
-                            </span>
-                            {isSelected && (
-                              <CheckCircleIcon size={16} className="text-white" />
-                            )}
+                          <div className="text-right shrink-0">
+                            <div className="text-sm font-bold font-mono">
+                              {isPaid ? `${inv.totalAmountByn.toFixed(2)} BYN` : `${inv.remainingDueByn.toFixed(2)} BYN`}
+                            </div>
+                            <div className={`text-[10px] ${isSelected && !isPaid ? 'text-white/70' : 'text-[#777169]'}`}>
+                              {inv.invoiceNumber}
+                            </div>
                           </div>
                         </button>
                       );
                     })}
-                  </div>
-                ) : (
-                  <div className="p-5 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-3">
-                    <div className="flex justify-between items-center text-xs">
-                      <label htmlFor="custom-minutes-range" className="text-black font-normal">
-                        Количество минут:
-                      </label>
-                      <span className="font-medium text-black text-sm liquid-glass-pill px-3 py-0.5 rounded-full font-mono">
-                        {customMinutes} мин
-                      </span>
-                    </div>
-                    <input
-                      id="custom-minutes-range"
-                      type="range"
-                      min="50"
-                      max="2000"
-                      step="25"
-                      value={customMinutes}
-                      onChange={(e) => setCustomMinutes(Number(e.target.value))}
-                      className="w-full h-1.5 bg-[#EBE8E4] rounded-full appearance-none cursor-pointer accent-black"
-                    />
-                    <div className="flex justify-between text-[11px] text-[#777169] font-mono">
-                      <span>50 мин</span>
-                      <span>500 мин</span>
-                      <span>1 000 мин</span>
-                      <span>2 000 мин</span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -716,24 +716,26 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               {/* Order Summary & Security Note */}
               <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#59544F]">К зачислению на баланс:</span>
-                  <span className="font-medium text-black font-mono">+{finalMinutes} минут</span>
+                  <span className="text-[#59544F]">Выговоренные минуты (сверх 15 бесплатных):</span>
+                  <span className="font-medium text-black font-mono">{finalMinutes.toFixed(1)} мин</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-[#59544F]">Тариф за минуту:</span>
                   <span className="text-[#59544F] font-mono">{finalRate.toFixed(2)} BYN / мин</span>
                 </div>
                 <div className="pt-2 border-t border-black/[0.06] flex justify-between items-baseline">
-                  <span className="text-sm font-normal text-black">К оплате (без НДС):</span>
+                  <span className="text-sm font-normal text-black">
+                    {isEarlyPayment ? 'Досрочная оплата (без НДС):' : 'К оплате по счёту (без НДС):'}
+                  </span>
                   <span className="text-2xl font-medium text-black">
-                    {finalAmountByn} BYN
+                    {finalAmountByn.toFixed(2)} BYN
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 text-[11px] text-[#777169]">
                 <ShieldCheckIcon size={15} className="text-black shrink-0" aria-hidden="true" />
-                <span>Безопасный приём платежей обеспечивает <strong>bePaid</strong> (PCI DSS Level 1). Минуты не сгорают в конце месяца.</span>
+                <span>Безопасный приём платежей обеспечивает <strong>bePaid</strong> (PCI DSS Level 1). Счета выставляются 1-го числа с отсрочкой 7 дней.</span>
               </div>
             </>
           )}
@@ -767,8 +769,10 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                   <WalletMoneyIcon size={16} aria-hidden="true" />
                   <span>
                     {paymentMethod === 'bank_invoice'
-                      ? `Сформировать счёт на ${finalAmountByn} BYN`
-                      : `Оплатить ${finalAmountByn} BYN через bePaid`}
+                      ? `Сформировать счёт на ${finalAmountByn.toFixed(2)} BYN`
+                      : isEarlyPayment
+                      ? `Погасить досрочно ${finalAmountByn.toFixed(2)} BYN`
+                      : `Оплатить ${finalAmountByn.toFixed(2)} BYN через bePaid`}
                   </span>
                 </>
               )}

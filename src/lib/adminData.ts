@@ -11,6 +11,13 @@ export interface PlatformClient {
   ratePerMinute: number;
   spentMinutesTotal: number;
   spentBynTotal: number;
+  numberRentalMode?: 'rental' | 'own_sip';
+  monthlySubscriptionByn?: number;
+  creditLimitByn?: number;
+  billingStatus?: 'active' | 'grace' | 'suspended';
+  unpaidDebtByn?: number;
+  currentMonthMinutes?: number;
+  currentMonthAmountByn?: number;
   sipProvider: 'mts' | 'a1' | 'life' | 'beltelecom' | 'other';
   sipStatus: 'connected' | 'warning' | 'disconnected';
   assignedDid?: string;
@@ -49,4 +56,25 @@ export interface PlatformTelephonyLog {
   sentiment: 'positive' | 'neutral' | 'negative';
   timestamp: string;
   transcriptSnippet: string;
+}
+
+export interface PlatformMonthlyInvoice {
+  id: string;
+  userId: string;
+  companyName: string;
+  email: string;
+  periodYm: string;
+  invoiceNumber: string;
+  billableMinutes: number;
+  freeMinutesUsed: number;
+  ratePerMinute: number;
+  minutesAmountByn: number;
+  subscriptionFeeByn: number;
+  paidEarlyByn: number;
+  totalAmountByn: number;
+  remainingDueByn: number;
+  status: 'open' | 'issued' | 'paid' | 'overdue';
+  issuedAt: string | null;
+  dueDate: string | null;
+  paidAt: string | null;
 }

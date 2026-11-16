@@ -120,16 +120,55 @@ try {
     $minutes = (float)$order['minutes'];
     $amountByn = round(((int)$order['amount_kopecks']) / 100, 2);
     $userId = (string)$order['user_id'];
+    $invoiceId = trim((string)($order['invoice_id'] ?? ''));
+    $orderKind = (string)($order['order_kind'] ?? 'invoice_payment');
 
-    $pdo->prepare(
-        'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, external_uid, description)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    )->execute([
-        voxi_uuid(), $userId, 'topup', $minutes, $amountByn, $paymentMethod, $externalUid,
-        "Пополнение через bePaid (+{$minutes} мин)",
-    ]);
-    $pdo->prepare('UPDATE users SET balance_minutes = balance_minutes + ?, updated_at = NOW() WHERE id = ?')
-        ->execute([$minutes, $userId]);
+    if ($invoiceId !== '' && in_array($orderKind, ['invoice_payment', 'early_payment'], true)) {
+        $stmtInv = $pdo->prepare('SELECT * FROM monthly_invoices WHERE id = ? LIMIT 1 FOR UPDATE');
+        $stmtInv->execute([$invoiceId]);
+        $inv = $stmtInv->fetch();
+
+        if (is_array($inv)) {
+            if ($orderKind === 'early_payment') {
+                $pdo->prepare(
+                    'UPDATE monthly_invoices
+                     SET paid_early_byn = paid_early_byn + ?, updated_at = NOW()
+                     WHERE id = ?'
+                )->execute([$amountByn, $invoiceId]);
+            } else {
+                $pdo->prepare(
+                    "UPDATE monthly_invoices
+                     SET paid_early_byn = paid_early_byn + ?, status = 'paid', paid_at = NOW(), updated_at = NOW()
+                     WHERE id = ?"
+                )->execute([$amountByn, $invoiceId]);
+            }
+        }
+
+        $invLabel = is_array($inv) ? (string)$inv['invoice_number'] : $invoiceId;
+        $desc = $orderKind === 'early_payment'
+            ? "Досрочная оплата за месяц ({$invLabel}, {$amountByn} BYN)"
+            : "Оплата счёта за месяц ({$invLabel}, {$amountByn} BYN)";
+
+        $pdo->prepare(
+            'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, external_uid, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([
+            voxi_uuid(), $userId, $orderKind, $minutes, $amountByn, $paymentMethod, $externalUid, $desc,
+        ]);
+
+        voxi_sync_user_billing_status($pdo, $userId);
+    } else {
+        $pdo->prepare(
+            'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, external_uid, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([
+            voxi_uuid(), $userId, 'topup', $minutes, $amountByn, $paymentMethod, $externalUid,
+            "Пополнение через bePaid (+{$minutes} мин)",
+        ]);
+        $pdo->prepare('UPDATE users SET balance_minutes = balance_minutes + ?, updated_at = NOW() WHERE id = ?')
+            ->execute([$minutes, $userId]);
+    }
+
     $pdo->prepare("UPDATE payment_orders SET status = 'paid', paid_at = NOW(), external_uid = ? WHERE id = ?")
         ->execute([$externalUid, $orderId]);
 
@@ -138,7 +177,7 @@ try {
     // Мгновенное уведомление создателю платформы в Telegram об успешной оплате
     $payMsg = "💰 <b>Успешная оплата на Voxi.by!</b>\n\n"
             . "💵 Сумма: <b>{$amountByn} BYN</b>\n"
-            . "⏱ Начислено: <b>+{$minutes} минут</b>\n"
+            . "📋 Тип: <b>" . ($orderKind === 'early_payment' ? 'Досрочное погашение' : ($orderKind === 'invoice_payment' ? 'Оплата счёта за месяц' : "Пакет +{$minutes} мин")) . "</b>\n"
             . "💳 Способ: <b>" . htmlspecialchars($paymentMethod, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</b>\n"
             . "🆔 ID клиента: <code>{$userId}</code>\n"
             . "🧾 Заказ: <code>{$orderId}</code>";

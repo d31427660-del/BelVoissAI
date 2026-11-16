@@ -263,15 +263,15 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
         <div className="p-5 rounded-[12px] liquid-glass-card space-y-2">
           <div className="flex items-center justify-between text-[#777169] text-xs">
-            <span className="font-normal">Минуты на балансе</span>
+            <span className="font-normal">Счёт за месяц (постоплата)</span>
             <div className="w-8 h-8 rounded-[8px] bg-black text-white flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-medium text-black tracking-tight flex items-baseline justify-between font-mono">
             <div>
-              {user.balanceMinutes}{' '}
-              <span className="text-base font-normal text-[#777169]">мин</span>
+              {(user.billing?.unpaidDebtByn ?? 0).toFixed(2)}{' '}
+              <span className="text-base font-normal text-[#777169]">BYN</span>
             </div>
             {onOpenTopUp && (
               <button
@@ -279,13 +279,17 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
                 onClick={onOpenTopUp}
                 className="text-xs px-3 py-1 rounded-full liquid-glass-pill text-black hover:bg-white font-normal transition-colors cursor-pointer"
               >
-                + Пополнить
+                Счета / Оплата
               </button>
             )}
           </div>
           <p className="text-[11px] text-[#777169] flex items-center justify-between font-mono">
-            <span>~{((user.balanceMinutes || 0) * (user.ratePerMinute || 0.45)).toFixed(1)} BYN</span>
-            <span className="text-emerald-700 font-sans">Не сгорают в конце месяца</span>
+            <span>
+              {(user.billing?.freeMinutesRemaining ?? user.balanceMinutes) > 0
+                ? `Бонус: ${(user.billing?.freeMinutesRemaining ?? user.balanceMinutes).toFixed(1)} мин`
+                : `Минут: ${(user.billing?.currentInvoice?.billableMinutes ?? 0).toFixed(1)} мин`}
+            </span>
+            <span className="text-emerald-700 font-sans">Оплата 1–7 числа</span>
           </p>
         </div>
       </div>

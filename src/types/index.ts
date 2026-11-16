@@ -181,6 +181,38 @@ export interface CallLog {
   transcript: TranscriptMessage[];
 }
 
+export interface MonthlyInvoice {
+  id: string;
+  periodYm: string;
+  invoiceNumber: string;
+  billableMinutes: number;
+  freeMinutesUsed: number;
+  ratePerMinute: number;
+  minutesAmountByn: number;
+  subscriptionFeeByn: number;
+  paidEarlyByn: number;
+  totalAmountByn: number;
+  remainingDueByn: number;
+  status: 'open' | 'issued' | 'paid' | 'overdue';
+  issuedAt: string | null;
+  dueDate: string | null;
+  paidAt: string | null;
+}
+
+export interface UserBillingSummary {
+  mode: 'postpaid';
+  numberRentalMode: 'rental' | 'own_sip';
+  monthlySubscriptionByn: number;
+  creditLimitByn: number;
+  billingStatus: 'active' | 'grace' | 'suspended';
+  freeMinutesRemaining: number;
+  currentPeriodYm: string;
+  currentInvoice: MonthlyInvoice | null;
+  unpaidDebtByn: number;
+  overdueInvoicesCount: number;
+  invoices: MonthlyInvoice[];
+}
+
 export interface UserSession {
   id: string;
   email: string;
@@ -188,4 +220,5 @@ export interface UserSession {
   balanceMinutes: number;
   ratePerMinute: number;
   spentMinutes: number;
+  billing?: UserBillingSummary;
 }

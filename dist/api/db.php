@@ -111,8 +111,28 @@ function voxi_load_workspace_bundle(PDO $pdo, array $userRow): array
         ];
     }
 
+    // Ленивая проверка закрытия прошлых месяцев и просрочки > 7 дней (не чаще раза в 10 мин)
+    $billingMarker = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'voxi_lazy_billing.ok';
+    if (!is_file($billingMarker) || (time() - (int)@filemtime($billingMarker)) > 600) {
+        @file_put_contents($billingMarker, (string)time());
+        try {
+            voxi_close_month_and_check_overdue($pdo);
+            $stmtRefreshUser = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+            $stmtRefreshUser->execute([$userId]);
+            $refreshed = $stmtRefreshUser->fetch();
+            if (is_array($refreshed)) {
+                $userRow = $refreshed;
+            }
+        } catch (Throwable $e) {
+            // ignore lazy check errors
+        }
+    }
+
+    $formattedUser = voxi_format_user_session($userRow);
+    $formattedUser['billing'] = voxi_build_billing_summary($pdo, $userRow);
+
     return [
-        'user' => voxi_format_user_session($userRow),
+        'user' => $formattedUser,
         'agent' => $agent,
         'sipSettings' => $sipSettings,
         'telegramSettings' => $telegramSettings,
@@ -258,7 +278,9 @@ if ($action === 'admin_data') {
         voxi_json(['ok' => false, 'error' => 'Требуется авторизация администратора'], 401);
     }
 
-    // 1. Все зарегистрированные клиенты
+    // 1. Все зарегистрированные клиенты (включая сводку по постоплате)
+    voxi_close_month_and_check_overdue($pdo);
+
     $stmtUsers = $pdo->query(
         'SELECT u.*, a.city AS agent_city, a.phone AS agent_phone, a.voice AS agent_voice, a.is_active AS agent_active,
                 a.vapi_assistant_id,
@@ -270,18 +292,43 @@ if ($action === 'admin_data') {
          LIMIT 200'
     );
     $userRows = $stmtUsers ? $stmtUsers->fetchAll() : [];
+
+    $currentYm = date('Y-m');
+    $stmtCurInv = $pdo->prepare('SELECT * FROM monthly_invoices WHERE period_ym = ?');
+    $stmtCurInv->execute([$currentYm]);
+    $curInvByUser = [];
+    foreach ($stmtCurInv->fetchAll() as $ci) {
+        $curInvByUser[(string)$ci['user_id']] = $ci;
+    }
+
+    $stmtDebts = $pdo->query(
+        "SELECT user_id, COALESCE(SUM(GREATEST(0, total_amount_byn - paid_early_byn)), 0) AS debt
+         FROM monthly_invoices
+         WHERE status IN ('open', 'issued', 'overdue')
+         GROUP BY user_id"
+    );
+    $debtByUser = [];
+    if ($stmtDebts) {
+        foreach ($stmtDebts->fetchAll() as $dr) {
+            $debtByUser[(string)$dr['user_id']] = round((float)$dr['debt'], 2);
+        }
+    }
+
     $clients = [];
     foreach ($userRows as $u) {
+        $uid = (string)$u['id'];
         $sipDecoded = !empty($u['sip_json']) ? json_decode((string)$u['sip_json'], true) : [];
         if (!is_array($sipDecoded)) {
             $sipDecoded = [];
         }
         $assignedDid = trim((string)($sipDecoded['assignedDid'] ?? ''));
+        $curInv = $curInvByUser[$uid] ?? null;
+
         $clients[] = [
-            'id' => (string)$u['id'],
+            'id' => $uid,
             'name' => (string)$u['email'],
             'companyName' => (string)($u['company_name'] ?: 'Компания РБ'),
-            'unp' => '19' . substr(preg_replace('/\D/', '', (string)crc32((string)$u['id'])) . '0000000', 0, 7),
+            'unp' => '19' . substr(preg_replace('/\D/', '', (string)crc32($uid)) . '0000000', 0, 7),
             'phone' => (string)($u['agent_phone'] ?: ($u['sip_caller_id'] ?: '+375 (29) 000-00-00')),
             'email' => (string)$u['email'],
             'niche' => (string)($u['niche'] ?: 'driving_school'),
@@ -290,6 +337,13 @@ if ($action === 'admin_data') {
             'spentMinutesTotal' => round((float)($u['spent_minutes'] ?? 0), 2),
             'spentBynTotal' => round((float)($u['spent_total_byn'] ?? 0), 2),
             'ratePerMinute' => round((float)($u['rate_per_minute'] ?? 0.45), 2),
+            'numberRentalMode' => ((string)($u['number_rental_mode'] ?? 'rental')) === 'own_sip' ? 'own_sip' : 'rental',
+            'monthlySubscriptionByn' => voxi_user_subscription_fee($u),
+            'creditLimitByn' => round((float)($u['credit_limit_byn'] ?? 100.00), 2),
+            'billingStatus' => (string)($u['billing_status'] ?? 'active'),
+            'unpaidDebtByn' => $debtByUser[$uid] ?? 0.0,
+            'currentMonthMinutes' => is_array($curInv) ? round((float)$curInv['billable_minutes'], 2) : 0.0,
+            'currentMonthAmountByn' => is_array($curInv) ? round((float)$curInv['total_amount_byn'], 2) : voxi_user_subscription_fee($u),
             'sipProvider' => in_array(($u['sip_provider'] ?? ''), ['mts', 'a1', 'beltelecom', 'life'], true)
                 ? (string)$u['sip_provider']
                 : 'a1',
@@ -300,7 +354,7 @@ if ($action === 'admin_data') {
             'vapiAssistantId' => (string)($u['vapi_assistant_id'] ?? ''),
             'isActive' => !isset($u['agent_active']) || (bool)$u['agent_active'],
             'createdAt' => !empty($u['created_at']) ? date('d.m.Y', strtotime((string)$u['created_at'])) : date('d.m.Y'),
-            'contractNumber' => 'ДГ-' . date('Y') . '/' . substr((string)$u['id'], 0, 4),
+            'contractNumber' => 'ДГ-' . date('Y') . '/' . substr($uid, 0, 4),
         ];
     }
 
@@ -372,12 +426,48 @@ if ($action === 'admin_data') {
         ];
     }
 
+    // 4. Ежемесячные счета (постоплата)
+    $stmtInv = $pdo->query(
+        'SELECT m.*, u.company_name, u.email
+         FROM monthly_invoices m
+         INNER JOIN users u ON u.id = m.user_id
+         ORDER BY m.period_ym DESC, m.updated_at DESC
+         LIMIT 200'
+    );
+    $invRows = $stmtInv ? $stmtInv->fetchAll() : [];
+    $monthlyInvoices = [];
+    foreach ($invRows as $ir) {
+        $total = round((float)$ir['total_amount_byn'], 2);
+        $paidEarly = round((float)$ir['paid_early_byn'], 2);
+        $monthlyInvoices[] = [
+            'id' => (string)$ir['id'],
+            'userId' => (string)$ir['user_id'],
+            'companyName' => (string)($ir['company_name'] ?: $ir['email']),
+            'email' => (string)$ir['email'],
+            'periodYm' => (string)$ir['period_ym'],
+            'invoiceNumber' => (string)$ir['invoice_number'],
+            'billableMinutes' => round((float)$ir['billable_minutes'], 2),
+            'freeMinutesUsed' => round((float)$ir['free_minutes_used'], 2),
+            'ratePerMinute' => round((float)$ir['rate_per_minute'], 2),
+            'minutesAmountByn' => round((float)$ir['minutes_amount_byn'], 2),
+            'subscriptionFeeByn' => round((float)$ir['subscription_fee_byn'], 2),
+            'paidEarlyByn' => $paidEarly,
+            'totalAmountByn' => $total,
+            'remainingDueByn' => round(max(0.0, $total - $paidEarly), 2),
+            'status' => (string)$ir['status'],
+            'issuedAt' => $ir['issued_at'] ? date('d.m.Y', strtotime((string)$ir['issued_at'])) : null,
+            'dueDate' => $ir['due_date'] ? date('d.m.Y', strtotime((string)$ir['due_date'])) : null,
+            'paidAt' => $ir['paid_at'] ? date('d.m.Y H:i', strtotime((string)$ir['paid_at'])) : null,
+        ];
+    }
+
     voxi_json([
         'ok' => true,
         'dbConnected' => true,
         'clients' => $clients,
         'transactions' => $transactions,
         'telephonyLogs' => $telephonyLogs,
+        'monthlyInvoices' => $monthlyInvoices,
     ]);
 }
 
@@ -544,6 +634,124 @@ if ($action === 'admin_update_client_sip') {
     ]);
 }
 
+// --- POST ?action=admin_close_month ---
+if ($action === 'admin_close_month') {
+    if (!voxi_verify_admin_request($VOXI_CONFIG, $body)) {
+        voxi_json(['ok' => false, 'error' => 'Требуется авторизация администратора'], 401);
+    }
+    $periodYm = trim((string)($body['periodYm'] ?? ''));
+    $res = voxi_close_month_and_check_overdue($pdo, $periodYm !== '' ? $periodYm : null);
+    voxi_json([
+        'ok' => true,
+        'closedCount' => $res['closedCount'],
+        'overdueSuspendedCount' => $res['overdueSuspendedCount'],
+    ]);
+}
+
+// --- POST ?action=admin_mark_invoice_paid ---
+if ($action === 'admin_mark_invoice_paid') {
+    if (!voxi_verify_admin_request($VOXI_CONFIG, $body)) {
+        voxi_json(['ok' => false, 'error' => 'Требуется авторизация администратора'], 401);
+    }
+    $invoiceId = trim((string)($body['invoiceId'] ?? ''));
+    if ($invoiceId === '') {
+        voxi_json(['ok' => false, 'error' => 'Не указан ID счёта'], 400);
+    }
+
+    $stmtInv = $pdo->prepare('SELECT * FROM monthly_invoices WHERE id = ? LIMIT 1');
+    $stmtInv->execute([$invoiceId]);
+    $inv = $stmtInv->fetch();
+    if (!is_array($inv)) {
+        voxi_json(['ok' => false, 'error' => 'Счёт не найден'], 404);
+    }
+
+    $remaining = round(max(0.0, (float)$inv['total_amount_byn'] - (float)$inv['paid_early_byn']), 2);
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            "UPDATE monthly_invoices
+             SET paid_early_byn = total_amount_byn,
+                 status = 'paid',
+                 issued_at = COALESCE(issued_at, NOW()),
+                 paid_at = NOW(),
+                 updated_at = NOW()
+             WHERE id = ?"
+        )->execute([$invoiceId]);
+
+        if ($remaining > 0) {
+            $pdo->prepare(
+                'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, description)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            )->execute([
+                voxi_uuid(),
+                (string)$inv['user_id'],
+                'invoice_payment',
+                (float)$inv['billable_minutes'],
+                $remaining,
+                'bank_transfer_act',
+                "Оплата счёта {$inv['invoice_number']} отмечена администратором",
+            ]);
+        }
+        voxi_sync_user_billing_status($pdo, (string)$inv['user_id']);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    voxi_json(['ok' => true]);
+}
+
+// --- POST ?action=admin_update_client_billing ---
+if ($action === 'admin_update_client_billing') {
+    if (!voxi_verify_admin_request($VOXI_CONFIG, $body)) {
+        voxi_json(['ok' => false, 'error' => 'Требуется авторизация администратора'], 401);
+    }
+    $targetClientId = trim((string)($body['clientId'] ?? ''));
+    if ($targetClientId === '') {
+        voxi_json(['ok' => false, 'error' => 'Не указан ID клиента'], 400);
+    }
+
+    $creditLimit = max(10.0, round((float)($body['creditLimitByn'] ?? 100.0), 2));
+    $ratePerMinute = max(0.10, round((float)($body['ratePerMinute'] ?? 0.45), 2));
+    $rentalMode = ((string)($body['numberRentalMode'] ?? 'rental')) === 'own_sip' ? 'own_sip' : 'rental';
+    $subFee = $rentalMode === 'own_sip' ? 0.00 : 15.00;
+    $billingStatus = in_array(($body['billingStatus'] ?? 'active'), ['active', 'grace', 'suspended'], true)
+        ? (string)$body['billingStatus']
+        : 'active';
+
+    $pdo->prepare(
+        'UPDATE users
+         SET credit_limit_byn = ?,
+             rate_per_minute = ?,
+             number_rental_mode = ?,
+             monthly_subscription_byn = ?,
+             billing_status = ?,
+             updated_at = NOW()
+         WHERE id = ?'
+    )->execute([$creditLimit, $ratePerMinute, $rentalMode, $subFee, $billingStatus, $targetClientId]);
+
+    // Обновим абонплату в текущем открытом счёте месяца
+    $pdo->prepare(
+        "UPDATE monthly_invoices
+         SET subscription_fee_byn = ?,
+             rate_per_minute = ?,
+             total_amount_byn = minutes_amount_byn + ?,
+             updated_at = NOW()
+         WHERE user_id = ? AND period_ym = ? AND status = 'open'"
+    )->execute([$subFee, $ratePerMinute, $subFee, $targetClientId, date('Y-m')]);
+
+    if ($billingStatus === 'active') {
+        $pdo->prepare('UPDATE assistants SET is_active = 1, updated_at = NOW() WHERE user_id = ?')
+            ->execute([$targetClientId]);
+    } elseif ($billingStatus === 'suspended') {
+        $pdo->prepare('UPDATE assistants SET is_active = 0, updated_at = NOW() WHERE user_id = ?')
+            ->execute([$targetClientId]);
+    }
+
+    voxi_json(['ok' => true]);
+}
+
 // --- POST ?action=signup ---
 if ($action === 'signup') {
     voxi_enforce_rate_limit('signup', 8, 60);
@@ -605,6 +813,9 @@ if ($action === 'signup') {
     $stmtUser->execute([$userId]);
     $createdUser = $stmtUser->fetch();
 
+    $formattedCreatedUser = voxi_format_user_session($createdUser);
+    $formattedCreatedUser['billing'] = voxi_build_billing_summary($pdo, $createdUser);
+
     // Мгновенное уведомление создателю платформы в Telegram о новом клиенте
     $safeEmail = htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $safeCompany = htmlspecialchars($companyName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -620,7 +831,7 @@ if ($action === 'signup') {
 
     voxi_json([
         'ok' => true,
-        'user' => voxi_format_user_session($createdUser),
+        'user' => $formattedCreatedUser,
         'agent' => null,
         'sipSettings' => null,
         'telegramSettings' => null,
@@ -948,29 +1159,9 @@ if ($action === 'record_call') {
                 $transcriptJson,
             ]);
 
-            // Списание баланса минут производится только для реальных телефонных SIP-вызовов (автоответчик не списывает минуты)
+            // Списание минут (сначала из 15 бесплатных, остаток — в счёт месяца по постоплате)
             if (!$isTestCall && !$isVoicemail && $usedMinutes > 0) {
-                $pdo->prepare(
-                    'UPDATE users
-                     SET balance_minutes = GREATEST(0, balance_minutes - ?),
-                         spent_minutes = spent_minutes + ?,
-                         spent_total_byn = spent_total_byn + ?,
-                         updated_at = NOW()
-                     WHERE id = ?'
-                )->execute([$usedMinutes, $usedMinutes, $costByn, $userId]);
-
-                $pdo->prepare(
-                    'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, description)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)'
-                )->execute([
-                    voxi_uuid(),
-                    $userId,
-                    'call',
-                    -$usedMinutes,
-                    -$costByn,
-                    'telephony_sip',
-                    "Входящий звонок: {$callerNumber} ({$durationSec} сек)",
-                ]);
+                voxi_record_postpaid_usage($pdo, $userId, $usedMinutes, $callId, $callerNumber, $durationSec);
             }
         }
         $pdo->commit();
@@ -982,10 +1173,49 @@ if ($action === 'record_call') {
     $stmtFresh = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
     $stmtFresh->execute([$userId]);
     $freshUser = $stmtFresh->fetch();
+    $formattedFresh = voxi_format_user_session($freshUser);
+    $formattedFresh['billing'] = voxi_build_billing_summary($pdo, $freshUser);
 
     voxi_json([
         'ok' => true,
-        'user' => voxi_format_user_session($freshUser),
+        'user' => $formattedFresh,
+    ]);
+}
+
+// --- POST ?action=update_number_rental_mode ---
+if ($action === 'update_number_rental_mode') {
+    $rentalMode = ((string)($body['numberRentalMode'] ?? 'rental')) === 'own_sip' ? 'own_sip' : 'rental';
+    $subFee = $rentalMode === 'own_sip' ? 0.00 : 15.00;
+
+    $pdo->prepare(
+        'UPDATE users
+         SET number_rental_mode = ?,
+             monthly_subscription_byn = ?,
+             updated_at = NOW()
+         WHERE id = ?'
+    )->execute([$rentalMode, $subFee, $userId]);
+
+    // Пересчитаем абонплату в текущем открытом счёте месяца
+    $stmtU = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+    $stmtU->execute([$userId]);
+    $freshUser = $stmtU->fetch();
+    if (is_array($freshUser)) {
+        voxi_get_or_create_open_invoice($pdo, $freshUser);
+        $pdo->prepare(
+            "UPDATE monthly_invoices
+             SET subscription_fee_byn = ?,
+                 total_amount_byn = minutes_amount_byn + ?,
+                 updated_at = NOW()
+             WHERE user_id = ? AND period_ym = ? AND status = 'open'"
+        )->execute([$subFee, $subFee, $userId, date('Y-m')]);
+    }
+
+    $formattedFresh = voxi_format_user_session($freshUser);
+    $formattedFresh['billing'] = voxi_build_billing_summary($pdo, $freshUser);
+
+    voxi_json([
+        'ok' => true,
+        'user' => $formattedFresh,
     ]);
 }
 

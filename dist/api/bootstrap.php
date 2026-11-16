@@ -231,11 +231,20 @@ function voxi_is_db_configured(array $cfg): bool
     return true;
 }
 
+function voxi_ensure_column(PDO $pdo, string $table, string $column, string $definition): void
+{
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");
+    $stmt->execute([$column]);
+    if (!$stmt->fetch()) {
+        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    }
+}
+
 function voxi_ensure_schema(PDO $pdo, string $dbName): void
 {
     $markerFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR)
         . DIRECTORY_SEPARATOR
-        . 'voxi_schema_v3_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
+        . 'voxi_schema_v4_' . substr(hash('sha256', $dbName), 0, 16) . '.ok';
 
     if (is_file($markerFile) && (time() - (int)@filemtime($markerFile)) < 3600) {
         return;
@@ -252,6 +261,10 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `rate_per_minute` DECIMAL(6, 2) NOT NULL DEFAULT 0.45,
           `spent_minutes` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
           `spent_total_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+          `number_rental_mode` VARCHAR(16) NOT NULL DEFAULT 'rental',
+          `monthly_subscription_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+          `credit_limit_byn` DECIMAL(10, 2) NOT NULL DEFAULT 100.00,
+          `billing_status` VARCHAR(16) NOT NULL DEFAULT 'active',
           `consent_99z_accepted_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
           `reset_token_hash` VARCHAR(64) DEFAULT NULL,
           `reset_token_expires_at` DATETIME DEFAULT NULL,
@@ -364,6 +377,8 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
         "CREATE TABLE IF NOT EXISTS `payment_orders` (
           `id` CHAR(36) NOT NULL,
           `user_id` CHAR(36) NOT NULL,
+          `invoice_id` CHAR(36) DEFAULT NULL,
+          `order_kind` VARCHAR(24) NOT NULL DEFAULT 'invoice_payment',
           `minutes` DECIMAL(10, 2) NOT NULL,
           `amount_kopecks` INT UNSIGNED NOT NULL,
           `currency` CHAR(3) NOT NULL DEFAULT 'BYN',
@@ -376,11 +391,43 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           KEY `payment_orders_user_idx` (`user_id`, `created_at`),
           CONSTRAINT `fk_payment_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `monthly_invoices` (
+          `id` CHAR(36) NOT NULL,
+          `user_id` CHAR(36) NOT NULL,
+          `period_ym` CHAR(7) NOT NULL,
+          `invoice_number` VARCHAR(64) NOT NULL,
+          `billable_minutes` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+          `free_minutes_used` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+          `rate_per_minute` DECIMAL(6, 2) NOT NULL DEFAULT 0.45,
+          `minutes_amount_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+          `subscription_fee_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+          `paid_early_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+          `total_amount_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+          `status` VARCHAR(16) NOT NULL DEFAULT 'open',
+          `issued_at` DATETIME DEFAULT NULL,
+          `due_date` DATETIME DEFAULT NULL,
+          `paid_at` DATETIME DEFAULT NULL,
+          `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`),
+          UNIQUE KEY `uniq_monthly_invoice_user_period` (`user_id`, `period_ym`),
+          KEY `monthly_invoices_status_due_idx` (`status`, `due_date`),
+          CONSTRAINT `fk_monthly_invoices_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 
     foreach ($statements as $sql) {
         $pdo->exec($sql);
     }
+
+    // Безопасная миграция существующих таблиц
+    voxi_ensure_column($pdo, 'users', 'number_rental_mode', "VARCHAR(16) NOT NULL DEFAULT 'rental'");
+    voxi_ensure_column($pdo, 'users', 'monthly_subscription_byn', 'DECIMAL(10, 2) NOT NULL DEFAULT 15.00');
+    voxi_ensure_column($pdo, 'users', 'credit_limit_byn', 'DECIMAL(10, 2) NOT NULL DEFAULT 100.00');
+    voxi_ensure_column($pdo, 'users', 'billing_status', "VARCHAR(16) NOT NULL DEFAULT 'active'");
+    voxi_ensure_column($pdo, 'payment_orders', 'invoice_id', 'CHAR(36) DEFAULT NULL');
+    voxi_ensure_column($pdo, 'payment_orders', 'order_kind', "VARCHAR(24) NOT NULL DEFAULT 'invoice_payment'");
 
     @file_put_contents($markerFile, (string)time());
 }
@@ -666,3 +713,5 @@ function voxi_notify_admin_telegram(string $htmlText): bool
 
     return $httpCode >= 200 && $httpCode < 300;
 }
+
+require_once __DIR__ . '/billing_helpers.php';

@@ -18,7 +18,8 @@ import {
 import {
   PlatformClient,
   PlatformTransaction,
-  PlatformTelephonyLog
+  PlatformTelephonyLog,
+  PlatformMonthlyInvoice
 } from '../../lib/adminData';
 import {
   ispAdminLogin,
@@ -26,6 +27,9 @@ import {
   ispAdminAddMinutes,
   ispAdminToggleClient,
   ispAdminUpdateClientSip,
+  ispAdminCloseMonth,
+  ispAdminMarkInvoicePaid,
+  ispAdminUpdateClientBilling,
 } from '../../lib/ispDbClient';
 
 interface AdminPanelProps {
@@ -44,6 +48,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
   const [clients, setClients] = useState<PlatformClient[]>([]);
   const [transactions, setTransactions] = useState<PlatformTransaction[]>([]);
   const [telephonyLogs, setTelephonyLogs] = useState<PlatformTelephonyLog[]>([]);
+  const [monthlyInvoices, setMonthlyInvoices] = useState<PlatformMonthlyInvoice[]>([]);
   const [adminToken, setAdminToken] = useState<string>(() => {
     try {
       return sessionStorage.getItem('voxi_admin_token') || '';
@@ -61,6 +66,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
   const [sipFormLogin, setSipFormLogin] = useState<string>('');
   const [sipFormPassword, setSipFormPassword] = useState<string>('');
   const [sipFormVapiId, setSipFormVapiId] = useState<string>('');
+  const [selectedClientForBilling, setSelectedClientForBilling] = useState<PlatformClient | null>(null);
+  const [billingFormLimit, setBillingFormLimit] = useState<number>(100);
+  const [billingFormRate, setBillingFormRate] = useState<number>(0.45);
+  const [billingFormRentalMode, setBillingFormRentalMode] = useState<'rental' | 'own_sip'>('rental');
+  const [billingFormStatus, setBillingFormStatus] = useState<'active' | 'grace' | 'suspended'>('active');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   // Единственный источник данных — БД MySQL (/api/db?action=admin_data). Никаких локальных копий и демо-данных.
   const [dataError, setDataError] = useState<string | null>(null);
@@ -77,6 +87,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
     setClients(remote.clients as PlatformClient[]);
     setTransactions(remote.transactions as PlatformTransaction[]);
     setTelephonyLogs(remote.telephonyLogs as PlatformTelephonyLog[]);
+    setMonthlyInvoices((remote.monthlyInvoices || []) as PlatformMonthlyInvoice[]);
   }, [adminToken]);
 
   useEffect(() => {
@@ -279,6 +290,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
     await loadAdminData();
     showToast(`Линия ВАТС А1 (${sipFormDid.trim()}) закреплена за клиентом`);
     setSelectedClientForSip(null);
+  };
+
+  const handleSaveClientBilling = async () => {
+    if (!selectedClientForBilling) return;
+    const ok = await ispAdminUpdateClientBilling(adminToken, {
+      clientId: selectedClientForBilling.id,
+      creditLimitByn: billingFormLimit,
+      ratePerMinute: billingFormRate,
+      numberRentalMode: billingFormRentalMode,
+      billingStatus: billingFormStatus,
+    });
+    if (!ok) {
+      showToast('Не удалось обновить биллинг клиента');
+      return;
+    }
+    await loadAdminData();
+    showToast('Параметры постоплаты клиента обновлены');
+    setSelectedClientForBilling(null);
+  };
+
+  const handleCloseMonth = async () => {
+    const res = await ispAdminCloseMonth(adminToken);
+    if (!res.ok) {
+      showToast('Ошибка при закрытии расчётного периода');
+      return;
+    }
+    await loadAdminData();
+    showToast(`Закрыто счетов: ${res.closedCount ?? 0}, приостановлено за просрочку: ${res.overdueSuspendedCount ?? 0}`);
+  };
+
+  const handleMarkInvoicePaid = async (invoiceId: string) => {
+    const ok = await ispAdminMarkInvoicePaid(adminToken, invoiceId);
+    if (!ok) {
+      showToast('Не удалось отметить счёт оплаченным');
+      return;
+    }
+    await loadAdminData();
+    showToast('Счёт отмечен как оплаченный, доступ клиента активен');
   };
 
   // KPI calculations
@@ -710,16 +759,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="font-bold text-white text-sm">
-                              {client.balanceMinutes.toFixed(1)} мин
+                              {(client.unpaidDebtByn ?? 0).toFixed(2)} BYN
                             </div>
                             <div className="text-[10px] text-slate-400">
-                              Выговорено: {client.spentMinutesTotal} мин
+                              Лимит: {(client.creditLimitByn ?? 100).toFixed(0)} BYN • Бонус: {client.balanceMinutes.toFixed(1)} мин
                             </div>
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="font-semibold text-slate-200">
                               {client.ratePerMinute.toFixed(2)} BYN/мин
                             </span>
+                            <div className="text-[10px] text-slate-400">
+                              {client.numberRentalMode === 'own_sip' ? 'Свой SIP (0 BYN)' : `Аренда А1 (${(client.monthlySubscriptionByn ?? 15).toFixed(0)} BYN/мес)`}
+                            </div>
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="inline-flex items-center gap-1 uppercase font-semibold text-[11px] text-slate-300">
@@ -747,6 +799,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                           </td>
                           <td className="px-4 py-3.5 text-right">
                             <div className="inline-flex items-center gap-1.5 justify-end">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedClientForBilling(client);
+                                  setBillingFormLimit(client.creditLimitByn ?? 100);
+                                  setBillingFormRate(client.ratePerMinute ?? 0.45);
+                                  setBillingFormRentalMode(client.numberRentalMode || 'rental');
+                                  setBillingFormStatus(client.billingStatus || 'active');
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-medium text-xs transition-colors cursor-pointer"
+                              >
+                                Биллинг
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -968,17 +1033,212 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                   </div>
                 </div>
               )}
+
+              {/* Postpaid Client Billing Modal */}
+              {selectedClientForBilling && (
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Настройка постоплаты клиента"
+                  className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+                >
+                  <div className="bg-black border border-white/10 rounded-[16px] p-6 max-w-md w-full space-y-4 shadow-2xl">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-white text-sm">
+                        Постоплата и кредитный лимит
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedClientForBilling(null)}
+                        className="text-zinc-400 hover:text-white cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="text-xs text-zinc-300">
+                      Клиент: <span className="font-semibold text-white">{selectedClientForBilling.companyName}</span>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">
+                        Текущий долг: {(selectedClientForBilling.unpaidDebtByn ?? 0).toFixed(2)} BYN
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Кредитный лимит (BYN):</label>
+                          <input
+                            type="number"
+                            min="10"
+                            step="10"
+                            value={billingFormLimit}
+                            onChange={(e) => setBillingFormLimit(Number(e.target.value))}
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Тариф за минуту (BYN):</label>
+                          <input
+                            type="number"
+                            min="0.10"
+                            step="0.01"
+                            value={billingFormRate}
+                            onChange={(e) => setBillingFormRate(Number(e.target.value))}
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Режим номера:</label>
+                          <select
+                            value={billingFormRentalMode}
+                            onChange={(e) => setBillingFormRentalMode(e.target.value as 'rental' | 'own_sip')}
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                          >
+                            <option value="rental">Аренда А1 (15 BYN/мес)</option>
+                            <option value="own_sip">Свой SIP (0 BYN/мес)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-zinc-300 mb-1">Статус доступа:</label>
+                          <select
+                            value={billingFormStatus}
+                            onChange={(e) => setBillingFormStatus(e.target.value as 'active' | 'grace' | 'suspended')}
+                            className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                          >
+                            <option value="active">Активен</option>
+                            <option value="grace">Отсрочка</option>
+                            <option value="suspended">Приостановлен</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveClientBilling}
+                        className="flex-1 py-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer"
+                      >
+                        Сохранить настройки
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedClientForBilling(null)}
+                        className="px-4 py-2.5 rounded-full bg-white/10 text-zinc-300 hover:text-white text-xs cursor-pointer"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* TAB 4: BILLING & LEGAL */}
           {activeTab === 'billing' && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-base font-bold text-white">Финансы, Платежи и Акты (РБ)</h2>
-                <p className="text-xs text-slate-400">
-                  История оплат через bePaid (ЕРИП, карты) и безналичные платежи с актами выполненных работ
-                </p>
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-bold text-white">Ежемесячные счета (Постоплата) и Акты РБ</h2>
+                  <p className="text-xs text-slate-400">
+                    Закрытие 1-го числа в 00:05 • 7 дней на оплату через bePaid • Авто-пауза при просрочке или превышении лимита
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseMonth}
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer self-start sm:self-auto"
+                >
+                  Закрыть прошлый месяц / Проверить просрочку
+                </button>
+              </div>
+
+              {/* Monthly Postpaid Invoices Table */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Счета по месяцам ({monthlyInvoices.length})
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-950/80 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="px-4 py-3">Клиент / Счёт</th>
+                        <th className="px-4 py-3">Период</th>
+                        <th className="px-4 py-3">Минуты + Аренда</th>
+                        <th className="px-4 py-3">К оплате</th>
+                        <th className="px-4 py-3">Срок оплаты</th>
+                        <th className="px-4 py-3">Статус</th>
+                        <th className="px-4 py-3 text-right">Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {monthlyInvoices.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                            Ежемесячных счетов пока нет
+                          </td>
+                        </tr>
+                      ) : (
+                        monthlyInvoices.map((inv) => (
+                          <tr key={inv.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="px-4 py-3.5">
+                              <div className="font-semibold text-white">{inv.companyName}</div>
+                              <div className="text-[11px] text-slate-400 font-mono">{inv.invoiceNumber}</div>
+                            </td>
+                            <td className="px-4 py-3.5 font-mono text-slate-200">{inv.periodYm}</td>
+                            <td className="px-4 py-3.5 text-slate-300 font-mono text-[11px]">
+                              {inv.billableMinutes.toFixed(1)} мин × {inv.ratePerMinute.toFixed(2)} + {inv.subscriptionFeeByn.toFixed(2)}
+                            </td>
+                            <td className="px-4 py-3.5 font-bold text-white font-mono">
+                              {inv.remainingDueByn.toFixed(2)} BYN
+                              {inv.paidEarlyByn > 0 && (
+                                <div className="text-[10px] font-normal text-emerald-400">
+                                  Погашено: {inv.paidEarlyByn.toFixed(2)} BYN
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3.5 text-slate-400 text-[11px]">
+                              {inv.dueDate || 'Конец месяца'}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                inv.status === 'paid'
+                                  ? 'bg-emerald-500/20 text-emerald-300'
+                                  : inv.status === 'overdue'
+                                  ? 'bg-rose-500/20 text-rose-300'
+                                  : inv.status === 'issued'
+                                  ? 'bg-amber-500/20 text-amber-300'
+                                  : 'bg-blue-500/20 text-blue-300'
+                              }`}>
+                                {inv.status === 'paid' && 'Оплачен'}
+                                {inv.status === 'overdue' && 'Просрочен'}
+                                {inv.status === 'issued' && 'Выставлен'}
+                                {inv.status === 'open' && 'Открыт'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              {inv.status !== 'paid' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkInvoicePaid(inv.id)}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium transition-colors cursor-pointer"
+                                >
+                                  Отметить оплаченным
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Transactions Table */}

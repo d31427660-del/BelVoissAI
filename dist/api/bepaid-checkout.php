@@ -26,6 +26,8 @@ $packages = [
 ];
 
 $body = voxi_read_json_body();
+$invoiceId = trim((string)($body['invoiceId'] ?? ''));
+$payEarly = !empty($body['payEarly']);
 $packageId = (string)($body['packageId'] ?? '');
 $customMinutes = isset($body['customMinutes']) && is_numeric($body['customMinutes']) ? (float)$body['customMinutes'] : null;
 $paymentMethod = (string)($body['paymentMethod'] ?? 'card');
@@ -41,27 +43,63 @@ try {
     voxi_json(['error' => 'Сервис временно недоступен'], 503);
 }
 if (!$authUser) {
-    voxi_json(['error' => 'Войдите в личный кабинет, чтобы пополнить баланс'], 401);
+    voxi_json(['error' => 'Войдите в личный кабинет, чтобы оплатить счёт'], 401);
 }
 voxi_enforce_rate_limit('bepaid_checkout', 10, 60);
 $userId = (string)$authUser['id'];
 $email = (string)$authUser['email'];
 $companyName = (string)$authUser['company_name'];
 
-$minutes = 300;
-$amountByn = 120;
-$description = 'Пополнение баланса Voxi.by — 300 минут';
+$orderKind = 'invoice_payment';
+$targetInvoiceId = null;
+$minutes = 0.0;
+$amountByn = 0.0;
+$description = 'Оплата счёта Voxi.by';
 
-if ($packageId !== '' && isset($packages[$packageId])) {
+if ($invoiceId !== '' || $payEarly) {
+    if ($invoiceId !== '') {
+        $stmtInv = $pdo->prepare('SELECT * FROM monthly_invoices WHERE id = ? AND user_id = ? LIMIT 1');
+        $stmtInv->execute([$invoiceId, $userId]);
+        $inv = $stmtInv->fetch();
+    } else {
+        $inv = voxi_get_or_create_open_invoice($pdo, $authUser);
+    }
+
+    if (!is_array($inv) || empty($inv['id'])) {
+        voxi_json(['error' => 'Счёт не найден'], 404);
+    }
+    if ((string)$inv['status'] === 'paid') {
+        voxi_json(['error' => 'Этот счёт уже оплачен'], 400);
+    }
+
+    $remaining = round(max(0.0, (float)$inv['total_amount_byn'] - (float)$inv['paid_early_byn']), 2);
+    if ($remaining < 0.50) {
+        voxi_json(['error' => 'Сумма к оплате по счёту меньше 0.50 BYN'], 400);
+    }
+
+    $targetInvoiceId = (string)$inv['id'];
+    $orderKind = ((string)$inv['status'] === 'open') ? 'early_payment' : 'invoice_payment';
+    $minutes = (float)$inv['billable_minutes'];
+    $amountByn = $remaining;
+    $invNum = (string)$inv['invoice_number'];
+    $periodYm = (string)$inv['period_ym'];
+    $description = $orderKind === 'early_payment'
+        ? "Voxi.by — досрочная оплата за {$periodYm} ({$invNum})"
+        : "Voxi.by — оплата счёта {$invNum} за {$periodYm}";
+} elseif ($packageId !== '' && isset($packages[$packageId])) {
     $pkg = $packages[$packageId];
+    $orderKind = 'topup';
     $minutes = (int)$pkg['minutes'];
     $amountByn = (int)$pkg['priceByn'];
     $description = 'Voxi.by — пакет «' . $pkg['name'] . '»';
 } elseif ($customMinutes !== null && $customMinutes >= 50 && $customMinutes <= 10000) {
+    $orderKind = 'topup';
     $minutes = (int)round($customMinutes);
     $rate = $minutes >= 1000 ? 0.35 : ($minutes >= 300 ? 0.40 : 0.45);
     $amountByn = (int)round($minutes * $rate);
     $description = "Voxi.by — пополнение на {$minutes} минут";
+} else {
+    voxi_json(['error' => 'Не указан счёт для оплаты'], 400);
 }
 
 $amountKopecks = (int)round($amountByn * 100);
@@ -76,9 +114,9 @@ $siteUrl = rtrim((string)($VOXI_CONFIG['public_site_url'] ?: $safeSiteUrl), '/')
 // Заказ фиксирует сумму и минуты НА СЕРВЕРЕ: вебхук доверяет только этому заказу, а не данным из платежа
 $orderId = voxi_uuid();
 $pdo->prepare(
-    'INSERT INTO payment_orders (id, user_id, minutes, amount_kopecks, currency, status, is_test)
-     VALUES (?, ?, ?, ?, ?, ?, ?)'
-)->execute([$orderId, $userId, $minutes, $amountKopecks, 'BYN', 'pending', $isTest ? 1 : 0]);
+    'INSERT INTO payment_orders (id, user_id, invoice_id, order_kind, minutes, amount_kopecks, currency, status, is_test)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+)->execute([$orderId, $userId, $targetInvoiceId, $orderKind, $minutes, $amountKopecks, 'BYN', 'pending', $isTest ? 1 : 0]);
 $trackingId = $orderId;
 $eripServiceNo = (string)($VOXI_CONFIG['bepaid_erip_service_no'] ?: '99999999');
 
