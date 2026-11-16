@@ -730,8 +730,10 @@ if ($action === 'admin_mark_invoice_paid') {
         voxi_sync_user_billing_status($pdo, (string)$inv['user_id']);
         $pdo->commit();
     } catch (Throwable $e) {
-        $pdo->rollBack();
-        throw $e;
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        voxi_json(['ok' => false, 'error' => 'Ошибка проведения оплаты: ' . $e->getMessage()], 500);
     }
 
     voxi_json(['ok' => true]);
