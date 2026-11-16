@@ -156,11 +156,45 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F3F1] text-black flex font-sans selection:bg-black selection:text-white">
+    <div
+      className="min-h-screen text-black flex font-sans selection:bg-black selection:text-white relative overflow-x-hidden"
+      style={{
+        backgroundColor: '#FAF7F2',
+        backgroundImage: `
+          radial-gradient(1300px 750px at 15% 5%, rgba(255, 142, 84, 0.24) 0%, transparent 60%),
+          radial-gradient(1100px 650px at 85% 15%, rgba(251, 191, 36, 0.18) 0%, transparent 55%),
+          radial-gradient(1200px 800px at 80% 50%, rgba(255, 150, 95, 0.16) 0%, transparent 55%),
+          radial-gradient(1100px 750px at 15% 75%, rgba(255, 118, 62, 0.20) 0%, transparent 60%)
+        `
+      }}
+    >
+      {/* Luminous Warm Ambient Orbs */}
+      <div
+        className="pointer-events-none fixed top-0 left-[5%] w-[650px] h-[650px] rounded-full overflow-hidden z-0"
+        style={{
+          background: 'radial-gradient(circle, rgba(255, 142, 84, 0.20) 0%, rgba(251, 146, 60, 0.08) 45%, transparent 70%)',
+          transform: 'translateZ(0)'
+        }}
+      />
+      <div
+        className="pointer-events-none fixed top-[35%] right-0 w-[680px] h-[680px] rounded-full overflow-hidden z-0"
+        style={{
+          background: 'radial-gradient(circle, rgba(251, 191, 36, 0.16) 0%, rgba(255, 150, 95, 0.08) 45%, transparent 70%)',
+          transform: 'translateZ(0)'
+        }}
+      />
+      <div
+        className="pointer-events-none fixed bottom-0 left-[20%] w-[620px] h-[620px] rounded-full overflow-hidden z-0"
+        style={{
+          background: 'radial-gradient(circle, rgba(255, 118, 62, 0.16) 0%, rgba(251, 191, 36, 0.07) 45%, transparent 70%)',
+          transform: 'translateZ(0)'
+        }}
+      />
+
       {/* 1. Left Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white/80 backdrop-blur-xl border-r border-black/[0.06] flex flex-col justify-between transition-transform duration-200 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-64 bg-[#FAF7F2]/85 backdrop-blur-xl border-r border-black/[0.06] flex flex-col justify-between transition-transform duration-200 ease-in-out relative z-10
           lg:static lg:translate-x-0
           ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:shadow-none'}
         `}
@@ -203,7 +237,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
 
           {/* Company Status Pill */}
-          <div className="p-2.5 rounded-[12px] bg-[#F5F3F1]/70 border border-black/[0.06] space-y-1">
+          <div className="p-2.5 rounded-[12px] bg-white/70 backdrop-blur-xs border border-black/[0.06] space-y-1">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-medium text-black truncate">
                 {agent.companyName || user.companyName || 'Моя компания'}
@@ -233,7 +267,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
 
         {/* Bottom Sidebar: Monthly Postpaid Billing */}
-        <div className="p-4 border-t border-black/[0.06] space-y-3 bg-[#F5F3F1]/40">
+        <div className="p-4 border-t border-black/[0.06] space-y-3 bg-[#FAF7F2]/60">
           <div className="space-y-2 p-3.5 rounded-[12px] liquid-glass-card">
             <div className="flex items-center justify-between text-xs">
               <span className="flex items-center gap-1.5 font-normal text-black">
@@ -307,9 +341,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       )}
 
       {/* 2. Main Content Canvas */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Compact Workspace Topbar */}
-        <header className="h-14 sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-black/[0.06] px-4 sm:px-6 flex items-center justify-between gap-4">
+        <header className="h-14 sticky top-0 z-30 bg-[#FAF7F2]/85 backdrop-blur-md border-b border-black/[0.06] px-4 sm:px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
