@@ -284,14 +284,14 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                       Сначала звонит ваш телефон. Если менеджер занят или не поднял трубку за 10 секунд — отвечает ИИ.
                     </p>
                   </div>
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
-                    <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
+                    <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
                       {ussdNoAnswer}
                     </code>
                     <button
                       type="button"
                       onClick={() => handleCopyUssd(ussdNoAnswer)}
-                      className="px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
+                      className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
                     >
                       {copiedUssd === ussdNoAnswer ? '✓ Скопировано' : 'Скопировать код'}
                     </button>
@@ -310,14 +310,14 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                       ИИ отвечает мгновенно на каждый звонок и переключает на человека только по прямой просьбе клиента.
                     </p>
                   </div>
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
-                    <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
+                    <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
                       {ussdAlways}
                     </code>
                     <button
                       type="button"
                       onClick={() => handleCopyUssd(ussdAlways)}
-                      className="px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
+                      className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
                     >
                       {copiedUssd === ussdAlways ? '✓ Скопировано' : 'Скопировать код'}
                     </button>

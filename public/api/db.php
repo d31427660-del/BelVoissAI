@@ -1221,39 +1221,57 @@ if ($action === 'record_call') {
 
 // --- POST ?action=update_number_rental_mode ---
 if ($action === 'update_number_rental_mode') {
-    $rentalMode = ((string)($body['numberRentalMode'] ?? 'rental')) === 'own_sip' ? 'own_sip' : 'rental';
-    $subFee = $rentalMode === 'own_sip' ? 0.00 : 15.00;
+    try {
+        $rentalMode = ((string)($body['numberRentalMode'] ?? 'rental')) === 'own_sip' ? 'own_sip' : 'rental';
+        $subFee = $rentalMode === 'own_sip' ? 0.00 : 15.00;
 
-    $pdo->prepare(
-        'UPDATE users
-         SET number_rental_mode = ?,
-             monthly_subscription_byn = ?,
-             updated_at = NOW()
-         WHERE id = ?'
-    )->execute([$rentalMode, $subFee, $userId]);
-
-    // Пересчитаем абонплату в текущем открытом счёте месяца
-    $stmtU = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
-    $stmtU->execute([$userId]);
-    $freshUser = $stmtU->fetch();
-    if (is_array($freshUser)) {
-        voxi_get_or_create_open_invoice($pdo, $freshUser);
         $pdo->prepare(
-            "UPDATE monthly_invoices
-             SET subscription_fee_byn = ?,
-                 total_amount_byn = minutes_amount_byn + ?,
+            'UPDATE users
+             SET number_rental_mode = ?,
+                 monthly_subscription_byn = ?,
                  updated_at = NOW()
-             WHERE user_id = ? AND period_ym = ? AND status = 'open'"
-        )->execute([$subFee, $subFee, $userId, date('Y-m')]);
+             WHERE id = ?'
+        )->execute([$rentalMode, $subFee, $userId]);
+
+        // Пересчитаем абонплату в текущем открытом счёте месяца
+        $stmtU = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+        $stmtU->execute([$userId]);
+        $freshUser = $stmtU->fetch();
+        if (!is_array($freshUser)) {
+            $freshUser = $authUser;
+        }
+
+        try {
+            voxi_get_or_create_open_invoice($pdo, $freshUser);
+            $pdo->prepare(
+                "UPDATE monthly_invoices
+                 SET subscription_fee_byn = ?,
+                     total_amount_byn = COALESCE(minutes_amount_byn, 0.00) + ?,
+                     updated_at = NOW()
+                 WHERE user_id = ? AND period_ym = ? AND status = 'open'"
+            )->execute([$subFee, $subFee, $userId, date('Y-m')]);
+        } catch (Throwable $se) {
+            error_log('update_number_rental_mode invoice update non-fatal error: ' . $se->getMessage());
+        }
+
+        $formattedFresh = voxi_format_user_session($freshUser);
+        try {
+            $formattedFresh['billing'] = voxi_build_billing_summary($pdo, $freshUser);
+        } catch (Throwable $be) {
+            error_log('update_number_rental_mode billing summary non-fatal error: ' . $be->getMessage());
+        }
+
+        voxi_json([
+            'ok' => true,
+            'user' => $formattedFresh,
+        ]);
+    } catch (Throwable $e) {
+        error_log('update_number_rental_mode fatal error: ' . $e->getMessage());
+        voxi_json([
+            'ok' => false,
+            'error' => 'Не удалось обновить режим номера: ' . $e->getMessage(),
+        ], 500);
     }
-
-    $formattedFresh = voxi_format_user_session($freshUser);
-    $formattedFresh['billing'] = voxi_build_billing_summary($pdo, $freshUser);
-
-    voxi_json([
-        'ok' => true,
-        'user' => $formattedFresh,
-    ]);
 }
 
 voxi_json(['ok' => false, 'error' => 'Unknown action'], 400);

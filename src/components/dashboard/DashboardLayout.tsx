@@ -343,24 +343,24 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* 2. Main Content Canvas */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Compact Workspace Topbar */}
-        <header className="h-14 sticky top-0 z-30 bg-[#FAF7F2]/85 backdrop-blur-md border-b border-black/[0.06] px-4 sm:px-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="h-14 sticky top-0 z-30 bg-[#FAF7F2]/85 backdrop-blur-md border-b border-black/[0.06] px-4 sm:px-6 flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Открыть меню разделов"
-              className="lg:hidden p-1.5 rounded-lg text-[#777169] hover:text-black hover:bg-black/[0.04] cursor-pointer"
+              className="lg:hidden p-1.5 rounded-lg text-[#777169] hover:text-black hover:bg-black/[0.04] cursor-pointer shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 text-xs font-normal text-black min-w-0">
-              <span className="text-[#777169] hidden sm:inline">Кабинет</span>
-              <span className="text-black/20 hidden sm:inline">/</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-normal text-black min-w-0 shrink">
+              <span className="text-[#777169] hidden md:inline">Кабинет</span>
+              <span className="text-black/20 hidden md:inline">/</span>
               <span className="truncate font-medium">{currentNav.label}</span>
             </div>
 
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full liquid-glass-pill text-[11px] font-normal text-black">
+            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full liquid-glass-pill text-[11px] font-normal text-black shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>{agent.isActive ? 'Бот на линии • отвечает за 0.5 сек' : 'Бот поставлен на паузу'}</span>
             </div>
@@ -369,11 +369,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               type="button"
               onClick={onOpenTopUp}
               title="Счета и досрочная оплата за месяц"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-normal liquid-glass-pill text-black hover:bg-white transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-normal liquid-glass-pill text-black hover:bg-white transition-all cursor-pointer shrink-0"
             >
-              <Wallet className="w-3.5 h-3.5 text-black" />
-              <span>{unpaidDebtByn.toFixed(2)} BYN</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-0.5 font-normal ${
+              <Wallet className="w-3.5 h-3.5 text-black shrink-0" />
+              <span className="whitespace-nowrap">{unpaidDebtByn.toFixed(2)} BYN</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-0.5 font-normal whitespace-nowrap ${
                 isSuspended ? 'bg-rose-600 text-white' : 'bg-black text-white'
               }`}>
                 {isSuspended ? 'Оплатить долг' : 'Счёт месяца'}
@@ -381,7 +381,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}

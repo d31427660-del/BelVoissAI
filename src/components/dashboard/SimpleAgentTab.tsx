@@ -284,6 +284,7 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   ];
 
   return (
+    <>
     <form id="active-workspace-form" onSubmit={handleSave} className="space-y-6 max-w-4xl mx-auto">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/[0.08]">
@@ -704,43 +705,44 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
           )}
         </div>
       </details>
-
-      {/* MODAL / SLIDE-OVER: Проверка бота голосом */}
-      <AnimatePresence>
-        {isTesterOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl border border-black/[0.1]"
-            >
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/[0.08]">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-semibold text-black">
-                    Проверка бота: {formData.companyName}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsTesterOpen(false)}
-                  className="p-1 rounded-full text-[#777169] hover:text-black cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <LiveBotTester
-                agent={formData}
-                onCallCompleted={(log) => {
-                  onCallCompleted?.(log);
-                }}
-              />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </form>
+
+    {/* MODAL / SLIDE-OVER: Проверка бота голосом */}
+    <AnimatePresence>
+      {isTesterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl border border-black/[0.1]"
+          >
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/[0.08]">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-semibold text-black">
+                  Проверка бота: {formData.companyName}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTesterOpen(false)}
+                className="p-1 rounded-full text-[#777169] hover:text-black cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <LiveBotTester
+              agent={formData}
+              onCallCompleted={(log) => {
+                onCallCompleted?.(log);
+              }}
+            />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+    </>
   );
 };

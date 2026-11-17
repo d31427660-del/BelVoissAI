@@ -365,6 +365,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
 
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (inputText.trim()) {
       handleSendMessage(inputText.trim());
     }
