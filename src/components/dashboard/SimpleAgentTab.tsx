@@ -676,14 +676,31 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
               helpText="Здесь вы можете описать любые особые правила вашей компании: например, «всегда спрашивай марку автомобиля» или «предлагай чай/кофе при записи». Бот строго следует этим указаниям."
               helpExample="Обязательно спроси у клиента марку машины и удобное время записи."
             />
-            <button
-              type="button"
-              onClick={handleGenerateAiPrompt}
-              disabled={isGeneratingPrompt}
-              className="text-[11px] font-medium text-blue-600 hover:text-blue-800 underline disabled:opacity-50 cursor-pointer"
-            >
-              {isGeneratingPrompt ? 'Обновляем правила...' : 'Улучшить правила разговора через ИИ'}
-            </button>
+            <div className="flex items-center gap-3">
+              {isCustomPrompt && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const localPrompt = generateSystemPrompt(formData);
+                    setIsCustomPrompt(false);
+                    setFormData({ ...formData, systemPrompt: localPrompt });
+                    setPromptGenStatus('Правила сброшены к стандартным.');
+                    setTimeout(() => setPromptGenStatus(null), 3000);
+                  }}
+                  className="text-[11px] font-medium text-[#777169] hover:text-black underline cursor-pointer"
+                >
+                  Сбросить к стандартным
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleGenerateAiPrompt}
+                disabled={isGeneratingPrompt}
+                className="text-[11px] font-medium text-blue-600 hover:text-blue-800 underline disabled:opacity-50 cursor-pointer"
+              >
+                {isGeneratingPrompt ? 'Обновляем правила...' : 'Улучшить правила разговора через ИИ'}
+              </button>
+            </div>
           </div>
 
           <textarea
