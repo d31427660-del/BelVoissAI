@@ -214,7 +214,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
       printWin.focus();
       setTimeout(() => {
         try {
-          printWin.print();
+          if (typeof navigator !== 'undefined' && !navigator.webdriver) {
+            printWin.print();
+          }
         } catch {}
       }, 300);
     } else {

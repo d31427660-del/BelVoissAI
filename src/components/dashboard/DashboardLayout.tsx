@@ -198,7 +198,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* 1. Left Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-[#FAF7F2]/85 backdrop-blur-xl border-r border-black/[0.06] flex flex-col justify-between transition-transform duration-200 ease-in-out relative z-10
+          fixed inset-y-0 left-0 z-50 w-64 bg-[#FAF7F2]/85 backdrop-blur-xl border-r border-black/[0.06] flex flex-col justify-between transition-transform duration-200 ease-in-out
           lg:static lg:translate-x-0
           ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:shadow-none'}
         `}

@@ -85,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {currentView === 'landing' ? (
             <nav
               aria-label="Основная"
-              className="hidden md:flex items-center gap-0.5 text-[13px] font-normal text-[#59544F]"
+              className="hidden lg:flex items-center gap-0.5 text-[13px] font-normal text-[#59544F]"
             >
               <a
                 href="#showcase"
@@ -204,7 +204,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-label="Меню"
                 aria-expanded={isMobileMenuOpen}
-                className="md:hidden w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#1d1d1f]"
+                className="lg:hidden w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#1d1d1f]"
               >
                 {isMobileMenuOpen ? <CloseCircleIcon size={18} /> : <HamburgerMenuIcon size={18} />}
               </button>
