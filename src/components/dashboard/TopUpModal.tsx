@@ -1,169 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  CloseCircleIcon, 
-  WalletMoneyIcon, 
-  CheckCircleIcon, 
+import {
+  CloseCircleIcon,
+  WalletMoneyIcon,
+  CheckCircleIcon,
   Card2Icon as CreditCardIcon,
-  BillCheckIcon as ReceiptIcon,
-  ShieldCheckIcon,
-  PrinterIcon,
-  DownloadMinimalisticIcon as DownloadIcon,
-  CopyIcon,
-  AltArrowLeftIcon as ArrowLeftIcon
+  ShieldCheckIcon
 } from '@solar-icons/react/bold-duotone';
 import { MinutePackage, UserSession } from '../../types';
-
-function escapeHtml(value: string): string {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function generateInvoiceHtml(params: {
-  invoiceNo: string;
-  invoiceDate: string;
-  companyName: string;
-  unp?: string;
-  userEmail: string;
-  minutes: number;
-  ratePerMinute: number;
-  totalByn: number;
-}): string {
-  const { invoiceNo, invoiceDate, companyName, unp, userEmail, minutes, ratePerMinute, totalByn } = params;
-  const safeInvoiceNo = escapeHtml(invoiceNo);
-  const safeInvoiceDate = escapeHtml(invoiceDate);
-  const safeCompanyName = escapeHtml(companyName);
-  const safeUnp = unp ? escapeHtml(unp) : '';
-  const safeUserEmail = userEmail ? escapeHtml(userEmail) : '';
-  const itemTitle = minutes > 0
-    ? `Предоставление доступа к облачной платформе голосовых ИИ-ассистентов Voxi.by (${minutes} минут диалогов)`
-    : `Абонентская плата за выделенный телефонный номер А1 ВАТС платформы Voxi.by`;
-  const itemQty = minutes > 0 ? minutes : 1;
-  const itemUnit = minutes > 0 ? 'мин.' : 'усл.';
-  const itemPrice = minutes > 0 ? ratePerMinute.toFixed(2) : totalByn.toFixed(2);
-  const purposeText = minutes > 0
-    ? `Оплата по счёту № ${safeInvoiceNo} от ${safeInvoiceDate} за услуги платформы Voxi.by (${minutes} мин) без НДС`
-    : `Оплата по счёту № ${safeInvoiceNo} от ${safeInvoiceDate} за услуги платформы Voxi.by (номер А1 ВАТС) без НДС`;
-
-  return `<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<title>Счёт на оплату № ${safeInvoiceNo}</title>
-<style>
-  body { font-family: Arial, "Helvetica Neue", sans-serif; font-size: 10pt; line-height: 1.35; color: #111; margin: 30px; }
-  .header-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 9.5pt; }
-  .header-table td { border: 1px solid #444; padding: 5px 8px; vertical-align: top; }
-  h1 { font-size: 14pt; margin: 18px 0 8px 0; font-weight: bold; text-align: left; }
-  .meta-line { font-size: 10pt; margin-bottom: 5px; }
-  .goods-table { width: 100%; border-collapse: collapse; margin-top: 14px; margin-bottom: 14px; font-size: 9.5pt; }
-  .goods-table th, .goods-table td { border: 1px solid #333; padding: 6px 8px; }
-  .goods-table th { background: #f2f2f2; text-align: center; }
-  .text-right { text-align: right; }
-  .text-center { text-align: center; }
-  .total-block { margin-top: 12px; font-size: 10.5pt; }
-  .notice { font-size: 8.5pt; color: #444; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 8px; }
-  .sign-table { width: 100%; margin-top: 35px; }
-  .sign-table td { width: 50%; vertical-align: top; font-size: 9.5pt; }
-  @media print {
-    body { margin: 10mm; }
-  }
-</style>
-</head>
-<body>
-<table class="header-table">
-  <tr>
-    <td colspan="2" rowspan="2">
-      ЗАО «Альфа-Банк», г. Минск, ул. Сурганова, 43<br>
-      <small style="color: #666;">Банк получателя</small>
-    </td>
-    <td style="width: 15%;">БИК</td>
-    <td style="width: 30%;"><strong>ALFABY2X</strong></td>
-  </tr>
-  <tr>
-    <td>Сч. №</td>
-    <td>30132G19399184600000</td>
-  </tr>
-  <tr>
-    <td style="width: 25%;">УНП <strong>193991846</strong></td>
-    <td style="width: 30%;">ОКПО —</td>
-    <td rowspan="2">Сч. №</td>
-    <td rowspan="2"><strong>BY88ALFA30132G19399184600000</strong></td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <strong>ИП Беляков Кирилл Олегович</strong><br>
-      <small style="color: #666;">Получатель</small>
-    </td>
-  </tr>
-</table>
-
-<h1>СЧЁТ НА ОПЛАТУ № ${safeInvoiceNo} от ${safeInvoiceDate} г.</h1>
-<hr style="border: 0; border-top: 2px solid #2563eb; margin-bottom: 12px;">
-
-<div class="meta-line"><strong>Поставщик (Исполнитель):</strong> ИП Беляков Кирилл Олегович, УНП 193991846, 220045, Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58</div>
-<div class="meta-line"><strong>Покупатель (Заказчик):</strong> ${safeCompanyName}${safeUnp ? `, УНП: ${safeUnp}` : ''}${safeUserEmail ? `, email: ${safeUserEmail}` : ''}</div>
-<div class="meta-line"><strong>Основание:</strong> Публичный договор (оферта) возмездного оказания услуг Voxi.by (ОКЭД 62010)</div>
-
-<table class="goods-table">
-  <thead>
-    <tr>
-      <th style="width: 5%;">№</th>
-      <th>Товары (работы, услуги)</th>
-      <th style="width: 10%;">Кол-во</th>
-      <th style="width: 8%;">Ед.</th>
-      <th style="width: 15%;">Цена (BYN)</th>
-      <th style="width: 15%;">Сумма (BYN)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td class="text-center">1</td>
-      <td>${itemTitle}</td>
-      <td class="text-center">${itemQty}</td>
-      <td class="text-center">${itemUnit}</td>
-      <td class="text-right">${itemPrice}</td>
-      <td class="text-right"><strong>${totalByn.toFixed(2)}</strong></td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="total-block text-right">
-  <div><strong>Итого без НДС:</strong> ${totalByn.toFixed(2)} BYN</div>
-  <div><strong>Ставка НДС:</strong> Без НДС (гл. 32 НК РБ, упрощённая система налогообложения)</div>
-  <div style="font-size: 12pt; margin-top: 6px;"><strong>Всего к оплате: ${totalByn.toFixed(2)} белорусских рублей</strong></div>
-</div>
-
-<div style="margin-top: 14px; font-size: 10pt;">
-  Всего наименований 1, на сумму <strong>${totalByn.toFixed(2)} BYN</strong> (Без НДС).
-</div>
-
-<div class="notice">
-  <strong>Условия оплаты и поставки:</strong><br>
-  1. Оплата данного счёта означает согласие с условиями Публичного договора (оферты), размещённого на сайте https://voxi.by/offer.<br>
-  2. Срок оплаты — в течение 5 (пяти) банковских дней с даты выставления.<br>
-  3. Назначение платежа: <em>«${purposeText}»</em>.<br>
-  4. По факту оказания услуг первичный учётный документ (акт) составляется единолично Исполнителем (постановление Минфина РБ № 13) и направляется через сервис электронного документооборота ЭДиН либо на email Заказчика.
-</div>
-
-<table class="sign-table">
-  <tr>
-    <td>
-      <strong>Исполнитель:</strong><br><br><br>
-      _______________________ / К.О. Беляков /
-    </td>
-    <td>
-      <strong>Заказчик:</strong><br><br><br>
-      _______________________ / ________________ /
-    </td>
-  </tr>
-</table>
-</body>
-</html>`;
-}
+import { MINUTE_PACKAGES } from '../../lib/mockData';
 
 interface TopUpModalProps {
   isOpen: boolean;
@@ -177,24 +21,23 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
   isOpen,
   onClose,
   user,
-  initialPackage,
-  onSuccessTopUp
+  initialPackage
 }) => {
   const billing = user.billing;
   const invoices = billing?.invoices || [];
   const unpaidClosedInvoices = invoices.filter((inv) => inv.status === 'issued' || inv.status === 'overdue');
   const currentOpenInvoice = billing?.currentInvoice || invoices.find((inv) => inv.status === 'open') || null;
   const defaultTargetInvoice = unpaidClosedInvoices[0] || currentOpenInvoice;
+  const unpaidDebtByn = billing?.unpaidDebtByn ?? 0;
 
+  const [paymentMode, setPaymentMode] = useState<'postpaid_invoice' | 'advance_package'>(
+    initialPackage || unpaidDebtByn < 0.5 ? 'advance_package' : 'postpaid_invoice'
+  );
+  const [selectedPackageId, setSelectedPackageId] = useState<string>(initialPackage?.id || 'pack_100');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>(defaultTargetInvoice?.id || '');
-  const [paymentMethod, setPaymentMethod] = useState<'erip' | 'card' | 'bank_invoice'>('card');
-  const [unpInput, setUnpInput] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'erip'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess] = useState(false);
-  const [invoiceReady, setInvoiceReady] = useState(false);
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [copiedRequisites, setCopiedRequisites] = useState(false);
-  const [invoiceDocNotice, setInvoiceDocNotice] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -204,14 +47,17 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
     if (target && !invoices.some((i) => i.id === selectedInvoiceId && i.status !== 'paid')) {
       setSelectedInvoiceId(target.id);
     }
-  }, [isOpen, billing]);
+    if (initialPackage) {
+      setPaymentMode('advance_package');
+      setSelectedPackageId(initialPackage.id);
+    }
+  }, [isOpen, billing, initialPackage]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (isOpen) {
       setErrorMsg(null);
-      setInvoiceReady(false);
       if (!dialog.open) {
         dialog.showModal();
       }
@@ -237,115 +83,54 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
 
   const selectedInvoice =
     invoices.find((i) => i.id === selectedInvoiceId) || defaultTargetInvoice || null;
-  const finalMinutes = selectedInvoice ? selectedInvoice.billableMinutes : 0;
-  const finalAmountByn = selectedInvoice ? selectedInvoice.remainingDueByn : 0;
-  const finalRate = selectedInvoice ? selectedInvoice.ratePerMinute : (user.ratePerMinute || 0.45);
-  const isEarlyPayment = selectedInvoice?.status === 'open';
-
-  const triggerConfetti = async () => {
-    try {
-      const { default: confetti } = await import('canvas-confetti');
-      confetti({
-        particleCount: 70,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#2563eb', '#10b981', '#3b82f6', '#f59e0b']
-      });
-    } catch {
-      // ignore if canvas unavailable
-    }
-  };
-
-  const getInvoiceParams = () => {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const invoiceDate = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
-    return {
-      invoiceNo: invoiceNumber || `VX-${Date.now().toString().slice(-6)}`,
-      invoiceDate,
-      companyName: user.companyName || 'ООО / ИП',
-      unp: unpInput.trim() || undefined,
-      userEmail: user.email || '',
-      minutes: finalMinutes,
-      ratePerMinute: finalRate,
-      totalByn: finalAmountByn
-    };
-  };
-
-  const handlePrintInvoice = () => {
-    const params = getInvoiceParams();
-    const html = generateInvoiceHtml(params);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 350);
-    }
-  };
-
-  const handleDownloadInvoiceDoc = () => {
-    const params = getInvoiceParams();
-    const html = generateInvoiceHtml(params);
-    const blob = new Blob(['\uFEFF' + html], { type: 'application/msword;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Schet_${params.invoiceNo}_Voxi.doc`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    setInvoiceDocNotice(true);
-    setTimeout(() => setInvoiceDocNotice(false), 3500);
-  };
-
-  const handleCopyRequisites = () => {
-    const params = getInvoiceParams();
-    const text = [
-      `Счёт на оплату: № ${params.invoiceNo} от ${params.invoiceDate} г.`,
-      `Получатель: ИП Беляков Кирилл Олегович`,
-      `УНП получателя: 193991846`,
-      `Расчётный счёт (IBAN): BY88ALFA30132G19399184600000`,
-      `Банк: ЗАО «Альфа-Банк», г. Минск, БИК ALFABY2X`,
-      `Сумма к оплате: ${finalAmountByn}.00 BYN (без НДС)`,
-      `Плательщик: ${user.companyName}${unpInput ? ` (УНП ${unpInput})` : ''}`,
-      `Назначение платежа: Оплата по счёту № ${params.invoiceNo} от ${params.invoiceDate} за услуги платформы Voxi.by ${finalMinutes > 0 ? `(${finalMinutes} мин)` : '(аренда номера А1)'} без НДС`
-    ].join('\n');
-
-    navigator.clipboard?.writeText(text);
-    setCopiedRequisites(true);
-    setTimeout(() => setCopiedRequisites(false), 2500);
-  };
+  const selectedPkg = MINUTE_PACKAGES.find((p) => p.id === selectedPackageId) || MINUTE_PACKAGES[0];
+  const finalMinutes =
+    paymentMode === 'advance_package'
+      ? selectedPkg.minutes
+      : selectedInvoice
+      ? selectedInvoice.billableMinutes
+      : 0;
+  const finalAmountByn =
+    paymentMode === 'advance_package'
+      ? selectedPkg.priceByn
+      : selectedInvoice
+      ? selectedInvoice.remainingDueByn
+      : 0;
+  const finalRate =
+    paymentMode === 'advance_package'
+      ? selectedPkg.ratePerMinute
+      : selectedInvoice
+      ? selectedInvoice.ratePerMinute
+      : (user.ratePerMinute || 0.45);
+  const isEarlyPayment = paymentMode === 'advance_package' || selectedInvoice?.status === 'open';
 
   const handlePay = async () => {
     setErrorMsg(null);
 
     if (finalAmountByn < 0.5) {
-      setErrorMsg('Минимальная сумма оплаты через bePaid — 0.50 BYN. Сейчас долг меньше этой суммы.');
-      return;
-    }
-
-    if (paymentMethod === 'bank_invoice') {
-      const num = selectedInvoice?.invoiceNumber || `VX-${Date.now().toString().slice(-6)}`;
-      setInvoiceNumber(num);
-      setInvoiceReady(true);
+      setErrorMsg(
+        'Сейчас по текущему месяцу начислено 0.00 BYN. Выберите «Пакет минут», чтобы пополнить минуты со скидкой.'
+      );
       return;
     }
 
     setIsProcessing(true);
 
     try {
+      const payload: Record<string, unknown> = {
+        paymentMethod
+      };
+      if (paymentMode === 'advance_package') {
+        payload.packageId = selectedPackageId;
+      } else {
+        payload.invoiceId = selectedInvoice?.id || '';
+        payload.payEarly = isEarlyPayment;
+      }
+
       const response = await fetch('/api/bepaid-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          invoiceId: selectedInvoice?.id || '',
-          payEarly: isEarlyPayment,
-          paymentMethod,
-        }),
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -381,26 +166,26 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
         {/* Header */}
         <div className="px-7 py-5 border-b border-black/[0.06] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-black text-white flex items-center justify-center shrink-0" aria-hidden="true">
+            <div className="w-10 h-10 rounded-[10px] bg-slate-900 text-white flex items-center justify-center shrink-0" aria-hidden="true">
               <WalletMoneyIcon size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 id="topup-modal-title" className="text-base font-medium text-black tracking-tight">
-                  Счета и оплата по итогам месяца
+                <h2 id="topup-modal-title" className="text-base font-bold text-slate-900 tracking-tight">
+                  Онлайн-оплата (Карта / ЕРИП)
                 </h2>
               </div>
-              <p className="text-xs text-[#59544F]">
-                Общая задолженность: <strong className="text-black font-medium">{(billing?.unpaidDebtByn ?? 0).toFixed(2)} BYN</strong> • Лимит: {(billing?.creditLimitByn ?? 100).toFixed(0)} BYN
+              <p className="text-xs text-slate-500">
+                Накоплено за месяц: <strong className="text-slate-900 font-semibold">{(billing?.unpaidDebtByn ?? 0).toFixed(2)} BYN</strong> • Лимит: {(billing?.creditLimitByn ?? 100).toFixed(0)} BYN
               </p>
             </div>
           </div>
 
           <button
             type="button"
-            aria-label="Закрыть окно пополнения"
+            aria-label="Закрыть окно оплаты"
             onClick={onClose}
-            className="w-8 h-8 rounded-full liquid-glass-pill text-[#777169] hover:text-black flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full liquid-glass-pill text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
           >
             <CloseCircleIcon size={18} />
           </button>
@@ -413,114 +198,12 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                 <CheckCircleIcon size={36} />
               </div>
-              <h3 className="text-xl font-medium text-black">
-                Демо-баланс пополнен!
+              <h3 className="text-xl font-bold text-slate-900">
+                Оплата принята!
               </h3>
-              <p className="text-xs text-[#59544F] max-w-sm mx-auto font-normal">
-                В ознакомительном режиме зачислено <strong className="text-black font-semibold">+{finalMinutes} минут</strong>. При боевых платежах переадресация выполняется на защищённый шлюз <strong>bePaid</strong>.
+              <p className="text-xs text-slate-600 max-w-sm mx-auto">
+                Зачислено <strong className="text-slate-900 font-semibold">+{finalMinutes} минут</strong>.
               </p>
-            </div>
-          ) : invoiceReady ? (
-            <div className="space-y-4">
-              <div className="p-5 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-3.5 text-xs text-black">
-                <div className="flex items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
-                  <div className="flex items-center gap-2 font-medium text-sm text-black">
-                    <CheckCircleIcon size={18} />
-                    <span>Счёт на оплату № {invoiceNumber || 'VX-001'}</span>
-                  </div>
-                  <span className="text-[11px] font-mono liquid-glass-pill text-black px-2 py-0.5 rounded-full font-medium">
-                    от {new Date().toLocaleDateString('ru-RU')} г.
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
-                  <div>
-                    <span className="text-[#777169] block">Плательщик (Заказчик):</span>
-                    <strong className="text-black font-medium">{user.companyName || 'Организация'}</strong>
-                    {unpInput && <span className="block text-slate-600 font-mono">УНП: {unpInput}</span>}
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Получатель (Исполнитель):</span>
-                    <strong className="text-slate-900 font-semibold">ИП Беляков К.О.</strong>
-                    <span className="block text-slate-600 font-mono">УНП: 193991846</span>
-                  </div>
-                </div>
-
-                {/* Банковские реквизиты */}
-                <div className="p-3 rounded-2xl bg-white border border-blue-200/70 space-y-1 font-mono text-[11px] text-slate-800 select-all">
-                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-sans mb-1 border-b border-slate-100 pb-1">
-                    <span>Реквизиты для перечисления в Клиент-Банке:</span>
-                    <span className="text-blue-600 font-semibold">без НДС</span>
-                  </div>
-                  <div><strong>IBAN:</strong> BY88ALFA30132G19399184600000</div>
-                  <div><strong>Банк:</strong> ЗАО «Альфа-Банк», г. Минск, БИК: ALFABY2X</div>
-                  <div><strong>Назначение:</strong> Оплата по счёту № {invoiceNumber} за услуги Voxi.by {finalMinutes > 0 ? `(${finalMinutes} мин)` : '(аренда номера А1)'} без НДС</div>
-                </div>
-
-                <div className="flex items-baseline justify-between pt-1">
-                  <span className="text-slate-600">Сумма к оплате:</span>
-                  <span className="text-xl font-black text-[#2563eb]">
-                    {finalAmountByn}.00 BYN
-                  </span>
-                </div>
-              </div>
-
-              {/* Status notifications */}
-              {copiedRequisites && (
-                <div role="status" className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-center gap-2">
-                  <CheckCircleIcon size={14} className="text-emerald-600 shrink-0" />
-                  <span>Реквизиты счёта и назначение платежа скопированы в буфер обмена!</span>
-                </div>
-              )}
-
-              {invoiceDocNotice && (
-                <div role="status" className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-center gap-2">
-                  <CheckCircleIcon size={14} className="text-emerald-600 shrink-0" />
-                  <span>Счёт на оплату (.doc) успешно скачан для отправки в бухгалтерию.</span>
-                </div>
-              )}
-
-              {/* Action Buttons: Print, Download .doc, Copy */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={handlePrintInvoice}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                >
-                  <PrinterIcon size={16} />
-                  <span>Печать / PDF</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDownloadInvoiceDoc}
-                  className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <DownloadIcon size={16} />
-                  <span>Скачать .doc</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCopyRequisites}
-                  className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <CopyIcon size={16} />
-                  <span>{copiedRequisites ? 'Скопировано!' : 'Реквизиты'}</span>
-                </button>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between text-xs">
-                <button
-                  type="button"
-                  onClick={() => setInvoiceReady(false)}
-                  className="text-slate-500 hover:text-slate-800 font-medium inline-flex items-center gap-1 underline"
-                >
-                  <ArrowLeftIcon size={14} />
-                  <span>Изменить пакет или способ оплаты</span>
-                </button>
-                <span className="text-[11px] text-slate-600">Электронный акт через ЭДиН</span>
-              </div>
             </div>
           ) : (
             <>
@@ -532,40 +215,107 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
 
               {/* Postpaid Summary Banner */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                <div className="p-3 rounded-[12px] liquid-glass-cream border border-black/[0.06]">
-                  <span className="text-[11px] text-[#777169] block">Бесплатный бонус</span>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] text-slate-500 block">Бесплатный бонус</span>
                   <strong className="text-sm font-mono text-emerald-700">
                     {(billing?.freeMinutesRemaining ?? user.balanceMinutes ?? 0).toFixed(1)} мин
                   </strong>
-                  <span className="text-[10px] text-[#777169] block mt-0.5">Не идут в счёт месяца</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Не идут в счёт месяца</span>
                 </div>
 
-                <div className="p-3 rounded-[12px] liquid-glass-cream border border-black/[0.06]">
-                  <span className="text-[11px] text-[#777169] block">Аренда номера А1</span>
-                  <strong className="text-sm font-mono text-black">
-                    {(billing?.monthlySubscriptionByn ?? 15).toFixed(2)} BYN/мес
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] text-slate-500 block">Телефонная линия</span>
+                  <strong className="text-sm font-mono text-slate-900">
+                    {(billing?.monthlySubscriptionByn ?? 0).toFixed(2)} BYN/мес
                   </strong>
-                  <span className="text-[10px] text-[#777169] block mt-0.5">
-                    {billing?.numberRentalMode === 'own_sip' ? 'Свой SIP (0 BYN)' : 'Выделенный номер ВАТС'}
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    {billing?.numberRentalMode === 'own_sip' ? 'Свой SIP (0 BYN)' : 'Выделенный номер А1'}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-[12px] liquid-glass-cream border border-black/[0.06]">
-                  <span className="text-[11px] text-[#777169] block">Закрытие периода</span>
-                  <strong className="text-sm font-mono text-black">1-го числа в 00:05</strong>
-                  <span className="text-[10px] text-[#777169] block mt-0.5">7 дней на оплату без паузы</span>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] text-slate-500 block">Закрытие периода</span>
+                  <strong className="text-sm font-mono text-slate-900">1-го числа в 00:05</strong>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">7 дней на оплату без паузы</span>
                 </div>
               </div>
 
-              {/* Monthly Invoices Selector */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-black">Выберите счёт для оплаты или погасите текущий месяц досрочно:</span>
+              {/* Mode Switcher: Advance Package vs Monthly Invoice */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold text-slate-900 text-xs">
+                    Что вы хотите оплатить:
+                  </span>
+                  <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMode('advance_package');
+                        setErrorMsg(null);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        paymentMode === 'advance_package'
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Пакет минут (выгодно)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMode('postpaid_invoice');
+                        setErrorMsg(null);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        paymentMode === 'postpaid_invoice'
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      По факту месяца ({unpaidDebtByn.toFixed(2)} BYN)
+                    </button>
+                  </div>
                 </div>
 
-                {invoices.length === 0 ? (
-                  <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] text-xs text-[#59544F]">
-                    Текущий расчётный период открыт. Выставленные счета появятся здесь 1-го числа.
+                {paymentMode === 'advance_package' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {MINUTE_PACKAGES.map((pkg) => {
+                      const isSelected = selectedPackageId === pkg.id;
+                      return (
+                        <button
+                          key={pkg.id}
+                          type="button"
+                          onClick={() => setSelectedPackageId(pkg.id)}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                              : 'bg-slate-50 hover:bg-white text-slate-900 border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-bold">{pkg.name}</span>
+                            {pkg.savingsPercent && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                                isSelected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                −{pkg.savingsPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-base font-extrabold font-mono mt-1">
+                            {pkg.minutes} мин
+                          </div>
+                          <div className={`text-[10px] font-mono ${isSelected ? 'text-zinc-300' : 'text-slate-500'}`}>
+                            {pkg.priceByn} BYN ({pkg.ratePerMinute.toFixed(2)} BYN/мин)
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+                    Текущий расчётный период открыт ({unpaidDebtByn.toFixed(2)} BYN). Для покупки пакета со скидкой выберите «Пакет минут».
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
@@ -578,7 +328,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                           : inv.status === 'overdue'
                           ? `Просрочен (до ${inv.dueDate})`
                           : inv.status === 'issued'
-                          ? `Выставлен (до ${inv.dueDate})`
+                          ? `К оплате (до ${inv.dueDate})`
                           : 'Текущий месяц (досрочно)';
                       const statusColor =
                         inv.status === 'paid'
@@ -595,12 +345,12 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                           type="button"
                           disabled={isPaid}
                           onClick={() => setSelectedInvoiceId(inv.id)}
-                          className={`w-full p-3.5 rounded-[12px] border text-left transition-all flex items-center justify-between gap-3 ${
+                          className={`w-full p-3.5 rounded-xl border text-left transition-all flex items-center justify-between gap-3 ${
                             isPaid
-                              ? 'bg-slate-50 border-black/[0.05] opacity-70 cursor-default'
+                              ? 'bg-slate-50 border-slate-200 opacity-70 cursor-default'
                               : isSelected
-                              ? 'bg-black text-white border-black shadow-sm cursor-pointer'
-                              : 'liquid-glass-cream border-black/[0.08] hover:border-black/25 cursor-pointer'
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-sm cursor-pointer'
+                              : 'bg-white border-slate-200 hover:border-slate-300 cursor-pointer'
                           }`}
                         >
                           <div className="min-w-0">
@@ -612,17 +362,13 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                                 {statusLabel}
                               </span>
                             </div>
-                            <div className={`text-[11px] mt-1 font-mono ${isSelected && !isPaid ? 'text-white/75' : 'text-[#59544F]'}`}>
-                              {inv.billableMinutes} мин × {inv.ratePerMinute.toFixed(2)} + {inv.subscriptionFeeByn.toFixed(2)} аренда
-                              {inv.paidEarlyByn > 0 ? ` − ${inv.paidEarlyByn.toFixed(2)} погашено` : ''}
+                            <div className={`text-[11px] mt-1 font-mono ${isSelected && !isPaid ? 'text-white/75' : 'text-slate-500'}`}>
+                              {inv.billableMinutes} мин × {inv.ratePerMinute.toFixed(2)} + {inv.subscriptionFeeByn.toFixed(2)} линия
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-sm font-bold font-mono">
                               {isPaid ? `${inv.totalAmountByn.toFixed(2)} BYN` : `${inv.remainingDueByn.toFixed(2)} BYN`}
-                            </div>
-                            <div className={`text-[10px] ${isSelected && !isPaid ? 'text-white/70' : 'text-[#777169]'}`}>
-                              {inv.invoiceNumber}
                             </div>
                           </div>
                         </button>
@@ -632,132 +378,97 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                 )}
               </div>
 
-              {/* Payment Methods (bePaid ERIP, Card, Invoice for Legal Entities) */}
-              <div className="space-y-3">
-                <span className="font-normal text-[#777169] text-xs block">
-                  Способ оплаты (через bePaid / Беларусь):
+              {/* Payment Methods: Only Card & ERIP */}
+              <div className="space-y-2.5">
+                <span className="font-semibold text-slate-900 text-xs block">
+                  Способ онлайн-оплаты (через bePaid):
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <button
-                    type="button"
-                    aria-pressed={paymentMethod === 'erip'}
-                    onClick={() => setPaymentMethod('erip')}
-                    className={`p-3.5 rounded-[12px] text-left flex items-start gap-2.5 transition-all cursor-pointer ${
-                      paymentMethod === 'erip'
-                        ? 'liquid-glass-dark text-white'
-                        : 'liquid-glass-cream text-black hover:border-black/20'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      paymentMethod === 'erip' ? 'bg-white/10 text-white' : 'liquid-glass-card text-black'
-                    }`}>
-                      <span className="text-xs font-bold">ЕРИП</span>
-                    </div>
-                    <div>
-                      <div className="text-xs font-medium leading-tight">ЕРИП (bePaid)</div>
-                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'erip' ? 'text-white/70' : 'text-[#777169]'}`}>QR / АИС «Расчет»</div>
-                    </div>
-                  </button>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     aria-pressed={paymentMethod === 'card'}
                     onClick={() => setPaymentMethod('card')}
-                    className={`p-3.5 rounded-[12px] text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                       paymentMethod === 'card'
-                        ? 'liquid-glass-dark text-white'
-                        : 'liquid-glass-cream text-black hover:border-black/20'
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-slate-50 hover:bg-white text-slate-900 border-slate-200'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      paymentMethod === 'card' ? 'bg-white/10 text-white' : 'liquid-glass-card text-black'
+                      paymentMethod === 'card' ? 'bg-white/15 text-white' : 'bg-white border border-slate-200 text-slate-900'
                     }`}>
                       <CreditCardIcon size={18} />
                     </div>
                     <div>
-                      <div className="text-xs font-medium leading-tight">Карта (bePaid)</div>
-                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'card' ? 'text-white/70' : 'text-[#777169]'}`}>БЕЛКАРТ, Visa, MC</div>
+                      <div className="text-xs font-bold leading-tight">Банковская карта</div>
+                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'card' ? 'text-white/70' : 'text-slate-500'}`}>
+                        БЕЛКАРТ, Visa, Mastercard
+                      </div>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    aria-pressed={paymentMethod === 'bank_invoice'}
-                    onClick={() => setPaymentMethod('bank_invoice')}
-                    className={`p-3.5 rounded-[12px] text-left flex items-start gap-2.5 transition-all cursor-pointer ${
-                      paymentMethod === 'bank_invoice'
-                        ? 'liquid-glass-dark text-white'
-                        : 'liquid-glass-cream text-black hover:border-black/20'
+                    aria-pressed={paymentMethod === 'erip'}
+                    onClick={() => setPaymentMethod('erip')}
+                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      paymentMethod === 'erip'
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-slate-50 hover:bg-white text-slate-900 border-slate-200'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      paymentMethod === 'bank_invoice' ? 'bg-white/10 text-white' : 'liquid-glass-card text-black'
+                      paymentMethod === 'erip' ? 'bg-white/15 text-white' : 'bg-amber-100 text-amber-900'
                     }`}>
-                      <ReceiptIcon size={18} />
+                      <span className="text-[11px] font-extrabold">ЕРИП</span>
                     </div>
                     <div>
-                      <div className="text-xs font-medium leading-tight">Безнал (ИП / ООО)</div>
-                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'bank_invoice' ? 'text-white/70' : 'text-[#777169]'}`}>Счёт в BYN и акт</div>
+                      <div className="text-xs font-bold leading-tight">Система «Расчёт» (ЕРИП)</div>
+                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'erip' ? 'text-white/70' : 'text-slate-500'}`}>
+                        Оплата по QR-коду в банке
+                      </div>
                     </div>
                   </button>
                 </div>
-
-                {paymentMethod === 'bank_invoice' && (
-                  <div className="pt-1">
-                    <label htmlFor="invoice-unp" className="block text-[11px] font-normal text-black mb-1">
-                      УНП вашей организации или ИП (необязательно):
-                    </label>
-                    <input
-                      id="invoice-unp"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={9}
-                      value={unpInput}
-                      onChange={(e) => setUnpInput(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Напр. 193991846"
-                      className="w-full px-3.5 py-2 rounded-xl bg-white border border-black/[0.08] text-xs font-mono text-black focus:outline-none focus:border-black"
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Order Summary & Security Note */}
-              <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.08] space-y-2">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#59544F]">Выговоренные минуты (сверх 15 бесплатных):</span>
-                  <span className="font-medium text-black font-mono">{finalMinutes.toFixed(1)} мин</span>
+                  <span className="text-slate-600">Объём голосовых минут:</span>
+                  <span className="font-bold text-slate-900 font-mono">{finalMinutes.toFixed(0)} мин</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#59544F]">Тариф за минуту:</span>
-                  <span className="text-[#59544F] font-mono">{finalRate.toFixed(2)} BYN / мин</span>
+                  <span className="text-slate-600">Стоимость минуты:</span>
+                  <span className="text-slate-600 font-mono">{finalRate.toFixed(2)} BYN / мин</span>
                 </div>
-                <div className="pt-2 border-t border-black/[0.06] flex justify-between items-baseline">
-                  <span className="text-sm font-normal text-black">
-                    {isEarlyPayment ? 'Досрочная оплата (без НДС):' : 'К оплате по счёту (без НДС):'}
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
+                  <span className="text-sm font-semibold text-slate-900">
+                    Итого к оплате:
                   </span>
-                  <span className="text-2xl font-medium text-black">
+                  <span className="text-2xl font-extrabold font-mono text-slate-900">
                     {finalAmountByn.toFixed(2)} BYN
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] text-[#777169]">
-                <ShieldCheckIcon size={15} className="text-black shrink-0" aria-hidden="true" />
-                <span>Безопасный приём платежей обеспечивает <strong>bePaid</strong> (PCI DSS Level 1). Счета выставляются 1-го числа с отсрочкой 7 дней.</span>
+              <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <ShieldCheckIcon size={15} className="text-emerald-600 shrink-0" aria-hidden="true" />
+                <span>Безопасный приём платежей обеспечивает <strong>bePaid</strong> (PCI DSS Level 1).</span>
               </div>
             </>
           )}
         </div>
 
         {/* Footer Actions */}
-        {!isSuccess && !invoiceReady && (
-          <div className="p-5 border-t border-black/[0.06] bg-[#F5F3F1]/70 flex items-center justify-between gap-3">
+        {!isSuccess && (
+          <div className="p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isProcessing}
-              className="px-5 h-10 rounded-full liquid-glass-pill text-xs font-normal text-black hover:bg-white transition-colors cursor-pointer"
+              className="px-5 h-10 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Отмена
             </button>
@@ -766,7 +477,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               type="button"
               onClick={handlePay}
               disabled={isProcessing}
-              className="flex-1 sm:flex-initial px-7 h-11 rounded-full liquid-glass-btn-primary text-white text-xs font-normal transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.98]"
+              className="flex-1 sm:flex-initial px-7 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.98]"
             >
               {isProcessing ? (
                 <>
@@ -777,11 +488,9 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                 <>
                   <WalletMoneyIcon size={16} aria-hidden="true" />
                   <span>
-                    {paymentMethod === 'bank_invoice'
-                      ? `Сформировать счёт на ${finalAmountByn.toFixed(2)} BYN`
-                      : isEarlyPayment
-                      ? `Погасить досрочно ${finalAmountByn.toFixed(2)} BYN`
-                      : `Оплатить ${finalAmountByn.toFixed(2)} BYN через bePaid`}
+                    {paymentMethod === 'erip'
+                      ? `Оплатить ${finalAmountByn.toFixed(2)} BYN через ЕРИП`
+                      : `Оплатить ${finalAmountByn.toFixed(2)} BYN картой`}
                   </span>
                 </>
               )}

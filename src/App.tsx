@@ -525,6 +525,7 @@ export function App() {
             >
               <DashboardLayout
                 user={user}
+                onUserUpdated={setUser}
                 agent={agent}
                 onSaveAgent={(updatedAgent) => {
                   setAgent(updatedAgent);

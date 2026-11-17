@@ -121,20 +121,30 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
   return (
     <form id="active-workspace-form" onSubmit={handleSave} className="space-y-6 max-w-4xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/[0.08]">
-        <div>
-          <h2 className="text-xl font-medium text-black tracking-tight">
+      {/* Top Dark Hero Header */}
+      <div className="p-6 rounded-3xl bg-[#141417] text-white border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div
+          className="pointer-events-none absolute -top-20 -right-16 w-64 h-64 rounded-full opacity-25"
+          style={{
+            background: 'radial-gradient(circle, rgba(20, 184, 166, 0.55) 0%, rgba(59, 130, 246, 0.25) 60%, transparent 75%)'
+          }}
+        />
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-[11px] font-semibold mb-1.5">
+            <Phone className="w-3.5 h-3.5" />
+            <span>Телефония РБ (А1 • МТС • Белтелеком)</span>
+          </div>
+          <h2 className="text-xl font-bold text-white tracking-tight">
             Подключение номера
           </h2>
-          <p className="text-xs text-[#777169] mt-0.5">
+          <p className="text-xs text-zinc-300 mt-0.5">
             Настройте, как бот принимает входящие звонки и на какой номер переводит клиента
           </p>
         </div>
 
         <button
           type="submit"
-          className="liquid-glass-btn-primary px-5 py-2.5 rounded-[12px] text-xs font-medium text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs self-start sm:self-auto"
+          className="relative z-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm self-start sm:self-auto shrink-0"
         >
           <Save className="w-4 h-4" />
           <span>Сохранить настройки</span>
@@ -150,7 +160,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="p-3.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-medium"
+            className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-semibold"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Настройки телефонии сохранены! Номер готов к работе.</span>
@@ -159,41 +169,46 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
       </AnimatePresence>
 
       {/* CARD 1: Как принимать звонки (Аренда номера А1 ВАТС или Свой SIP) */}
-      <div className="p-5 sm:p-6 rounded-[16px] liquid-glass-card space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-black/[0.08]">
-          <div>
-            <h3 className="text-sm font-medium text-black">
-              1. Подключение телефонного номера
-            </h3>
-            <p className="text-xs text-[#777169] mt-0.5">
-              Выберите: арендовать готовый номер А1 ВАТС у нас (15 BYN/мес) или подключить свою SIP-линию (0 BYN/мес)
-            </p>
+      <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-200 flex items-center justify-center font-bold text-xs shrink-0">
+              01
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                Подключение телефонного номера
+              </h3>
+              <p className="text-xs text-slate-500">
+                Выберите: арендовать готовый номер А1 ВАТС у нас (15 BYN/мес) или подключить свою SIP-линию (0 BYN/мес)
+              </p>
+            </div>
           </div>
-          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 self-start">
+          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 self-start sm:self-auto">
             {localSip.byoSipMode ? 'Своя SIP-линия (0 BYN/мес)' : 'Аренда А1 ВАТС (15 BYN/мес)'}
           </span>
         </div>
 
         {/* Выбор режима подключения */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <button
             type="button"
             onClick={() => handleSelectRentalMode(false)}
-            className={`p-4 rounded-[12px] text-left transition-all border cursor-pointer ${
+            className={`p-4 rounded-2xl text-left transition-all border cursor-pointer ${
               !localSip.byoSipMode
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'liquid-glass-cream text-black border-black/[0.06] hover:bg-white'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-slate-50/80 text-slate-900 border-slate-200 hover:bg-white'
             }`}
           >
             <div className="flex items-center justify-between mb-1.5 gap-2">
-              <span className="text-xs font-medium">Аренда номера Voxi (А1 ВАТС)</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                !localSip.byoSipMode ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+              <span className="text-xs font-bold">Аренда номера Voxi (А1 ВАТС)</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                !localSip.byoSipMode ? 'bg-amber-400 text-slate-950' : 'bg-amber-100 text-amber-900'
               }`}>
                 15 BYN/мес
               </span>
             </div>
-            <p className={`text-[11px] leading-relaxed ${!localSip.byoSipMode ? 'text-white/80' : 'text-[#777169]'}`}>
+            <p className={`text-xs leading-relaxed ${!localSip.byoSipMode ? 'text-zinc-300' : 'text-slate-600'}`}>
               Не нужно оформлять SIP у оператора. Просто включите переадресацию за 10 секунд на выданный вам номер.
             </p>
           </button>
@@ -201,21 +216,21 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
           <button
             type="button"
             onClick={() => handleSelectRentalMode(true)}
-            className={`p-4 rounded-[12px] text-left transition-all border cursor-pointer ${
+            className={`p-4 rounded-2xl text-left transition-all border cursor-pointer ${
               localSip.byoSipMode
-                ? 'bg-black text-white border-black shadow-xs'
-                : 'liquid-glass-cream text-black border-black/[0.06] hover:bg-white'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-slate-50/80 text-slate-900 border-slate-200 hover:bg-white'
             }`}
           >
             <div className="flex items-center justify-between mb-1.5 gap-2">
-              <span className="text-xs font-medium">Подключить свой SIP самостоятельно</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                localSip.byoSipMode ? 'bg-white/20 text-white' : 'bg-black/[0.05] text-[#59544F]'
+              <span className="text-xs font-bold">Подключить свой SIP самостоятельно</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                localSip.byoSipMode ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'
               }`}>
                 0 BYN/мес
               </span>
             </div>
-            <p className={`text-[11px] leading-relaxed ${localSip.byoSipMode ? 'text-white/80' : 'text-[#777169]'}`}>
+            <p className={`text-xs leading-relaxed ${localSip.byoSipMode ? 'text-zinc-300' : 'text-slate-600'}`}>
               Для компаний со своей Виртуальной АТС А1, МТС или Белтелеком — платите только за минуты (0.45 BYN/мин).
             </p>
           </button>
