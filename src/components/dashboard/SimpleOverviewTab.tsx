@@ -52,6 +52,9 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
   const recentCalls = callLogs.slice(0, 3);
   const freeMins = user.billing?.freeMinutesRemaining ?? user.balanceMinutes ?? 0;
   const unpaidDebtByn = user.billing?.unpaidDebtByn ?? 0;
+  const creditLimitByn = user.billing?.creditLimitByn ?? 100;
+  const isSuspended = user.billing?.billingStatus === 'suspended' || unpaidDebtByn > creditLimitByn;
+  const isBotOnline = agent.isActive && !isSuspended;
   const isOwnSip = user.billing ? user.billing.numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode);
 
   // Реальный статус выполнения 3 шагов настройки
@@ -98,6 +101,29 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {isSuspended && (
+        <div
+          role="alert"
+          className="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+        >
+          <div className="space-y-1">
+            <div className="text-sm font-bold text-rose-900">
+              Кредитный лимит ({creditLimitByn} BYN) превышен — бот временно поставлен на паузу
+            </div>
+            <p className="text-xs text-rose-800 leading-relaxed">
+              Накопленная задолженность составляет <strong>{unpaidDebtByn.toFixed(2)} BYN</strong>. Перейдите в раздел «Тариф и оплата» и погасите счёт картой или через ЕРИП, чтобы бот снова принимал звонки.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('billing')}
+            className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 cursor-pointer transition-colors"
+          >
+            Оплатить долг ({unpaidDebtByn.toFixed(2)} BYN) →
+          </button>
+        </div>
+      )}
+
       {/* 1. Dark Contrast Hero Card (Главный статус-блок) */}
       <div className="p-6 sm:p-7 rounded-3xl bg-[#141417] text-white border border-white/10 shadow-xl relative overflow-hidden">
         <div
@@ -111,8 +137,10 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           <div className="flex items-start sm:items-center gap-4">
             <div
               className={`w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                agent.isActive
+                isBotOnline
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : isSuspended
+                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                   : 'bg-white/10 text-zinc-400 border border-white/15'
               }`}
             >
@@ -126,17 +154,23 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
                 </h2>
                 <span
                   className={`px-3 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
-                    agent.isActive
+                    isBotOnline
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : isSuspended
+                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
                       : 'bg-white/10 text-zinc-300 border border-white/15'
                   }`}
                 >
                   <span
                     className={`w-2 h-2 rounded-full ${
-                      agent.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'
+                      isBotOnline ? 'bg-emerald-400 animate-pulse' : isSuspended ? 'bg-rose-400' : 'bg-zinc-400'
                     }`}
                   />
-                  {agent.isActive ? 'Принимает звонки 24/7' : 'Поставлен на паузу'}
+                  {isBotOnline
+                    ? 'Принимает звонки 24/7'
+                    : isSuspended
+                    ? 'Приостановлен (превышен лимит 100 BYN)'
+                    : 'Поставлен на паузу'}
                 </span>
               </div>
 

@@ -122,14 +122,19 @@ export function adaptGreetingForVoice(
   const voiceLabel = voice === 'maxim' ? 'Максим' : 'Анна';
 
   result = result
-    .replace(/меня зовут (Анна|Дмитрий|Полина|Максим)/gi, `меня зовут ${voiceLabel}`)
+    .replace(/(М|м)еня зовут (?:Анна|Дмитрий|Полина|Максим)/g, `$1еня зовут ${voiceLabel}`)
     .replace(
       /(мастер-приёмщик|мастер|администратор|голосовой помощник|специалист)\s+(?:Анна|Дмитрий|Полина|Максим)/gi,
       `$1 ${voiceLabel}`
     );
 
-  if (companyName && templateCompanyName && companyName.trim() && companyName !== templateCompanyName) {
-    result = result.replace(templateCompanyName, companyName.trim());
+  const cleanCompany = companyName?.trim() || '';
+  if (cleanCompany) {
+    if (templateCompanyName && templateCompanyName.trim() && cleanCompany !== templateCompanyName) {
+      result = result.replace(templateCompanyName.trim(), cleanCompany);
+    } else if (/Вас приветствует (?:наша )?компания\./i.test(result)) {
+      result = result.replace(/Вас приветствует (?:наша )?компания\./i, `Вас приветствует компания «${cleanCompany}».`);
+    }
   }
   return ensureMandatoryGreetingNotice(result);
 }

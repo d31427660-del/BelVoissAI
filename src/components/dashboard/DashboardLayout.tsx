@@ -93,7 +93,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const billing = user.billing;
   const freeMins = billing ? billing.freeMinutesRemaining : (user.balanceMinutes || 0);
   const unpaidDebtByn = billing ? billing.unpaidDebtByn : 0;
-  const isSuspended = billing?.billingStatus === 'suspended' || (billing?.overdueInvoicesCount || 0) > 0;
+  const creditLimitByn = billing?.creditLimitByn ?? 100;
+  const isSuspended = billing?.billingStatus === 'suspended' || (billing?.overdueInvoicesCount || 0) > 0 || unpaidDebtByn > creditLimitByn;
+  const isBotOnline = agent.isActive && !isSuspended;
   const isOwnSip = billing ? billing.numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode);
 
   // Save button in header should only appear on tabs that actually have editable settings forms
@@ -259,15 +261,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </span>
               <span
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                  agent.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                  isBotOnline ? 'bg-emerald-500 animate-pulse' : isSuspended ? 'bg-rose-500' : 'bg-slate-400'
                 }`}
-                title={agent.isActive ? 'Бот принимает звонки' : 'Бот на паузе'}
+                title={isBotOnline ? 'Бот принимает звонки' : isSuspended ? 'Приостановлен из-за лимита' : 'Бот на паузе'}
               />
             </div>
             <div className="text-[11px] text-slate-500 flex items-center justify-between">
               <span className="font-mono truncate">{sipSettings.callerId || 'Линия не указана'}</span>
-              <span className={agent.isActive ? 'text-emerald-700 font-semibold' : 'text-slate-500'}>
-                {agent.isActive ? 'На линии' : 'Пауза'}
+              <span className={isBotOnline ? 'text-emerald-700 font-semibold' : isSuspended ? 'text-rose-600 font-semibold' : 'text-slate-500'}>
+                {isBotOnline ? 'На линии' : isSuspended ? 'Лимит превышен' : 'Пауза'}
               </span>
             </div>
           </div>
@@ -404,9 +406,27 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <span className="truncate font-bold">{currentNav.label}</span>
             </div>
 
-            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-semibold text-emerald-800 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{agent.isActive ? 'Бот на линии • отвечает за 0.5 сек' : 'Бот поставлен на паузу'}</span>
+            <div
+              className={`hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold shrink-0 ${
+                isBotOnline
+                  ? 'bg-emerald-50 border-emerald-200/80 text-emerald-800'
+                  : isSuspended
+                  ? 'bg-rose-50 border-rose-200 text-rose-800'
+                  : 'bg-slate-100 border-slate-200 text-slate-700'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isBotOnline ? 'bg-emerald-500 animate-pulse' : isSuspended ? 'bg-rose-500' : 'bg-slate-400'
+                }`}
+              />
+              <span>
+                {isBotOnline
+                  ? 'Бот на линии • отвечает за 0.5 сек'
+                  : isSuspended
+                  ? 'Приём звонков приостановлен (превышен лимит)'
+                  : 'Бот поставлен на паузу'}
+              </span>
             </div>
 
             {activeTab !== 'billing' && (
@@ -521,6 +541,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               onSaveAgent={handleSaveAgentWithToast}
               sipSettings={sipSettings}
               onSaveSip={onSaveSip}
+              onUserUpdated={onUserUpdated}
             />
           )}
 

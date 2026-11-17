@@ -12,7 +12,7 @@ import {
   EyeClosedIcon,
   AltArrowDownIcon as ChevronDown
 } from '@solar-icons/react/bold-duotone';
-import { AgentConfig, SipSettings } from '../../types';
+import { AgentConfig, SipSettings, UserSession } from '../../types';
 import { testSipNode, testFallbackPhone } from '../../lib/vapiService';
 import { ispUpdateNumberRentalMode } from '../../lib/ispDbClient';
 import { FieldLabel } from './FieldHelp';
@@ -22,13 +22,15 @@ interface PhoneTabProps {
   onSaveAgent: (agent: AgentConfig) => void;
   sipSettings: SipSettings;
   onSaveSip: (settings: SipSettings) => void;
+  onUserUpdated?: (user: UserSession) => void;
 }
 
 export const PhoneTab: React.FC<PhoneTabProps> = ({
   agent,
   onSaveAgent,
   sipSettings,
-  onSaveSip
+  onSaveSip,
+  onUserUpdated
 }) => {
   const [localSip, setLocalSip] = useState<SipSettings>({
     ...sipSettings,
@@ -55,9 +57,14 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
   const [isTestingTransfer, setIsTestingTransfer] = useState(false);
   const [transferTestResult, setTransferTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const handleSelectRentalMode = (useOwnSip: boolean) => {
-    setLocalSip((prev) => ({ ...prev, byoSipMode: useOwnSip }));
-    void ispUpdateNumberRentalMode(useOwnSip ? 'own_sip' : 'rental');
+  const handleSelectRentalMode = async (useOwnSip: boolean) => {
+    const nextSip = { ...localSip, byoSipMode: useOwnSip };
+    setLocalSip(nextSip);
+    onSaveSip(nextSip);
+    const freshUser = await ispUpdateNumberRentalMode(useOwnSip ? 'own_sip' : 'rental');
+    if (freshUser && onUserUpdated) {
+      onUserUpdated(freshUser);
+    }
   };
 
   const handleTestSip = async () => {

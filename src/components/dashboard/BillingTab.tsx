@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   WalletMoneyIcon,
   CheckCircleIcon,
@@ -54,7 +54,8 @@ export const BillingTab: React.FC<BillingTabProps> = ({
   const defaultTargetInvoice = unpaidClosedInvoices[0] || currentOpenInvoice;
 
   const freeMinsRemaining = billing ? billing.freeMinutesRemaining : (user.balanceMinutes || 0);
-  const freeMinsTotal = Math.max(15, freeMinsRemaining);
+  const freeMinsUsed = currentOpenInvoice?.freeMinutesUsed ?? 0;
+  const freeMinsTotal = Math.max(15, freeMinsRemaining + freeMinsUsed);
   const freeMinsPercent = Math.min(100, Math.max(0, (freeMinsRemaining / freeMinsTotal) * 100));
 
   const isOwnSip = billing ? billing.numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode);
@@ -68,6 +69,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
     : Math.max(0, +(minutesCostThisMonth + monthlySubByn - paidEarlyThisMonth).toFixed(2));
   const unpaidDebtByn = billing ? billing.unpaidDebtByn : currentMonthTotalByn;
   const creditLimitByn = billing?.creditLimitByn ?? 100;
+  const isSuspended = billing?.billingStatus === 'suspended' || unpaidDebtByn > creditLimitByn;
 
   // Interactive Calculator State (calls per day)
   const [callsPerDay, setCallsPerDay] = useState<number>(10);
@@ -82,6 +84,12 @@ export const BillingTab: React.FC<BillingTabProps> = ({
   const [selectedTarget, setSelectedTarget] = useState<'pack_300' | 'pack_1000' | 'custom' | 'postpaid'>(
     unpaidDebtByn >= 0.5 ? 'postpaid' : 'pack_300'
   );
+
+  useEffect(() => {
+    if (unpaidDebtByn >= 0.5) {
+      setSelectedTarget('postpaid');
+    }
+  }, [unpaidDebtByn]);
   const [customMinutes, setCustomMinutes] = useState<string>('100');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'erip'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -187,6 +195,29 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {isSuspended && (
+        <div
+          role="alert"
+          className="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+        >
+          <div className="space-y-1">
+            <div className="text-sm font-bold text-rose-900">
+              Кредитный лимит ({creditLimitByn} BYN) превышен — приём звонков временно приостановлен
+            </div>
+            <p className="text-xs text-rose-800 leading-relaxed">
+              Накопленная задолженность составила <strong>{unpaidDebtByn.toFixed(2)} BYN</strong>. Оплатите текущий счёт онлайн картой или через ЕРИП — бот автоматически включится обратно.
+            </p>
+          </div>
+          <a
+            href="#payment-section"
+            onClick={() => setSelectedTarget('postpaid')}
+            className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 text-center transition-colors"
+          >
+            Погасить долг ({unpaidDebtByn.toFixed(2)} BYN) →
+          </a>
+        </div>
+      )}
+
       {/* 1. КОМПАКТНЫЙ ТЁМНЫЙ ГЕРОЙ-БЛОК БАЛАНСА */}
       <div className="p-6 sm:p-7 rounded-3xl bg-[#141417] text-white shadow-xl border border-white/10 relative overflow-hidden">
         <div
@@ -209,10 +240,17 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
           <a
             href="#payment-section"
+            onClick={() => {
+              if (unpaidDebtByn >= 0.5) setSelectedTarget('postpaid');
+            }}
             className="px-5 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold inline-flex items-center gap-2 transition-colors shadow-sm self-start md:self-center shrink-0"
           >
             <CreditCardIcon className="w-4 h-4" />
-            <span>Перейти к оплате (Карта / ЕРИП)</span>
+            <span>
+              {unpaidDebtByn >= 0.5
+                ? `Оплатить счёт (${unpaidDebtByn.toFixed(2)} BYN)`
+                : 'Перейти к оплате (Карта / ЕРИП)'}
+            </span>
           </a>
         </div>
 
@@ -221,33 +259,55 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1.5">
             <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>Доступно минут на балансе</span>
-              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
-                Расходуются первыми
+              <span
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                  freeMinsRemaining > 0
+                    ? 'text-emerald-400 bg-emerald-500/15'
+                    : 'text-amber-300 bg-amber-500/15'
+                }`}
+              >
+                {freeMinsRemaining > 0 ? 'Расходуются первыми' : 'Бонус исчерпан'}
               </span>
             </div>
             <div className="text-2xl font-bold font-mono text-white">
-              {freeMinsRemaining.toFixed(1)} <span className="text-xs font-normal text-zinc-400">мин</span>
+              {freeMinsRemaining.toFixed(1)} <span className="text-xs font-normal text-zinc-400">из {freeMinsTotal.toFixed(0)} мин</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-emerald-400 transition-all"
+                className={`h-full rounded-full transition-all ${
+                  freeMinsRemaining > 0 ? 'bg-emerald-400' : 'bg-amber-400'
+                }`}
                 style={{ width: `${freeMinsPercent}%` }}
               />
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
+          <div
+            className={`p-4 rounded-2xl border space-y-1.5 ${
+              isSuspended
+                ? 'bg-rose-500/15 border-rose-400/40'
+                : 'bg-white/[0.06] border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs text-zinc-300">
               <span>К оплате по факту месяца</span>
-              <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full">
-                Лимит {creditLimitByn} BYN
+              <span
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                  isSuspended
+                    ? 'text-rose-200 bg-rose-500/30'
+                    : 'text-amber-300 bg-amber-500/15'
+                }`}
+              >
+                {isSuspended ? 'Лимит превышен!' : `Лимит ${creditLimitByn} BYN`}
               </span>
             </div>
-            <div className="text-2xl font-bold font-mono text-white">
+            <div className={`text-2xl font-bold font-mono ${isSuspended ? 'text-rose-300' : 'text-white'}`}>
               {unpaidDebtByn.toFixed(2)} <span className="text-xs font-normal text-zinc-400">BYN</span>
             </div>
             <p className="text-[11px] text-zinc-400">
-              Выговорено сверх бонуса: <strong className="text-zinc-200">{billableMinsThisMonth.toFixed(1)} мин</strong> ({minutesCostThisMonth.toFixed(2)} BYN)
+              Разговоры: <strong className="text-zinc-200">{billableMinsThisMonth.toFixed(1)} мин</strong> ({minutesCostThisMonth.toFixed(2)} BYN)
+              {monthlySubByn > 0 ? ` + Линия А1: ${monthlySubByn.toFixed(2)} BYN` : ''}
+              {paidEarlyThisMonth > 0 ? ` − Оплачено: ${paidEarlyThisMonth.toFixed(2)} BYN` : ''}
             </p>
           </div>
 

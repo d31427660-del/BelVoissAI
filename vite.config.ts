@@ -260,6 +260,96 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         }
 
         if (action === 'me') {
+          const refHeader = String(req.headers?.referer || '');
+          try {
+            const refUrl = refHeader ? new URL(refHeader) : null;
+            const devSim = refUrl?.searchParams.get('dev_sim');
+            const applyDevMinutes = (usedMinutes: number, callId: string, callerName: string, summary: string) => {
+              if (devCallLogs.some((c) => c.id === callId)) return;
+              devCallLogs = [
+                {
+                  id: callId,
+                  callerNumber: '+375 (29) 777-88-99',
+                  callerName,
+                  timestamp: '2026-11-17 21:55',
+                  durationSeconds: Math.round(usedMinutes * 60),
+                  audioDuration: `${Math.floor(usedMinutes)}:00`,
+                  status: 'lead_captured',
+                  dealValueByn: 90,
+                  costByn: 0,
+                  summary,
+                  capturedData: { clientName: callerName, phone: '+375 (29) 777-88-99', service: summary },
+                  transcript: [{ speaker: 'assistant', text: summary, time: '0:01' }],
+                },
+                ...devCallLogs,
+              ];
+              const rate = devUser.ratePerMinute > 0 ? devUser.ratePerMinute : 0.45;
+              const freeRemaining = Math.max(0, Number(devUser.balanceMinutes || 0));
+              const freeUsed = Number(Math.min(freeRemaining, usedMinutes).toFixed(2));
+              const billableMinutes = Number(Math.max(0, usedMinutes - freeUsed).toFixed(2));
+              const billableCost = Number((billableMinutes * rate).toFixed(2));
+
+              devUser.balanceMinutes = Number(Math.max(0, freeRemaining - freeUsed).toFixed(2));
+              devUser.spentMinutes = Number(((devUser.spentMinutes || 0) + usedMinutes).toFixed(2));
+              devUser.billing.freeMinutesRemaining = devUser.balanceMinutes;
+
+              const inv = devUser.billing.currentInvoice;
+              inv.freeMinutesUsed = Number((inv.freeMinutesUsed + freeUsed).toFixed(2));
+              inv.billableMinutes = Number((inv.billableMinutes + billableMinutes).toFixed(2));
+              inv.minutesAmountByn = Number((inv.minutesAmountByn + billableCost).toFixed(2));
+              inv.totalAmountByn = Number((inv.minutesAmountByn + inv.subscriptionFeeByn).toFixed(2));
+              inv.remainingDueByn = Number(Math.max(0, inv.totalAmountByn - inv.paidEarlyByn).toFixed(2));
+              devUser.billing.unpaidDebtByn = inv.remainingDueByn;
+              devUser.billing.invoices = [inv];
+
+              if (devUser.billing.unpaidDebtByn > (devUser.billing.creditLimitByn || 100)) {
+                devUser.billing.billingStatus = 'suspended';
+                if (devAgent) devAgent.isActive = false;
+              }
+            };
+
+            if (devSim === 'reset') {
+              devUser.balanceMinutes = 15;
+              devUser.spentMinutes = 0;
+              devUser.billing.freeMinutesRemaining = 15;
+              devUser.billing.billingStatus = 'active';
+              devUser.billing.numberRentalMode = 'own_sip';
+              devUser.billing.monthlySubscriptionByn = 0;
+              devUser.billing.currentInvoice = {
+                id: 'inv-dev-202611',
+                periodYm: '2026-11',
+                invoiceNumber: 'СЧ-202611-001',
+                billableMinutes: 0,
+                freeMinutesUsed: 0,
+                ratePerMinute: 0.45,
+                minutesAmountByn: 0,
+                subscriptionFeeByn: 0,
+                paidEarlyByn: 0,
+                totalAmountByn: 0,
+                remainingDueByn: 0,
+                status: 'open',
+                issuedAt: null,
+                dueDate: null,
+                paidAt: null,
+              };
+              devUser.billing.unpaidDebtByn = 0;
+              devUser.billing.invoices = [devUser.billing.currentInvoice];
+              devCallLogs = devCallLogs.filter((c) => !c.id.startsWith('call-live-audit-'));
+              if (devAgent) devAgent.isActive = true;
+            } else if (devSim === 'use_6m') {
+              applyDevMinutes(6, 'call-live-audit-1', 'Иван (Тест 6 мин)', 'Запись на шиномонтаж');
+            } else if (devSim === 'debt_10m') {
+              applyDevMinutes(6, 'call-live-audit-1', 'Иван (Тест 6 мин)', 'Запись на шиномонтаж');
+              applyDevMinutes(19, 'call-live-audit-2', 'Пётр (Тест 19 мин)', 'Длительная консультация по ремонту');
+            } else if (devSim === 'exceed_limit') {
+              applyDevMinutes(6, 'call-live-audit-1', 'Иван (Тест 6 мин)', 'Запись на шиномонтаж');
+              applyDevMinutes(19, 'call-live-audit-2', 'Пётр (Тест 19 мин)', 'Длительная консультация по ремонту');
+              applyDevMinutes(240, 'call-live-audit-3', 'Пул звонков за месяц (240 мин)', 'Серия входящих звонков клиентов');
+            }
+          } catch {
+            // ignore URL parse error
+          }
+
           res.statusCode = 200;
           res.end(
             JSON.stringify({
@@ -300,10 +390,12 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
           devUser.billing.numberRentalMode = mode;
           devUser.billing.monthlySubscriptionByn = subFee;
           devUser.billing.currentInvoice.subscriptionFeeByn = subFee;
-          devUser.billing.currentInvoice.totalAmountByn =
-            devUser.billing.currentInvoice.minutesAmountByn + subFee;
-          devUser.billing.currentInvoice.remainingDueByn =
-            devUser.billing.currentInvoice.totalAmountByn;
+          devUser.billing.currentInvoice.totalAmountByn = Number(
+            (devUser.billing.currentInvoice.minutesAmountByn + subFee).toFixed(2)
+          );
+          devUser.billing.currentInvoice.remainingDueByn = Number(
+            Math.max(0, devUser.billing.currentInvoice.totalAmountByn - devUser.billing.currentInvoice.paidEarlyByn).toFixed(2)
+          );
           devUser.billing.unpaidDebtByn = devUser.billing.currentInvoice.remainingDueByn;
           devUser.billing.invoices = [devUser.billing.currentInvoice];
           devSipSettings.byoSipMode = mode === 'own_sip';
@@ -329,7 +421,43 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
         }
 
         if (action === 'record_call') {
-          if (body.callLog) devCallLogs = [body.callLog, ...devCallLogs];
+          const log = body.callLog;
+          if (log && typeof log === 'object') {
+            if (!devCallLogs.some((c) => c.id === log.id)) {
+              devCallLogs = [log, ...devCallLogs];
+              const durationSec = Math.min(7200, Math.max(0, Number(log.durationSeconds || 0)));
+              const callId = String(log.id || '');
+              const isVoicemail = log.status === 'voicemail_detected';
+              const isTestCall = Boolean(log.isTest) || callId.startsWith('test-') || callId.startsWith('call-sim-');
+              const rate = devUser.ratePerMinute > 0 ? devUser.ratePerMinute : 0.45;
+              const usedMinutes = isTestCall || isVoicemail ? 0 : Math.max(0.25, Number((durationSec / 60).toFixed(2)));
+
+              if (usedMinutes > 0) {
+                const freeRemaining = Math.max(0, Number(devUser.balanceMinutes || 0));
+                const freeUsed = Number(Math.min(freeRemaining, usedMinutes).toFixed(2));
+                const billableMinutes = Number(Math.max(0, usedMinutes - freeUsed).toFixed(2));
+                const billableCost = Number((billableMinutes * rate).toFixed(2));
+
+                devUser.balanceMinutes = Number(Math.max(0, freeRemaining - freeUsed).toFixed(2));
+                devUser.spentMinutes = Number(((devUser.spentMinutes || 0) + usedMinutes).toFixed(2));
+                devUser.billing.freeMinutesRemaining = devUser.balanceMinutes;
+
+                const inv = devUser.billing.currentInvoice;
+                inv.freeMinutesUsed = Number((inv.freeMinutesUsed + freeUsed).toFixed(2));
+                inv.billableMinutes = Number((inv.billableMinutes + billableMinutes).toFixed(2));
+                inv.minutesAmountByn = Number((inv.minutesAmountByn + billableCost).toFixed(2));
+                inv.totalAmountByn = Number((inv.minutesAmountByn + inv.subscriptionFeeByn).toFixed(2));
+                inv.remainingDueByn = Number(Math.max(0, inv.totalAmountByn - inv.paidEarlyByn).toFixed(2));
+                devUser.billing.unpaidDebtByn = inv.remainingDueByn;
+                devUser.billing.invoices = [inv];
+
+                if (devUser.billing.unpaidDebtByn > (devUser.billing.creditLimitByn || 100)) {
+                  devUser.billing.billingStatus = 'suspended';
+                  if (devAgent) devAgent.isActive = false;
+                }
+              }
+            }
+          }
           res.statusCode = 200;
           res.end(JSON.stringify({ ok: true, user: devUser }));
           return;
@@ -342,6 +470,61 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
             driver: 'dev-local',
             configured: true,
             connected: true,
+          })
+        );
+      });
+
+      server.middlewares.use('/api/bepaid-checkout', async (req: any, res: any) => {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+          return;
+        }
+        let rawBody = '';
+        for await (const chunk of req) {
+          rawBody += chunk;
+        }
+        const body = rawBody ? JSON.parse(rawBody) : {};
+        const packages: Record<string, { minutes: number; priceByn: number }> = {
+          pack_100: { minutes: 100, priceByn: 45 },
+          pack_300: { minutes: 300, priceByn: 120 },
+          pack_1000: { minutes: 1000, priceByn: 350 },
+        };
+
+        if (body.packageId && packages[body.packageId]) {
+          const pkg = packages[body.packageId];
+          devUser.balanceMinutes = Number((devUser.balanceMinutes + pkg.minutes).toFixed(2));
+          devUser.billing.freeMinutesRemaining = devUser.balanceMinutes;
+        } else if (body.customMinutes && Number(body.customMinutes) >= 50) {
+          const mins = Math.round(Number(body.customMinutes));
+          devUser.balanceMinutes = Number((devUser.balanceMinutes + mins).toFixed(2));
+          devUser.billing.freeMinutesRemaining = devUser.balanceMinutes;
+        } else if (body.invoiceId || body.payEarly) {
+          const inv = devUser.billing.currentInvoice;
+          if (inv.remainingDueByn < 0.5) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Сумма к оплате по счёту меньше 0.50 BYN' }));
+            return;
+          }
+          inv.paidEarlyByn = inv.totalAmountByn;
+          inv.remainingDueByn = 0;
+          devUser.billing.unpaidDebtByn = 0;
+          devUser.billing.billingStatus = 'active';
+          if (devAgent) devAgent.isActive = true;
+          devUser.billing.invoices = [inv];
+        } else {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Не указан счёт или пакет для оплаты' }));
+          return;
+        }
+
+        res.statusCode = 200;
+        res.end(
+          JSON.stringify({
+            configured: true,
+            redirectUrl: '/dashboard?payment=success',
+            token: 'dev-bepaid-token',
           })
         );
       });

@@ -113,15 +113,21 @@ function voxi_record_postpaid_usage(
 
     $invoice = voxi_get_or_create_open_invoice($pdo, $userRow);
     if (!empty($invoice['id'])) {
+        $newFreeUsed = round((float)($invoice['free_minutes_used'] ?? 0) + $freeUsed, 2);
+        $newBillableMins = round((float)($invoice['billable_minutes'] ?? 0) + $billableMinutes, 2);
+        $newMinutesAmount = round((float)($invoice['minutes_amount_byn'] ?? 0) + $billableCost, 2);
+        $subFee = round((float)($invoice['subscription_fee_byn'] ?? 0), 2);
+        $newTotalAmount = round($newMinutesAmount + $subFee, 2);
+
         $pdo->prepare(
             'UPDATE monthly_invoices
-             SET free_minutes_used = free_minutes_used + ?,
-                 billable_minutes = billable_minutes + ?,
-                 minutes_amount_byn = minutes_amount_byn + ?,
-                 total_amount_byn = minutes_amount_byn + subscription_fee_byn,
+             SET free_minutes_used = ?,
+                 billable_minutes = ?,
+                 minutes_amount_byn = ?,
+                 total_amount_byn = ?,
                  updated_at = NOW()
              WHERE id = ?'
-        )->execute([$freeUsed, $billableMinutes, $billableCost, $invoice['id']]);
+        )->execute([$newFreeUsed, $newBillableMins, $newMinutesAmount, $newTotalAmount, $invoice['id']]);
     }
 
     $desc = $freeUsed > 0 && $billableMinutes <= 0

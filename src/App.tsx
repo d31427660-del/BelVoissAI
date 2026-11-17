@@ -168,6 +168,9 @@ export function App() {
                 cleaned.pricingAndServices = '';
               }
               cleaned.name = `${cleaned.voice === 'maxim' ? 'Максим' : 'Анна'} — ${cleaned.companyName || 'Голосовой ассистент'}`;
+              if (bundle.user?.billing?.billingStatus === 'suspended') {
+                cleaned.isActive = false;
+              }
               cleaned.systemPrompt = generateSystemPrompt(cleaned);
               setAgent(withMandatoryNotice(cleaned));
             } else if (bundle.user?.companyName && !isMockCompanyOrTest(bundle.user.companyName)) {
@@ -177,10 +180,13 @@ export function App() {
                   ...prev,
                   companyName: bundle.user.companyName,
                   name: `${voiceLabel} — ${bundle.user.companyName}`,
+                  isActive: bundle.user?.billing?.billingStatus === 'suspended' ? false : prev.isActive,
                 };
                 updated.systemPrompt = generateSystemPrompt(updated);
                 return updated;
               });
+            } else if (bundle.user?.billing?.billingStatus === 'suspended') {
+              setAgent((prev) => ({ ...prev, isActive: false }));
             }
             if (bundle.sipSettings) setSipSettings(bundle.sipSettings);
             if (bundle.telegramSettings) setTelegramSettings(bundle.telegramSettings);
@@ -213,7 +219,13 @@ export function App() {
       // Баланс начисляет ТОЛЬКО серверный вебхук bePaid; здесь лишь перечитываем актуальное состояние
       setPaymentToast('Оплата принята. Баланс обновится в течение минуты после подтверждения платежа банком.');
       ispGetMe().then((bundle) => {
-        if (bundle) setUser(bundle.user);
+        if (bundle) {
+          setUser(bundle.user);
+          if (bundle.user.billing?.billingStatus === 'active') {
+            setAgent((prev) => ({ ...prev, isActive: true }));
+          }
+          setCurrentView('dashboard');
+        }
       });
       if (user) setCurrentView('dashboard');
       import('canvas-confetti').then(({ default: confetti }) => {
@@ -321,7 +333,12 @@ export function App() {
     if (user) {
       ispRecordCall(newLog)
         .then((freshUser) => {
-          if (freshUser) setUser(freshUser);
+          if (freshUser) {
+            setUser(freshUser);
+            if (freshUser.billing?.billingStatus === 'suspended') {
+              setAgent((prev) => ({ ...prev, isActive: false }));
+            }
+          }
         })
         .catch(() => {});
     }

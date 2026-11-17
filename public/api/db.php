@@ -822,8 +822,8 @@ if ($action === 'signup') {
     $pdo->beginTransaction();
     try {
         $insUser = $pdo->prepare(
-            'INSERT INTO users (id, email, password_hash, company_name, niche, balance_minutes, rate_per_minute, spent_minutes, spent_total_byn, consent_99z_accepted_at)
-             VALUES (?, ?, ?, ?, ?, 15.00, 0.45, 0.00, 0.00, NOW())'
+            "INSERT INTO users (id, email, password_hash, company_name, niche, balance_minutes, rate_per_minute, spent_minutes, spent_total_byn, number_rental_mode, monthly_subscription_byn, consent_99z_accepted_at)
+             VALUES (?, ?, ?, ?, ?, 15.00, 0.45, 0.00, 0.00, 'own_sip', 0.00, NOW())"
         );
         $insUser->execute([$userId, $email, $passwordHash, $companyName, 'custom']);
 
