@@ -64,15 +64,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
 
+  const handleSaveAgentWithToast = (updatedAgent: AgentConfig) => {
+    onSaveAgent(updatedAgent);
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 2600);
+  };
+
   const handleGlobalSave = () => {
     const activeForm = document.getElementById('active-workspace-form') as HTMLFormElement | null;
     if (activeForm) {
       activeForm.requestSubmit();
     } else {
-      onSaveAgent(agent);
+      handleSaveAgentWithToast(agent);
     }
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 2600);
   };
 
   const leadsCount = callLogs.filter((c) => c.status === 'lead_captured').length || callLogs.length;
@@ -439,7 +443,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           {activeTab === 'agent' && (
             <SimpleAgentTab
               agent={agent}
-              onSaveAgent={onSaveAgent}
+              onSaveAgent={handleSaveAgentWithToast}
               onCallCompleted={onCallCompleted}
             />
           )}
@@ -448,7 +452,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <LeadsTab
               callLogs={callLogs}
               agent={agent}
-              onSaveAgent={onSaveAgent}
+              onSaveAgent={handleSaveAgentWithToast}
               telegramSettings={telegramSettings}
               onSaveTelegram={onSaveTelegram}
               webhookSettings={webhookSettings}
@@ -459,7 +463,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           {activeTab === 'phone' && (
             <PhoneTab
               agent={agent}
-              onSaveAgent={onSaveAgent}
+              onSaveAgent={handleSaveAgentWithToast}
               sipSettings={sipSettings}
               onSaveSip={onSaveSip}
             />
