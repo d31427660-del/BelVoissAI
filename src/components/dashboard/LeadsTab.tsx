@@ -45,6 +45,12 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   const [tgTestResult, setTgTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [tgSaveSuccess, setTgSaveSuccess] = useState(false);
 
+  // CRM & Webhook integration states
+  const [partnerToken, setPartnerToken] = useState(agent.yclientsConfig?.partnerToken || '');
+  const [googleCalendarId, setGoogleCalendarId] = useState(agent.yclientsConfig?.companyId || '');
+  const [webhookUrl, setWebhookUrl] = useState(webhookSettings?.webhookUrl || '');
+  const [webhookEnabled, setWebhookEnabled] = useState(webhookSettings?.isEnabled ?? false);
+
   // SMS follow-up toggle
   const [smsFollowUpEnabled, setSmsFollowUpEnabled] = useState<boolean>(
     agent.callerNotification?.isEnabled ?? true
@@ -109,15 +115,39 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
     e?.preventDefault();
     onSaveTelegram(localTg);
 
-    // Also sync SMS follow-up setting in agent config
-    if (agent.callerNotification) {
-      onSaveAgent({
-        ...agent,
-        callerNotification: {
-          ...agent.callerNotification,
-          isEnabled: smsFollowUpEnabled
-        },
-        updatedAt: new Date().toISOString()
+    // Sync SMS follow-up, YCLIENTS, and Google Calendar settings in agent config
+    onSaveAgent({
+      ...agent,
+      callerNotification: agent.callerNotification ? {
+        ...agent.callerNotification,
+        isEnabled: smsFollowUpEnabled
+      } : {
+        isEnabled: smsFollowUpEnabled,
+        channel: 'sms',
+        provider: 'mock',
+        template: 'Здравствуйте, {clientName}! Вы записаны в {companyName} на {bookingTime}. Наш адрес: {address}. Ждём вас!',
+        sendMapLink: false,
+        notifyOnlyOnLead: true
+      },
+      yclientsConfig: {
+        isEnabled: Boolean(partnerToken.trim() || googleCalendarId.trim()),
+        partnerToken: partnerToken.trim(),
+        companyId: googleCalendarId.trim(),
+        platform: partnerToken.trim() ? 'yclients' : (googleCalendarId.trim() ? 'google_calendar' : 'none'),
+        autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? false,
+        notifyClientSms: agent.yclientsConfig?.notifyClientSms ?? false,
+        liveSlotCheckingEnabled: agent.yclientsConfig?.liveSlotCheckingEnabled ?? true
+      },
+      updatedAt: new Date().toISOString()
+    });
+
+    // Save Webhook settings if handler provided
+    if (onSaveWebhook) {
+      onSaveWebhook({
+        webhookUrl: webhookUrl.trim(),
+        secretKey: webhookSettings?.secretKey || '',
+        isEnabled: Boolean(webhookUrl.trim() && webhookEnabled),
+        sendFormat: webhookSettings?.sendFormat || 'json_standard'
       });
     }
 
@@ -195,7 +225,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
             className="p-3.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-medium"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Настройки заявок сохранены! Заявки отправляются в Telegram.</span>
+            <span>Настройки заявок и интеграций успешно сохранены!</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -573,7 +603,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
               <input
                 type="text"
                 placeholder="Вставьте Partner Token YCLIENTS"
-                defaultValue={agent.yclientsConfig?.partnerToken || ''}
+                value={partnerToken}
+                onChange={(e) => setPartnerToken(e.target.value)}
                 className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
               />
             </div>
@@ -586,7 +617,33 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
               <input
                 type="text"
                 placeholder="Вставьте Calendar ID / OAuth Token"
-                defaultValue={agent.yclientsConfig?.companyId || ''}
+                value={googleCalendarId}
+                onChange={(e) => setGoogleCalendarId(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
+              />
+            </div>
+
+            <div className="p-3 rounded-[10px] bg-white border border-black/[0.08] space-y-2 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium text-black">Webhook (HTTP POST уведомления)</div>
+                <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[#777169]">
+                  <input
+                    type="checkbox"
+                    checked={webhookEnabled}
+                    onChange={(e) => setWebhookEnabled(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-black focus:ring-0 cursor-pointer"
+                  />
+                  <span>Включено</span>
+                </label>
+              </div>
+              <p className="text-[11px] text-[#777169]">
+                Отправка JSON данных о каждом звонке и зафиксированном лиде на ваш сервер или CRM.
+              </p>
+              <input
+                type="url"
+                placeholder="https://crm.company.by/api/voxi-webhook"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
                 className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
               />
             </div>

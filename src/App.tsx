@@ -87,6 +87,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
   const [isVoiceTestModalOpen, setIsVoiceTestModalOpen] = useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [selectedPackageForTopUp, setSelectedPackageForTopUp] = useState<MinutePackage | null>(null);
@@ -410,7 +411,10 @@ export function App() {
           currentView={currentView}
           setCurrentView={setCurrentView}
           user={user}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenAuth={(mode = 'signin') => {
+            setAuthModalInitialMode(mode);
+            setIsAuthModalOpen(true);
+          }}
           onLogout={handleLogout}
           onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
         />
@@ -459,7 +463,10 @@ export function App() {
                 onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
                 onOpenAuth={() => {
                   if (user) setCurrentView('dashboard');
-                  else setIsAuthModalOpen(true);
+                  else {
+                    setAuthModalInitialMode('signup');
+                    setIsAuthModalOpen(true);
+                  }
                 }}
               />
 
@@ -471,7 +478,10 @@ export function App() {
 
               <HowItWorks onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
-                else setIsAuthModalOpen(true);
+                else {
+                  setAuthModalInitialMode('signup');
+                  setIsAuthModalOpen(true);
+                }
               }} />
 
               <FaqSection />
@@ -479,7 +489,10 @@ export function App() {
               <CtaSection
                 onOpenAuth={() => {
                   if (user) setCurrentView('dashboard');
-                  else setIsAuthModalOpen(true);
+                  else {
+                    setAuthModalInitialMode('signup');
+                    setIsAuthModalOpen(true);
+                  }
                 }}
                 onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
               />
@@ -581,6 +594,7 @@ export function App() {
         <Suspense fallback={null}>
           <AuthModal
             isOpen={isAuthModalOpen}
+            initialMode={authModalInitialMode}
             initialResetEmail={resetLinkData?.email}
             initialResetToken={resetLinkData?.token}
             onClose={() => {

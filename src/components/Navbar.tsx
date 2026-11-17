@@ -11,7 +11,7 @@ interface NavbarProps {
   currentView: 'landing' | 'dashboard';
   setCurrentView: (view: 'landing' | 'dashboard') => void;
   user: UserSession | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (mode?: 'signin' | 'signup') => void;
   onLogout: () => void;
   onOpenVoiceTest: () => void;
 }
@@ -182,14 +182,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="hidden sm:flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={onOpenAuth}
+                  onClick={() => onOpenAuth('signin')}
                   className="h-9 px-3.5 rounded-full text-[#59544F] hover:text-black font-normal text-xs transition-colors whitespace-nowrap cursor-pointer"
                 >
                   Войти
                 </button>
                 <button
                   type="button"
-                  onClick={onOpenAuth}
+                  onClick={() => onOpenAuth('signup')}
                   className="h-9 px-4 rounded-full liquid-glass-btn-primary text-white font-normal text-xs transition-all whitespace-nowrap cursor-pointer active:scale-[0.98]"
                 >
                   Регистрация
@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Drawer */}
         {currentView === 'landing' && isMobileMenuOpen && (
-          <div className="md:hidden mx-3 mt-2 rounded-[16px] liquid-glass-card shadow-2xl px-5 py-5 space-y-4">
+          <div className="lg:hidden mx-3 mt-2 rounded-[16px] liquid-glass-card shadow-2xl px-5 py-5 space-y-4">
             <nav aria-label="Мобильная" className="flex flex-col space-y-1 text-sm font-normal text-black">
               <a href="#showcase" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
                 Платформа Voxi

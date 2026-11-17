@@ -25,6 +25,7 @@ interface AuthModalProps {
   onClose: () => void;
   onLoginSuccess: (user: UserSession, workspace?: Partial<IspWorkspaceBundle>) => void;
   onOpenLegalDoc?: (doc: LegalDocType) => void;
+  initialMode?: 'signin' | 'signup';
   initialResetEmail?: string;
   initialResetToken?: string;
 }
@@ -45,11 +46,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onLoginSuccess,
   onOpenLegalDoc,
+  initialMode,
   initialResetEmail,
   initialResetToken
 }) => {
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset' | 'confirm_reset'>(
-    initialResetToken ? 'confirm_reset' : 'signin'
+    initialResetToken ? 'confirm_reset' : (initialMode || 'signin')
   );
   const [email, setEmail] = useState(initialResetEmail || '');
   const [password, setPassword] = useState('');
@@ -64,8 +66,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (initialResetToken) {
       setMode('confirm_reset');
       if (initialResetEmail) setEmail(initialResetEmail);
+    } else if (isOpen && initialMode) {
+      setMode(initialMode);
     }
-  }, [initialResetEmail, initialResetToken]);
+  }, [initialResetEmail, initialResetToken, isOpen, initialMode]);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
 
