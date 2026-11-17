@@ -51,11 +51,13 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   onCallCompleted,
   onProceedToDashboard,
 }) => {
+  const safeInitialNiche: BusinessNiche = NICHE_TEMPLATES[initialNiche] ? initialNiche : 'driving_school';
+  const safeInitialVoice: VoiceId = (initialVoice === 'maxim' || initialVoice === 'anna') ? initialVoice : 'anna';
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
-  const [selectedNiche, setSelectedNiche] = useState<BusinessNiche>(initialNiche);
-  const [selectedVoice, setSelectedVoice] = useState<VoiceId>(initialVoice);
+  const [selectedNiche, setSelectedNiche] = useState<BusinessNiche>(safeInitialNiche);
+  const [selectedVoice, setSelectedVoice] = useState<VoiceId>(safeInitialVoice);
   const [callState, setCallState] = useState<CallState>('ready');
   const [callDuration, setCallDuration] = useState(0);
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
@@ -132,7 +134,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     selectedVoiceRef.current = selectedVoice;
   }, [selectedVoice]);
 
-  const currentTemplate = NICHE_TEMPLATES[selectedNiche];
+  const currentTemplate = NICHE_TEMPLATES[selectedNiche] || NICHE_TEMPLATES.driving_school;
   const quickQuestions = NICHE_QUICK_QUESTIONS[selectedNiche] || NICHE_QUICK_QUESTIONS.driving_school;
   const voiceDisplayName = selectedVoice === 'maxim' ? 'Максим' : 'Анна';
 
@@ -429,10 +431,10 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     if (!dialog) return;
 
     if (isOpen) {
-      selectedNicheRef.current = initialNiche;
-      setSelectedNiche(initialNiche);
-      selectedVoiceRef.current = initialVoice;
-      setSelectedVoice(initialVoice);
+      selectedNicheRef.current = safeInitialNiche;
+      setSelectedNiche(safeInitialNiche);
+      selectedVoiceRef.current = safeInitialVoice;
+      setSelectedVoice(safeInitialVoice);
       callLoggedRef.current = false;
       callStateRef.current = 'ready';
       setCallState('ready');
