@@ -19,6 +19,7 @@ import {
 } from '../lib/ispDbClient';
 import { UserSession } from '../types';
 import { LegalDocType } from './Footer';
+import { Button } from '@/components/ui/button';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -185,10 +186,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       {/* Header */}
       <div className="px-7 py-5 border-b border-black/[0.06] flex items-center justify-between">
         <div>
-          <p className="text-xs font-normal text-[#777169] mb-0.5">
+          <p className="text-xs font-normal text-[#777169] mb-0.5 font-mono">
             Voxi Studio
           </p>
-          <h2 id="auth-modal-title" className="text-lg font-medium tracking-tight text-black">
+          <h2 id="auth-modal-title" className="text-lg font-semibold tracking-tight text-slate-900">
             {mode === 'signup'
               ? 'Регистрация (+15 мин в подарок)'
               : mode === 'reset'
@@ -346,10 +347,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 rounded-full liquid-glass-btn-primary text-white font-normal text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+            className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-label="Загрузка"></div>
@@ -367,7 +368,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <ArrowRightIcon size={17} aria-hidden="true" />
               </>
             )}
-          </button>
+          </Button>
         </form>
 
         <div className="flex items-center justify-between text-xs text-[#777169] pt-1">

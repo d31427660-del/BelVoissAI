@@ -11,6 +11,8 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { VoiceId } from '../../types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export const FeatureShowcase: React.FC = () => {
   const [promptVoice, setPromptVoice] = useState<VoiceId>('anna');
@@ -250,9 +252,9 @@ export const FeatureShowcase: React.FC = () => {
         <div className="space-y-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="max-w-2xl space-y-3">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] text-black border border-black/[0.06] text-xs font-normal">
+              <Badge variant="outline" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] text-black border border-black/[0.06] text-xs font-normal tracking-wide">
                 Технологический стек Voxi.by
-              </div>
+              </Badge>
               <h2 className="text-3xl sm:text-4xl lg:text-[40px] text-black tracking-[-0.025em] font-light">
                 Создано для Беларуси.{' '}
                 <span className="font-normal text-black">

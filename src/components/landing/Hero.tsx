@@ -10,6 +10,10 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { VoiceId } from '../../types';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface HeroProps {
   onOpenVoiceTest?: () => void;
@@ -310,12 +314,15 @@ export const Hero: React.FC<HeroProps> = ({
         {/* PART 1: ElevenLabs Editorial Asymmetrical 2-Column Hero Header */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start pb-12 md:pb-14">
           
-          {/* Left Column: Giant Waldenburg-style H1 + ElevenLabs Dual Pill Buttons */}
+          {/* Left Column: H1 + Shadcn UI Buttons & Badges */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full liquid-glass-pill text-black text-xs font-normal">
+            <Badge
+              variant="outline"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-slate-300 bg-white/80 backdrop-blur-sm text-slate-900 text-xs font-normal shadow-xs"
+            >
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Голосовой ИИ для бизнеса Беларуси • Отклик 0.5 сек</span>
-            </div>
+            </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.08] font-light">
               Оживляем голосовые технологии.{' '}
@@ -324,22 +331,25 @@ export const Hero: React.FC<HeroProps> = ({
               </span>
             </h1>
 
-            {/* ElevenLabs Exact Dual Buttons with subtle liquid glass */}
+            {/* Shadcn UI Action Buttons */}
             <div className="pt-1 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-              <button
+              <Button
                 type="button"
+                size="lg"
                 onClick={onOpenAuth}
-                className="inline-flex items-center justify-center rounded-full liquid-glass-btn-primary text-white px-5 h-11 text-base font-normal active:scale-[0.98] gap-2 whitespace-nowrap cursor-pointer"
+                className="rounded-full bg-slate-900 text-white hover:bg-slate-800 px-6 h-12 text-sm font-medium shadow-sm gap-2"
               >
                 <span>Настроить за 5 минут</span>
                 <ArrowRightIcon size={18} />
-              </button>
+              </Button>
 
               {onOpenVoiceTest && (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="lg"
                   onClick={onOpenVoiceTest}
-                  className="inline-flex items-center justify-center rounded-full liquid-glass-pill text-black px-5 h-11 text-base font-normal active:scale-[0.98] transition-all gap-2 whitespace-nowrap cursor-pointer group"
+                  className="rounded-full border-slate-300 bg-white/80 hover:bg-slate-100 text-slate-900 px-6 h-12 text-sm font-medium shadow-sm transition-all gap-2 group"
                 >
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
@@ -347,7 +357,7 @@ export const Hero: React.FC<HeroProps> = ({
                   </span>
                   <SoundwaveCircleIcon size={19} className="text-black group-hover:scale-105 transition-transform" />
                   <span>Поговорить с Voxi прямо сейчас</span>
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -377,78 +387,72 @@ export const Hero: React.FC<HeroProps> = ({
           </div>
         </div>
 
-        {/* PART 2: ElevenLabs Central Interactive Showcase Widget (Exact #F5F3F1 + Liquid Glass) */}
-        <div
+        {/* PART 2: Central Interactive Showcase Widget (shadcn/ui Card + Tabs) */}
+        <Card
           id="showcase"
-          className="rounded-[16px] liquid-glass-cream p-5 sm:p-7 lg:p-8 scroll-mt-24 relative overflow-hidden"
+          className="rounded-2xl border-slate-200/90 bg-white/80 backdrop-blur-md shadow-lg p-5 sm:p-7 lg:p-8 scroll-mt-24 relative overflow-hidden"
         >
           {/* Top Bar: Title & Voice Switcher */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-black/[0.06]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-200/80">
             <div className="flex items-center gap-2.5">
               <span
                 aria-hidden="true"
-                className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs bg-black"
+                className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs bg-slate-900"
               />
-              <span className="text-sm sm:text-base font-medium text-black">
+              <CardTitle className="text-base sm:text-lg font-semibold text-slate-900">
                 Voxi Голос
-              </span>
-              <span className="hidden sm:inline-block text-xs text-[#777169] font-normal">
-                • 5 отраслевых сценариев Беларуси
-              </span>
+              </CardTitle>
+              <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-normal">
+                5 отраслевых сценариев Беларуси
+              </Badge>
             </div>
 
-            {/* Right Status & Voice Switcher Pill */}
+            {/* Right Status & Voice Switcher */}
             <div className="flex items-center justify-between sm:justify-end gap-2">
-              <div className="inline-flex items-center gap-1 bg-black/[0.04] p-1 rounded-full backdrop-blur-sm border border-black/[0.04]">
-                <button
-                  type="button"
-                  onClick={() => handleVoiceChange('anna')}
-                  className={`px-3.5 py-1 rounded-full text-xs font-normal transition-all cursor-pointer ${
-                    selectedVoice === 'anna'
-                      ? 'bg-white text-black shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.04)]'
-                      : 'text-[#777169] hover:text-black'
-                  }`}
-                >
-                  Голос: Анна
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleVoiceChange('maxim')}
-                  className={`px-3.5 py-1 rounded-full text-xs font-normal transition-all cursor-pointer ${
-                    selectedVoice === 'maxim'
-                      ? 'bg-white text-black shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.04)]'
-                      : 'text-[#777169] hover:text-black'
-                  }`}
-                >
-                  Голос: Максим
-                </button>
-              </div>
+              <Tabs
+                value={selectedVoice}
+                onValueChange={(v) => handleVoiceChange(v as VoiceId)}
+              >
+                <TabsList className="bg-slate-100 p-1 rounded-full border border-slate-200">
+                  <TabsTrigger
+                    value="anna"
+                    className="rounded-full px-3.5 py-1 text-xs data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                  >
+                    Голос: Анна
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="maxim"
+                    className="rounded-full px-3.5 py-1 text-xs data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                  >
+                    Голос: Максим
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           </div>
 
-          {/* ElevenLabs 5-Orb Floating Audio Showcase Stage */}
+          {/* 5-Orb Floating Audio Showcase Stage with shadcn Tabs */}
           <div className="space-y-7">
-              
-              {/* Secondary Category Pills */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5">
-                {ORB_SCENARIOS.map((sc, idx) => {
-                  const isCurrent = idx === activeScenarioIndex;
-                  return (
-                    <button
-                      key={sc.id}
-                      type="button"
-                      onClick={() => selectScenarioByIndex(idx)}
-                      className={`px-4 py-2 rounded-full text-xs font-normal transition-all cursor-pointer ${
-                        isCurrent
-                          ? 'liquid-glass-pill text-black'
-                          : 'bg-transparent text-[#59544F] hover:text-black hover:bg-white/40'
-                      }`}
-                    >
-                      {sc.pillLabel}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Category Switcher Tabs */}
+            <Tabs
+              value={ORB_SCENARIOS[activeScenarioIndex].id}
+              onValueChange={(val) => {
+                const idx = ORB_SCENARIOS.findIndex((s) => s.id === val);
+                if (idx !== -1) selectScenarioByIndex(idx);
+              }}
+            >
+              <TabsList className="flex flex-wrap h-auto justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/70">
+                {ORB_SCENARIOS.map((sc) => (
+                  <TabsTrigger
+                    key={sc.id}
+                    value={sc.id}
+                    className="rounded-lg px-3.5 py-1.5 text-xs font-medium text-slate-700 data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-sm"
+                  >
+                    {sc.pillLabel}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
 
               {/* ElevenLabs 5-Orb Floating Audio Stage */}
               <div className="relative py-6 sm:py-8 flex flex-col items-center justify-center overflow-hidden">
@@ -587,53 +591,56 @@ export const Hero: React.FC<HeroProps> = ({
               {/* Live Spoken Script & 3 Interactive Client Questions */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch pt-2">
                 
-                {/* Left: Live Emotional Prompt Reader Card (ElevenLabs 12px Card with Liquid Glass) */}
-                <div className="lg:col-span-6 rounded-[12px] liquid-glass-card p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                {/* Left: Live Emotional Prompt Reader Card (shadcn Card) */}
+                <Card className="lg:col-span-6 rounded-xl border border-slate-200/90 bg-white p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-xs">
                   <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="font-mono text-[11px] font-normal px-2.5 py-1 rounded-full liquid-glass-pill text-black">
+                    <Badge variant="outline" className="font-mono text-[11px] font-normal border-slate-200 text-slate-800">
                       {currentScenario.emotionCue}
-                    </span>
-                    <span className="text-[#777169] font-mono text-[11px]">
+                    </Badge>
+                    <span className="text-slate-500 font-mono text-[11px]">
                       {selectedVoice === 'maxim' ? 'Максим (48 kHz Neural)' : 'Анна (48 kHz Neural)'}
                     </span>
                   </div>
 
                   <div
                     key={`${currentScenario.id}-${selectedVoice}-${activeQuestionId}`}
-                    className="text-sm sm:text-base text-black font-normal leading-relaxed animate-fadeIn"
+                    className="text-sm sm:text-base text-slate-900 font-normal leading-relaxed animate-fadeIn"
                   >
-                    <span className="text-black font-semibold mr-1.5">
+                    <span className="text-slate-950 font-semibold mr-1.5">
                       {selectedVoice === 'maxim' ? 'Максим:' : 'Анна:'}
                     </span>
                     «{currentAnswerText}»
                   </div>
 
-                  <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between gap-3">
-                    <button
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <Button
                       type="button"
+                      size="sm"
                       onClick={handleOrbToggle}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full liquid-glass-btn-primary active:scale-[0.98] text-white text-xs font-normal transition-all cursor-pointer"
+                      className="rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2"
                     >
                       {isSpeaking ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
                       <span>{isSpeaking ? 'Пауза' : 'Озвучить ответ'}</span>
-                    </button>
+                    </Button>
 
                     {onOpenVoiceTest && (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={onOpenVoiceTest}
-                        className="text-xs font-normal text-black hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-slate-700 hover:text-slate-950 gap-1"
                       >
                         <span>Задать свой вопрос микрофоном</span>
                         <ArrowRightIcon size={14} />
-                      </button>
+                      </Button>
                     )}
                   </div>
-                </div>
+                </Card>
 
-                {/* Right: 3 Interactive Question Cards (ElevenLabs 12px Cards with Liquid Glass) */}
+                {/* Right: 3 Interactive Question Cards (shadcn Card) */}
                 <div className="lg:col-span-6 flex flex-col justify-between space-y-2">
-                  <div className="text-[11px] font-normal text-[#777169] tracking-normal px-1 uppercase">
+                  <div className="text-[11px] font-medium text-slate-500 tracking-normal px-1 uppercase">
                     Выберите вопрос клиента для мгновенной озвучки:
                   </div>
 
@@ -644,35 +651,32 @@ export const Hero: React.FC<HeroProps> = ({
                         key={item.id}
                         type="button"
                         onClick={() => playQuestionAnswer(item)}
-                        className={`w-full px-4 py-3 rounded-[12px] text-xs sm:text-sm font-normal flex items-center justify-between gap-3 transition-all text-left cursor-pointer ${
+                        className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center justify-between gap-3 transition-all text-left cursor-pointer ${
                           isSelected
-                            ? 'liquid-glass-btn-primary text-white shadow-sm'
-                            : 'liquid-glass-card hover:bg-white text-black'
+                            ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 text-slate-900'
                         }`}
                       >
                         <span className="flex items-center gap-2.5 min-w-0">
                           <ChatRoundCallIcon
                             size={17}
-                            className={isSelected ? 'text-white shrink-0' : 'text-[#777169] shrink-0'}
+                            className={isSelected ? 'text-white shrink-0' : 'text-slate-500 shrink-0'}
                           />
                           <span className="truncate">«{item.question}»</span>
                         </span>
-                        <span
-                          className={`shrink-0 text-[11px] font-normal px-2.5 py-0.5 rounded-full ${
-                            isSelected
-                              ? 'bg-white/20 text-white'
-                              : 'liquid-glass-pill text-black'
-                          }`}
+                        <Badge
+                          variant={isSelected ? 'secondary' : 'outline'}
+                          className={isSelected ? 'bg-white/20 text-white border-transparent' : 'text-slate-700 border-slate-200'}
                         >
                           {isSelected && isSpeaking ? '● Звучит' : 'Слушать'}
-                        </span>
+                        </Badge>
                       </button>
                     );
                   })}
                 </div>
               </div>
             </div>
-        </div>
+        </Card>
       </div>
     </section>
   );

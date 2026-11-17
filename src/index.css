@@ -2,19 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --apple-bg: #FAF7F2;
-  --apple-surface: #f5f3f0;
-  --apple-text: #1d1d1f;
-  --apple-muted: #6e6e73;
-  --apple-border: #d2d2d7;
+@layer base {
+  :root {
+    --background: 40 33% 97%;
+    --foreground: 240 10% 12%;
 
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', sans-serif;
-  color-scheme: light;
-  background-color: #FAF7F2;
-  color: #1d1d1f;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 12%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 40 15% 94%;
+    --secondary-foreground: 240 10% 12%;
+
+    --muted: 40 12% 92%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 40 20% 93%;
+    --accent-foreground: 240 10% 12%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.75rem;
+
+    --apple-bg: #FAF7F2;
+    --apple-surface: #f5f3f0;
+    --apple-text: #1d1d1f;
+    --apple-muted: #6e6e73;
+    --apple-border: #d2d2d7;
+
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', sans-serif;
+    color-scheme: light;
+    background-color: #FAF7F2;
+    color: #1d1d1f;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 224.3 76.3% 48%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
 /* Subtle Modern Liquid Glass Design System (High-Performance GPU-accelerated) */

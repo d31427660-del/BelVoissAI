@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
 const VOICE_MAP_YANDEX: Record<string, { voice: string; emotion?: string }> = {
@@ -542,6 +543,11 @@ function voxiTtsDevPlugin(env: Record<string, string>) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     plugins: [react(), voxiTtsDevPlugin(env)],
     build: {
       rollupOptions: {

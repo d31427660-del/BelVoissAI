@@ -6,6 +6,9 @@ import {
   ArrowRightIcon,
   ShieldCheckIcon
 } from '@solar-icons/react/bold-duotone';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface HowItWorksProps {
   onOpenAuth: () => void;
@@ -55,99 +58,102 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onOpenAuth }) => {
     <section id="how-it-works" className="py-24 bg-transparent scroll-mt-20">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-16">
         
-        {/* PART 1: 3-Step Launch Architecture with Liquid Glass */}
+        {/* PART 1: 3-Step Launch Architecture with shadcn/ui Cards */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
             <div className="max-w-2xl space-y-3">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full liquid-glass-pill text-black text-xs font-normal">
+              <Badge
+                variant="outline"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border-slate-300 bg-white/80 text-slate-900 text-xs font-medium shadow-xs"
+              >
                 Быстрый запуск
-              </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-[44px] text-black tracking-[-0.025em] font-light leading-tight">
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl lg:text-[44px] text-slate-950 tracking-[-0.025em] font-light leading-tight">
                 Настройка за 5 минут.{' '}
-                <span className="text-[#59544F]">
+                <span className="text-slate-500 font-normal">
                   Без участия разработчиков.
                 </span>
               </h2>
             </div>
 
-            <button
+            <Button
               type="button"
+              size="lg"
               onClick={onOpenAuth}
-              className="self-start sm:self-auto inline-flex items-center justify-center gap-2 px-5 h-11 rounded-full liquid-glass-btn-primary text-white text-xs sm:text-sm font-normal active:scale-[0.98] transition-all cursor-pointer shadow-xs"
+              className="self-start sm:self-auto rounded-full bg-slate-900 hover:bg-slate-800 text-white px-6 h-11 text-xs sm:text-sm font-medium transition-all shadow-sm gap-2"
             >
               <span>Перейти к конструктору</span>
               <ArrowRightIcon size={16} />
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {steps.map((step, idx) => (
-              <div
+              <Card
                 key={idx}
-                className="p-7 sm:p-8 rounded-[16px] liquid-glass-cream hover:bg-white/90 transition-all flex flex-col justify-between space-y-6"
+                className="rounded-2xl border-slate-200/90 bg-white/80 hover:bg-white transition-all shadow-xs hover:shadow-md p-6 sm:p-7 flex flex-col justify-between space-y-6"
               >
                 <div className="space-y-5">
                   <div className="flex items-center justify-between">
-                    <div className="w-11 h-11 rounded-[10px] liquid-glass-pill flex items-center justify-center text-black">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-900 border border-slate-200 flex items-center justify-center">
                       {step.icon}
                     </div>
-                    <span className="text-xs font-mono font-normal px-3 py-1 rounded-full liquid-glass-pill text-black">
+                    <Badge variant="secondary" className="text-xs font-mono font-medium px-3 py-1 rounded-full">
                       {step.badge}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-xs font-mono text-[#777169] font-normal">
+                    <div className="text-xs font-mono text-slate-500 font-medium">
                       ШАГ {step.num}
                     </div>
-                    <h3 className="text-lg font-medium text-black tracking-tight">
+                    <CardTitle className="text-lg font-semibold text-slate-950 tracking-tight">
                       {step.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-[#59544F] leading-relaxed font-normal">
+                    </CardTitle>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                       {step.desc}
                     </p>
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
 
-        {/* PART 2: ElevenLabs "Safety, built in" 3-Pillar Section with Liquid Glass */}
-        <div className="rounded-[16px] liquid-glass-cream p-6 sm:p-8 lg:p-9">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/[0.075]">
+        {/* PART 2: Safety, built in 3-Pillar Section with shadcn Card */}
+        <Card className="rounded-2xl border-slate-200/90 bg-white/90 shadow-sm p-6 sm:p-8 lg:p-9">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/80">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[10px] liquid-glass-pill text-black flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 border border-slate-200 flex items-center justify-center">
                 <ShieldCheckIcon size={22} />
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl font-medium text-black tracking-tight">
+                <CardTitle className="text-lg sm:text-xl font-semibold text-slate-950 tracking-tight">
                   Надёжность и безопасность, встроенные в ядро
-                </h3>
-                <p className="text-xs text-[#777169] font-normal">
+                </CardTitle>
+                <p className="text-xs text-slate-500">
                   Многоуровневый контроль ответов ИИ и соответствие законодательству Республики Беларусь
                 </p>
               </div>
             </div>
-            <span className="font-mono text-xs font-normal text-black liquid-glass-pill px-3.5 py-1 rounded-full self-start sm:self-auto">
+            <Badge variant="outline" className="font-mono text-xs font-medium text-slate-800 border-slate-300 bg-slate-50 px-3.5 py-1 rounded-full self-start sm:self-auto">
               SLA 99.9% • Закон № 99‑З
-            </span>
+            </Badge>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-            {safetyPillars.map((pillar, i) => (
+            {safetyPillars.map((p, i) => (
               <div key={i} className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-black">
-                  <span className="w-1.5 h-1.5 rounded-full bg-black shrink-0" />
-                  <span>{pillar.title}</span>
+                <div className="text-sm font-semibold text-slate-900 tracking-tight">
+                  {p.title}
                 </div>
-                <p className="text-xs sm:text-sm text-[#59544F] leading-relaxed font-normal">
-                  {pillar.desc}
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {p.desc}
                 </p>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
       </div>
     </section>

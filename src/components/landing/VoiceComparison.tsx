@@ -6,6 +6,9 @@ import {
   AltArrowRightIcon
 } from '@solar-icons/react/bold-duotone';
 import { VoiceSimulator } from '../../lib/speechSynth';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface TimelineMilestone {
   id: string;
@@ -111,12 +114,12 @@ export const VoiceComparison: React.FC = () => {
         {/* PART 1: Audio Benchmark Comparison */}
         <div>
           <div className="mb-12 max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] text-black text-xs font-normal border border-black/[0.06]">
+            <Badge variant="outline" className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border-slate-300 bg-white/80 text-slate-900 text-xs font-medium shadow-xs">
               Аудио-бенчмарк • Качество речи
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-[40px] text-black tracking-[-0.025em] font-light">
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl lg:text-[40px] text-slate-950 tracking-[-0.025em] font-light leading-tight">
               Естественный диалог.{' '}
-              <span className="font-normal text-black">
+              <span className="font-normal text-slate-950">
                 Без кнопочных меню и пауз.
               </span>
             </h2>
@@ -126,40 +129,37 @@ export const VoiceComparison: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            {/* Old Robot Card (ElevenLabs 16px Card with Liquid Glass) */}
-            <div className="p-6 sm:p-8 rounded-[16px] liquid-glass-cream space-y-6 flex flex-col justify-between">
+            {/* Old Robot Card (shadcn/ui Card) */}
+            <Card className="p-6 sm:p-8 rounded-2xl border-slate-200/90 bg-white/80 shadow-sm space-y-6 flex flex-col justify-between">
               <div className="space-y-5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-[#777169]">Классический IVR-автоответчик</span>
-                  <span className="px-3 py-1 rounded-full liquid-glass-pill text-rose-700 text-[11px] font-mono">
+                  <span className="font-medium text-slate-600">Классический IVR-автоответчик</span>
+                  <Badge variant="destructive" className="font-mono text-[11px] font-normal">
                     3 500 мс задержка
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-medium text-black tracking-tight">
+                  <CardTitle className="text-xl font-semibold text-slate-950 tracking-tight">
                     «Нажмите один для соединения...»
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#59544F] leading-relaxed">
+                  </CardTitle>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Механическая интонация, длинные голосовые меню и отсутствие понимания живой речи приводят к потере до 45% звонящих клиентов.
                   </p>
                 </div>
 
-                <button
+                <Button
                   type="button"
+                  variant={playingSide === 'old' ? 'default' : 'outline'}
                   onClick={handlePlayOld}
-                  className={`w-full h-11 rounded-full flex items-center justify-center gap-2 text-xs font-normal transition-all cursor-pointer ${
-                    playingSide === 'old'
-                      ? 'bg-black text-white'
-                      : 'liquid-glass-pill text-black active:scale-[0.98]'
-                  }`}
+                  className="w-full h-11 rounded-full gap-2 text-xs font-medium"
                 >
                   <VolumeLoudIcon size={17} />
                   <span>{playingSide === 'old' ? 'Остановить' : 'Прослушать обычный IVR'}</span>
-                </button>
+                </Button>
               </div>
 
-              <ul className="space-y-2.5 text-xs sm:text-sm text-[#59544F] border-t border-black/[0.075] pt-5">
+              <ul className="space-y-2.5 text-xs sm:text-sm text-slate-600 border-t border-slate-100 pt-5">
                 <li className="flex items-center gap-2.5">
                   <span className="w-4 h-4 rounded-full bg-rose-100 text-rose-600 text-xs font-bold flex items-center justify-center shrink-0">✕</span>
                   <span>Заставляет слушать длинное меню цифр</span>
@@ -173,45 +173,45 @@ export const VoiceComparison: React.FC = () => {
                   <span>Не проверяет свободные окна в расписании</span>
                 </li>
               </ul>
-            </div>
+            </Card>
 
-            {/* Voxi AI Card (Liquid Glass Dark Card) */}
-            <div className="p-6 sm:p-8 rounded-[16px] liquid-glass-dark text-white space-y-6 flex flex-col justify-between relative overflow-hidden">
+            {/* Voxi AI Card (shadcn/ui Card Dark) */}
+            <Card className="p-6 sm:p-8 rounded-2xl bg-neutral-950 text-white border-neutral-800 shadow-xl space-y-6 flex flex-col justify-between relative overflow-hidden">
               <div className="space-y-5 relative z-10">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-white flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     Voxi.by Neural v2.5
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-white/10 text-emerald-400 border border-white/15 text-[11px] font-mono font-medium">
+                  <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 bg-emerald-500/10 text-[11px] font-mono font-medium">
                     510 мс отклик • МТС и А1
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-medium text-white tracking-tight">
+                  <CardTitle className="text-xl font-semibold text-white tracking-tight">
                     «Здравствуйте! Чем могу помочь?»
-                  </h3>
+                  </CardTitle>
                   <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-normal">
                     Живая естественная речь без пауз, точное знание прайс-листа в BYN, сверка слотов и мгновенная отправка заявки в Telegram.
                   </p>
                 </div>
 
-                <button
+                <Button
                   type="button"
                   onClick={handlePlayAi}
-                  className={`w-full h-11 rounded-full flex items-center justify-center gap-2 text-xs font-normal transition-all shadow-sm cursor-pointer ${
+                  className={`w-full h-11 rounded-full gap-2 text-xs font-medium ${
                     playingSide === 'ai'
-                      ? 'bg-emerald-400 text-black'
-                      : 'bg-white hover:bg-[#FDFCFC] text-black active:scale-[0.98]'
+                      ? 'bg-emerald-400 text-black hover:bg-emerald-300'
+                      : 'bg-white hover:bg-slate-100 text-black'
                   }`}
                 >
                   <VolumeLoudIcon size={17} />
                   <span>{playingSide === 'ai' ? 'Остановить' : 'Прослушать Voxi v2.5'}</span>
-                </button>
+                </Button>
               </div>
 
-              <ul className="space-y-2.5 text-xs sm:text-sm text-white border-t border-white/15 pt-5 relative z-10">
+              <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-200 border-t border-neutral-800 pt-5 relative z-10">
                 <li className="flex items-center gap-2.5">
                   <CheckCircleIcon size={18} className="text-emerald-400 shrink-0" />
                   <span>Отвечает на звонок за 0.5 секунды без очередей</span>
@@ -225,12 +225,12 @@ export const VoiceComparison: React.FC = () => {
                   <span>Проверяет свободные окна и присылает SMS-визитку</span>
                 </li>
               </ul>
-            </div>
+            </Card>
           </div>
         </div>
 
-        {/* PART 2: ElevenLabs-Inspired Interactive Graduated Ruler Timeline with Liquid Glass */}
-        <div className="rounded-[16px] liquid-glass-cream p-6 sm:p-8 space-y-7">
+        {/* PART 2: Timeline with shadcn/ui Card */}
+        <Card className="rounded-2xl border-slate-200/90 bg-white/80 shadow-sm p-6 sm:p-8 space-y-7">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="text-xs font-medium text-[#777169] uppercase tracking-wider">
@@ -331,11 +331,11 @@ export const VoiceComparison: React.FC = () => {
                 {currentMilestone.description}
               </p>
             </div>
-            <span className="self-start sm:self-center shrink-0 px-3.5 py-1.5 rounded-full liquid-glass-pill text-xs font-mono font-normal text-black">
+            <span className="self-start sm:self-center shrink-0 px-3.5 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-800">
               {currentMilestone.tag}
             </span>
           </div>
-        </div>
+        </Card>
 
       </div>
     </section>

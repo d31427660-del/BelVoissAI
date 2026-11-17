@@ -7,6 +7,8 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { UserSession } from '../types';
 import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface NavbarProps {
   currentView: 'landing' | 'dashboard';
@@ -136,65 +138,75 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* Right Action Buttons (ElevenLabs Exact Button Hierarchy) */}
+          {/* Right Action Buttons (shadcn UI Button hierarchy) */}
           <div className="flex items-center gap-2">
             {currentView === 'landing' && onOpenVoiceTest && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={onOpenVoiceTest}
-                className="hidden lg:inline-flex items-center gap-2 h-9 px-3.5 rounded-full liquid-glass-pill text-black active:scale-[0.98] text-xs font-normal transition-all whitespace-nowrap cursor-pointer"
+                className="hidden lg:inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-slate-300 bg-white/80 hover:bg-slate-100 text-slate-900 text-xs font-normal shadow-xs cursor-pointer"
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Поговорить с Voxi</span>
-              </button>
+              </Button>
             )}
 
             {user ? (
               <div className="flex items-center gap-2">
                 {currentView === 'landing' ? (
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
                     onClick={() => setCurrentView('dashboard')}
-                    className="flex items-center gap-1.5 h-9 px-4 rounded-full liquid-glass-btn-primary active:scale-[0.98] text-white font-normal text-xs transition-all whitespace-nowrap cursor-pointer"
+                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-normal text-xs shadow-xs cursor-pointer"
                   >
                     <Widget5Icon size={15} />
                     <span>Кабинет</span>
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setCurrentView('landing')}
-                    className="h-9 px-4 rounded-full liquid-glass-pill hover:bg-black/[0.08] text-black text-xs font-normal transition-colors whitespace-nowrap cursor-pointer"
+                    className="h-9 px-4 rounded-full border-slate-300 bg-white/80 hover:bg-slate-100 text-slate-900 text-xs font-normal shadow-xs cursor-pointer"
                   >
                     На главную
-                  </button>
+                  </Button>
                 )}
 
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={onLogout}
                   aria-label="Выйти из аккаунта"
-                  className="w-8 h-8 rounded-full liquid-glass-pill text-[#777169] hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full text-slate-500 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                 >
                   <Logout2Icon size={16} />
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-1">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => onOpenAuth('signin')}
-                  className="h-9 px-3.5 rounded-full text-[#59544F] hover:text-black font-normal text-xs transition-colors whitespace-nowrap cursor-pointer"
+                  className="h-9 px-3.5 rounded-full text-slate-600 hover:text-slate-950 font-normal text-xs cursor-pointer"
                 >
                   Войти
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => onOpenAuth('signup')}
-                  className="h-9 px-4 rounded-full liquid-glass-btn-primary text-white font-normal text-xs transition-all whitespace-nowrap cursor-pointer active:scale-[0.98]"
+                  className="h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-normal text-xs shadow-xs cursor-pointer"
                 >
                   Регистрация
-                </button>
+                </Button>
               </div>
             )}
 
