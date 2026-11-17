@@ -38,6 +38,15 @@ function generateInvoiceHtml(params: {
   const safeCompanyName = escapeHtml(companyName);
   const safeUnp = unp ? escapeHtml(unp) : '';
   const safeUserEmail = userEmail ? escapeHtml(userEmail) : '';
+  const itemTitle = minutes > 0
+    ? `Предоставление доступа к облачной платформе голосовых ИИ-ассистентов Voxi.by (${minutes} минут диалогов)`
+    : `Абонентская плата за выделенный телефонный номер А1 ВАТС платформы Voxi.by`;
+  const itemQty = minutes > 0 ? minutes : 1;
+  const itemUnit = minutes > 0 ? 'мин.' : 'усл.';
+  const itemPrice = minutes > 0 ? ratePerMinute.toFixed(2) : totalByn.toFixed(2);
+  const purposeText = minutes > 0
+    ? `Оплата по счёту № ${safeInvoiceNo} от ${safeInvoiceDate} за услуги платформы Voxi.by (${minutes} мин) без НДС`
+    : `Оплата по счёту № ${safeInvoiceNo} от ${safeInvoiceDate} за услуги платформы Voxi.by (номер А1 ВАТС) без НДС`;
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -113,10 +122,10 @@ function generateInvoiceHtml(params: {
   <tbody>
     <tr>
       <td class="text-center">1</td>
-      <td>Предоставление доступа к облачной платформе голосовых ИИ-ассистентов Voxi.by (пакет ${minutes} минут диалогов)</td>
-      <td class="text-center">${minutes}</td>
-      <td class="text-center">мин.</td>
-      <td class="text-right">${ratePerMinute.toFixed(2)}</td>
+      <td>${itemTitle}</td>
+      <td class="text-center">${itemQty}</td>
+      <td class="text-center">${itemUnit}</td>
+      <td class="text-right">${itemPrice}</td>
       <td class="text-right"><strong>${totalByn.toFixed(2)}</strong></td>
     </tr>
   </tbody>
@@ -136,7 +145,7 @@ function generateInvoiceHtml(params: {
   <strong>Условия оплаты и поставки:</strong><br>
   1. Оплата данного счёта означает согласие с условиями Публичного договора (оферты), размещённого на сайте https://voxi.by/offer.<br>
   2. Срок оплаты — в течение 5 (пяти) банковских дней с даты выставления.<br>
-  3. Назначение платежа: <em>«Оплата по счёту № ${safeInvoiceNo} от ${safeInvoiceDate} за пакет минут Voxi.by без НДС»</em>.<br>
+  3. Назначение платежа: <em>«${purposeText}»</em>.<br>
   4. По факту оказания услуг первичный учётный документ (акт) составляется единолично Исполнителем (постановление Минфина РБ № 13) и направляется через сервис электронного документооборота ЭДиН либо на email Заказчика.
 </div>
 
@@ -303,7 +312,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
       `Банк: ЗАО «Альфа-Банк», г. Минск, БИК ALFABY2X`,
       `Сумма к оплате: ${finalAmountByn}.00 BYN (без НДС)`,
       `Плательщик: ${user.companyName}${unpInput ? ` (УНП ${unpInput})` : ''}`,
-      `Назначение платежа: Оплата по счёту № ${params.invoiceNo} от ${params.invoiceDate} за пакет ${finalMinutes} минут Voxi.by (без НДС)`
+      `Назначение платежа: Оплата по счёту № ${params.invoiceNo} от ${params.invoiceDate} за услуги платформы Voxi.by ${finalMinutes > 0 ? `(${finalMinutes} мин)` : '(аренда номера А1)'} без НДС`
     ].join('\n');
 
     navigator.clipboard?.writeText(text);
@@ -445,7 +454,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                   </div>
                   <div><strong>IBAN:</strong> BY88ALFA30132G19399184600000</div>
                   <div><strong>Банк:</strong> ЗАО «Альфа-Банк», г. Минск, БИК: ALFABY2X</div>
-                  <div><strong>Назначение:</strong> Оплата по счёту № {invoiceNumber} за пакет {finalMinutes} мин Voxi.by</div>
+                  <div><strong>Назначение:</strong> Оплата по счёту № {invoiceNumber} за услуги Voxi.by {finalMinutes > 0 ? `(${finalMinutes} мин)` : '(аренда номера А1)'} без НДС</div>
                 </div>
 
                 <div className="flex items-baseline justify-between pt-1">

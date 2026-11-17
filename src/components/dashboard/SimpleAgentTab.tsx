@@ -90,9 +90,10 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     const cleanKnowledge = agent.knowledgeBase?.includes('Volkswagen Polo') ? '' : (agent.knowledgeBase || '');
     const voiceLabel = agent.voice === 'maxim' ? 'Максим' : 'Анна';
     const cleanName = `${voiceLabel} — ${cleanCompany || 'Голосовой ассистент'}`;
+    const companyGreeting = cleanCompany ? `компания «${cleanCompany}»` : 'наша компания';
     const cleanFirstMessage = (agent.firstMessage && !isMockCompanyOrTest(agent.firstMessage))
       ? agent.firstMessage
-      : `Здравствуйте! Вас приветствует компания. Меня зовут ${voiceLabel}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`;
+      : `Здравствуйте! Вас приветствует ${companyGreeting}. Меня зовут ${voiceLabel}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`;
 
     const cleanedAgent: AgentConfig = {
       ...agent,

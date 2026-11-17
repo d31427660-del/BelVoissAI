@@ -499,13 +499,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
       </header>
 
       {/* Main Layout: Sidebar + Workspace */}
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 flex flex-col lg:flex-row min-w-0">
         {/* Navigation Sidebar */}
-        <aside className="w-full md:w-64 bg-black/60 border-b md:border-b-0 md:border-r border-white/10 p-3 sm:p-4 shrink-0 flex flex-row md:flex-col gap-1.5 md:gap-1 overflow-x-auto no-scrollbar">
+        <aside className="w-full lg:w-64 bg-black/60 border-b lg:border-b-0 lg:border-r border-white/10 p-3 sm:p-4 shrink-0 flex flex-row lg:flex-col gap-1.5 lg:gap-1 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
+            className={`shrink-0 lg:w-full whitespace-nowrap flex items-center gap-2.5 lg:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-white text-black shadow-sm font-medium'
                 : 'text-zinc-400 hover:bg-white/5 hover:text-white'
@@ -518,13 +518,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
           <button
             type="button"
             onClick={() => setActiveTab('clients')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
+            className={`shrink-0 lg:w-full whitespace-nowrap flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'clients'
                 ? 'bg-white text-black shadow-sm font-medium'
                 : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2.5 md:gap-3">
+            <div className="flex items-center gap-2.5 lg:gap-3">
               <UsersIcon size={18} className="shrink-0" />
               <span>Клиенты и балансы</span>
             </div>
@@ -539,7 +539,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
           <button
             type="button"
             onClick={() => setActiveTab('billing')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
+            className={`shrink-0 lg:w-full whitespace-nowrap flex items-center gap-2.5 lg:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'billing'
                 ? 'bg-white text-black shadow-sm font-medium'
                 : 'text-zinc-400 hover:bg-white/5 hover:text-white'
@@ -552,7 +552,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
           <button
             type="button"
             onClick={() => setActiveTab('telephony')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
+            className={`shrink-0 lg:w-full whitespace-nowrap flex items-center gap-2.5 lg:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'telephony'
                 ? 'bg-white text-black shadow-sm font-medium'
                 : 'text-zinc-400 hover:bg-white/5 hover:text-white'
@@ -565,7 +565,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`shrink-0 md:w-full whitespace-nowrap flex items-center gap-2.5 md:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
+            className={`shrink-0 lg:w-full whitespace-nowrap flex items-center gap-2.5 lg:gap-3 px-3.5 py-2.5 rounded-[12px] text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'settings'
                 ? 'bg-white text-black shadow-sm font-medium'
                 : 'text-zinc-400 hover:bg-white/5 hover:text-white'
@@ -577,7 +577,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
         </aside>
 
         {/* Content Area */}
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 min-w-0">
           {dataError && (
             <div role="alert" className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-xs text-rose-200 space-y-3">
               <div className="flex items-start justify-between gap-3">
@@ -766,7 +766,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                   </p>
                 </div>
 
-                <div className="w-full sm:w-72 relative">
+                <div className="w-full sm:w-72 relative shrink-0">
                   <MagnifierIcon size={16} className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
@@ -1200,7 +1200,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                 <button
                   type="button"
                   onClick={handleCloseMonth}
-                  className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer self-start sm:self-auto"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-medium text-xs transition-colors cursor-pointer self-start sm:self-auto shrink-0"
                 >
                   Закрыть прошлый месяц / Проверить просрочку
                 </button>
