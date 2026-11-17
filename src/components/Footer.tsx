@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Microphone3Icon, CloseCircleIcon, ShieldCheckIcon } from '@solar-icons/react/bold-duotone';
+import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
 
 export type LegalDocType = 'privacy' | 'offer' | 'sla';
 
@@ -36,7 +37,7 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
       '1. Целевой показатель доступности облачной платформы Voxi.by и SIP-шлюза (МТС, А1, Белтелеком IMS, UniTalk) составляет не менее 99.9% времени в расчётном месяце (за исключением плановых работ в ночное окно 03:00–05:00 по минскому времени).',
       '2. Расчётное время голосового отклика ассистента с момента завершения реплики абонента (End-of-Speech Latency) при штатном соединении составляет 450–650 мс.',
       '3. Отказоустойчивость (SIP Failover): при превышении таймаута ответа облачного узла входящий вызов автоматически переадресуется на резервный телефонный номер администратора Заказчика.',
-      '4. Техническая поддержка пользователей осуществляется по электронной почте info@voxi.by и в Telegram (@voxi_support) ежедневно с 09:00 до 21:00 (среднее время первичной реакции — до 15 минут).'
+      '4. Техническая поддержка пользователей осуществляется по электронной почте info@voxi.by, по телефону +375 (29) 138-71-50 и в Telegram (@voxi_manager) ежедневно с 09:00 до 21:00 (среднее время первичной реакции — до 15 минут).'
     ]
   }
 };
@@ -120,6 +121,38 @@ export const Footer: React.FC<FooterProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
               <span>Шлюзы МТС и А1 работают штатно • Отклик 0.5 сек</span>
             </div>
+            <div className="flex items-center gap-2 pt-1">
+              <a
+                href={VOXI_CONTACTS.telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Написать в Telegram"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.08] text-[#1d1d1f] hover:border-[#0088cc] hover:text-[#0088cc] text-[11px] font-medium transition-colors"
+              >
+                <TelegramIcon size={13} />
+                <span>Telegram</span>
+              </a>
+              <a
+                href={VOXI_CONTACTS.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Написать в WhatsApp"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.08] text-[#1d1d1f] hover:border-[#25D366] hover:text-[#25D366] text-[11px] font-medium transition-colors"
+              >
+                <WhatsAppIcon size={13} />
+                <span>WhatsApp</span>
+              </a>
+              <a
+                href={VOXI_CONTACTS.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Открыть Instagram"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.08] text-[#1d1d1f] hover:border-[#E4405F] hover:text-[#E4405F] text-[11px] font-medium transition-colors"
+              >
+                <InstagramIcon size={13} />
+                <span>Instagram</span>
+              </a>
+            </div>
           </div>
 
           <div>
@@ -132,18 +165,63 @@ export const Footer: React.FC<FooterProps> = ({
               <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Возможности платформы</a></li>
               <li><a href="#how-it-works" onClick={(e) => handleLinkClick(e, 'how-it-works')} className="hover:text-[#1d1d1f] transition-colors">Как это работает</a></li>
               <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония МТС и А1</a></li>
+              <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')} className="hover:text-[#1d1d1f] transition-colors">Вопросы и ответы</a></li>
             </ul>
           </div>
 
           <div>
             <h3 className="text-[#1d1d1f] font-semibold mb-3 text-xs">
-              Платформа
+              Мессенджеры и соцсети
             </h3>
-            <ul className="space-y-2 text-xs">
-              <li><a href="#benchmark" onClick={(e) => handleLinkClick(e, 'benchmark')} className="hover:text-[#1d1d1f] transition-colors">Бенчмарк синтеза речи</a></li>
-              <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония МТС и А1</a></li>
-              <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Архитектура и Bento-обзор</a></li>
-              <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')} className="hover:text-[#1d1d1f] transition-colors">Вопросы и ответы</a></li>
+            <ul className="space-y-2.5 text-xs">
+              <li>
+                <a
+                  href={VOXI_CONTACTS.telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-[#1d1d1f] hover:text-[#0088cc] transition-colors group"
+                >
+                  <span className="w-6 h-6 rounded-full bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center shrink-0 group-hover:bg-[#0088cc] group-hover:text-white transition-colors">
+                    <TelegramIcon size={13} />
+                  </span>
+                  <span className="font-medium">Telegram: {VOXI_CONTACTS.telegramHandle}</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href={VOXI_CONTACTS.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-[#1d1d1f] hover:text-[#25D366] transition-colors group"
+                >
+                  <span className="w-6 h-6 rounded-full bg-[#25D366]/10 text-[#25D366] flex items-center justify-center shrink-0 group-hover:bg-[#25D366] group-hover:text-white transition-colors">
+                    <WhatsAppIcon size={13} />
+                  </span>
+                  <span className="font-medium">WhatsApp чат</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href={VOXI_CONTACTS.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-[#1d1d1f] hover:text-[#E4405F] transition-colors group"
+                >
+                  <span className="w-6 h-6 rounded-full bg-[#E4405F]/10 text-[#E4405F] flex items-center justify-center shrink-0 group-hover:bg-[#E4405F] group-hover:text-white transition-colors">
+                    <InstagramIcon size={13} />
+                  </span>
+                  <span className="font-medium">Instagram: {VOXI_CONTACTS.instagramHandle}</span>
+                </a>
+              </li>
+              <li className="pt-1">
+                <a
+                  href={VOXI_CONTACTS.emailMailto}
+                  className="inline-flex items-center gap-1.5 text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
+                >
+                  <span>Email:</span>
+                  <span className="text-[#1d1d1f] font-medium underline underline-offset-2">{VOXI_CONTACTS.email}</span>
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -152,29 +230,19 @@ export const Footer: React.FC<FooterProps> = ({
               Контакты и реквизиты
             </h3>
             <ul className="space-y-2 text-xs">
-              <li>Республика Беларусь, г. Минск</li>
               <li>
-                <a href="tel:+375291124455" className="text-[#1d1d1f] font-medium hover:underline">
-                  +375 (29) 112-44-55
+                <div className="text-[11px] text-[#6e6e73]">Отдел подключений и звонки:</div>
+                <a href={VOXI_CONTACTS.phoneTel} className="text-[#1d1d1f] font-semibold hover:underline text-sm inline-block mt-0.5">
+                  {VOXI_CONTACTS.phoneDisplay}
                 </a>
               </li>
-              <li>
-                <a href="mailto:info@voxi.by" className="text-[#1d1d1f] hover:underline">
-                  info@voxi.by
-                </a>
-                {' • '}
-                <a
-                  href="https://t.me/voxi_support"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-black hover:underline font-medium"
-                >
-                  @voxi_support
-                </a>
+              <li className="text-[11px] text-[#6e6e73] leading-relaxed">
+                {VOXI_CONTACTS.city}<br />
+                {VOXI_CONTACTS.address}
               </li>
-              <li className="pt-1 text-[11px] text-[#6e6e73] leading-relaxed">
-                ИП Беляков Кирилл Олегович<br />
-                УНП 193991846
+              <li className="pt-1 text-[11px] text-[#6e6e73] leading-relaxed border-t border-black/[0.05]">
+                {VOXI_CONTACTS.legalEntity}<br />
+                УНП {VOXI_CONTACTS.unp}
               </li>
             </ul>
           </div>

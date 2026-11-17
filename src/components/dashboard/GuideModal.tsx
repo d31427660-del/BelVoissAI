@@ -5,6 +5,7 @@ import {
   QuestionCircleIcon as HelpCircle,
   LightbulbBoltIcon as Lightbulb
 } from '@solar-icons/react/bold-duotone';
+import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon } from '../../lib/contacts';
 
 interface GuideModalProps {
   isOpen: boolean;
@@ -116,10 +117,29 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-3.5 border-t border-black/[0.06] bg-[#F5F3F1]/70 flex items-center justify-between gap-3">
-            <span className="text-xs text-[#777169]">
-              Нужна помощь с настройкой? Напишите в Telegram: @voxi_support
-            </span>
+          <div className="px-6 py-3.5 border-t border-black/[0.06] bg-[#F5F3F1]/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#777169]">
+              <span>Нужна помощь с настройкой? Напишите менеджеру:</span>
+              <a
+                href={VOXI_CONTACTS.telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-[#0088cc] hover:underline"
+              >
+                <TelegramIcon size={12} />
+                <span>{VOXI_CONTACTS.telegramHandle}</span>
+              </a>
+              <span>или</span>
+              <a
+                href={VOXI_CONTACTS.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-[#25D366] hover:underline"
+              >
+                <WhatsAppIcon size={12} />
+                <span>WhatsApp</span>
+              </a>
+            </div>
             <button
               type="button"
               onClick={onClose}

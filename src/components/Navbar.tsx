@@ -6,6 +6,7 @@ import {
   CloseCircleIcon
 } from '@solar-icons/react/bold-duotone';
 import { UserSession } from '../types';
+import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
 
 interface NavbarProps {
   currentView: 'landing' | 'dashboard';
@@ -262,6 +263,51 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Войти в кабинет
                 </button>
               )}
+            </div>
+
+            {/* Quick Contacts in Mobile Drawer */}
+            <div className="pt-3 border-t border-black/[0.06] space-y-2 text-xs">
+              <div className="text-[11px] text-[#777169]">Связаться с менеджером:</div>
+              <div className="flex items-center justify-between">
+                <a
+                  href={VOXI_CONTACTS.phoneTel}
+                  className="font-medium text-black hover:underline"
+                >
+                  {VOXI_CONTACTS.phoneDisplay}
+                </a>
+                <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
+                  Звонки 24/7
+                </span>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <a
+                  href={VOXI_CONTACTS.telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-1.5 px-2.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-black text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <TelegramIcon size={12} className="text-[#0088cc]" />
+                  <span>Telegram</span>
+                </a>
+                <a
+                  href={VOXI_CONTACTS.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-1.5 px-2.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-black text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <WhatsAppIcon size={12} className="text-[#25D366]" />
+                  <span>WhatsApp</span>
+                </a>
+                <a
+                  href={VOXI_CONTACTS.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="p-1.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-[#E4405F] flex items-center justify-center transition-colors"
+                >
+                  <InstagramIcon size={14} />
+                </a>
+              </div>
             </div>
           </div>
         )}

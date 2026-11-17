@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRightIcon, PhoneCallingRoundedIcon } from '@solar-icons/react/bold-duotone';
+import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon } from '../../lib/contacts';
 
 interface CtaSectionProps {
   onOpenAuth: () => void;
@@ -54,6 +55,36 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenAuth, onOpenVoiceT
                 <PhoneCallingRoundedIcon size={17} />
                 <span>Поговорить с Voxi в браузере</span>
               </button>
+
+              <div className="pt-1 flex flex-wrap items-center justify-center lg:justify-start gap-x-3 gap-y-1 text-[11px] text-white/75">
+                <span>Вопросы по подключению:</span>
+                <a
+                  href={VOXI_CONTACTS.telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white hover:underline font-medium inline-flex items-center gap-1 transition-opacity hover:opacity-90"
+                >
+                  <TelegramIcon size={12} />
+                  <span>Telegram</span>
+                </a>
+                <span className="text-white/30">•</span>
+                <a
+                  href={VOXI_CONTACTS.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white hover:underline font-medium inline-flex items-center gap-1 transition-opacity hover:opacity-90"
+                >
+                  <WhatsAppIcon size={12} />
+                  <span>WhatsApp</span>
+                </a>
+                <span className="text-white/30">•</span>
+                <a
+                  href={VOXI_CONTACTS.phoneTel}
+                  className="text-white hover:underline font-medium font-mono"
+                >
+                  {VOXI_CONTACTS.phoneDisplay}
+                </a>
+              </div>
             </div>
           </div>
         </div>

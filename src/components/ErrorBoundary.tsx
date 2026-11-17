@@ -31,9 +31,13 @@ export class ErrorBoundary extends React.Component<
               Произошла непредвиденная ошибка интерфейса
             </h1>
             <p className="text-xs text-[#6e6e73] leading-relaxed">
-              Пожалуйста, обновите страницу. Если проблема сохраняется, напишите в поддержку{' '}
-              <a href="https://t.me/voxi_support" className="text-[#2563eb] underline font-medium">
-                @voxi_support
+              Пожалуйста, обновите страницу. Если проблема сохраняется, напишите нашему менеджеру в Telegram{' '}
+              <a href="https://t.me/voxi_manager" className="text-[#2563eb] underline font-medium">
+                @voxi_manager
+              </a>{' '}
+              или по телефону{' '}
+              <a href="tel:+375291387150" className="text-[#2563eb] underline font-medium">
+                +375 (29) 138-71-50
               </a>.
             </p>
             <button

@@ -19,6 +19,7 @@ import { SimpleAgentTab } from './SimpleAgentTab';
 import { LeadsTab } from './LeadsTab';
 import { PhoneTab } from './PhoneTab';
 import { GuideModal } from './GuideModal';
+import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon } from '../../lib/contacts';
 
 interface DashboardLayoutProps {
   user: UserSession;
@@ -307,6 +308,43 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             >
               <span>{unpaidDebtByn > 0 ? 'Счета и оплата' : 'Детализация месяца'}</span>
             </button>
+          </div>
+
+          {/* Quick Manager Contacts */}
+          <div className="p-2.5 rounded-[12px] bg-white/60 border border-black/[0.06] space-y-1.5 text-[11px]">
+            <div className="text-[#777169] font-medium flex items-center justify-between">
+              <span>Персональный менеджер</span>
+              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full font-medium">Онлайн</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <a
+                href={VOXI_CONTACTS.telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Написать менеджеру в Telegram (${VOXI_CONTACTS.telegramHandle})`}
+                className="flex-1 py-1 px-2 rounded-md bg-black/[0.04] hover:bg-[#0088cc] hover:text-white text-black font-medium text-[10px] flex items-center justify-center gap-1 transition-colors"
+              >
+                <TelegramIcon size={11} />
+                <span>Telegram</span>
+              </a>
+              <a
+                href={VOXI_CONTACTS.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Написать менеджеру в WhatsApp"
+                className="flex-1 py-1 px-2 rounded-md bg-black/[0.04] hover:bg-[#25D366] hover:text-white text-black font-medium text-[10px] flex items-center justify-center gap-1 transition-colors"
+              >
+                <WhatsAppIcon size={11} />
+                <span>WhatsApp</span>
+              </a>
+              <a
+                href={VOXI_CONTACTS.phoneTel}
+                title={`Позвонить: ${VOXI_CONTACTS.phoneDisplay}`}
+                className="py-1 px-2 rounded-md bg-black/[0.04] hover:bg-black hover:text-white text-black font-mono text-[10px] flex items-center justify-center transition-colors"
+              >
+                Тел
+              </a>
+            </div>
           </div>
 
           <div className="pt-2 flex items-center justify-between text-xs text-[#777169] border-t border-black/[0.06]">

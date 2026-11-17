@@ -360,7 +360,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
       setErrorMsg(
         errData?.message ||
           errData?.error ||
-          'Платёжный шлюз bePaid временно недоступен. Пожалуйста, попробуйте позже или напишите в @voxi_support.'
+          'Платёжный шлюз bePaid временно недоступен. Пожалуйста, попробуйте позже или напишите в Telegram @voxi_manager.'
       );
     } catch {
       setErrorMsg('Не удалось связаться с платёжным сервером bePaid.');
