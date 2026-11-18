@@ -1,76 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   PhoneCallingRoundedIcon,
   ShieldCheckIcon,
   ChatRoundDotsIcon,
-  PlayIcon,
-  PauseIcon,
-  CheckCircleIcon,
   Tuning2Icon,
   SettingsIcon,
   HistoryIcon,
   UserCheckRoundedIcon
 } from '@solar-icons/react/bold-duotone';
-import { VoiceSimulator } from '../../lib/speechSynth';
-import { VoiceId } from '../../types';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
 export const FeatureShowcase: React.FC = () => {
-  const [promptVoice, setPromptVoice] = useState<VoiceId>('anna');
-  const [isPlayingPrompt, setIsPlayingPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState<'agent' | 'logs'>('agent');
-  const [activeCaseStudy, setActiveCaseStudy] = useState<'drive' | 'sto' | 'dental'>('drive');
-
-  useEffect(() => {
-    return () => {
-      VoiceSimulator.stop();
-    };
-  }, []);
-
-  const promptSampleText =
-    promptVoice === 'anna'
-      ? 'Секундочку, сверяю расписание мастеров... Да, на четверг в восемнадцать тридцать есть свободное время на стрижку и укладку. Стоимость услуги — сорок пять белорусских рублей. Записать вас?'
-      : 'Так, сейчас гляну свободный подъёмник по базе... Отлично, сегодня на восемнадцать тридцать свободен второй бокс на Тимирязева. Диагностика подвески — тридцать пять рублей, а при ремонте у нас бесплатно. Бронируем?';
-
-  const handleTogglePromptPlay = () => {
-    if (isPlayingPrompt) {
-      VoiceSimulator.stop();
-      setIsPlayingPrompt(false);
-    } else {
-      VoiceSimulator.stop();
-      VoiceSimulator.speak(
-        promptSampleText,
-        promptVoice,
-        () => setIsPlayingPrompt(true),
-        () => setIsPlayingPrompt(false)
-      );
-    }
-  };
-
-  const caseStudies = {
-    drive: {
-      company: 'Автошкола «Драйв-Минск»',
-      metric: '+42% вечерних записей после 19:00',
-      quote:
-        '«Раньше мы теряли до половины звонков вечером и в выходные. С Voxi каждый курсант получает расчёт рассрочки за 0.5 секунды и сразу попадает в группу».',
-      role: 'Руководитель отдела набора, г. Минск'
-    },
-    sto: {
-      company: 'СТО «Авторитет-Сервис»',
-      metric: '0 пропущенных вызовов в сезон шиномонтажа',
-      quote:
-        '«Мастера-приёмщики больше не отвлекаются от подъёмников на типовые вопросы. ИИ сам уточняет марку авто, сверяет свободный бокс и присылает заявку в Telegram».',
-      role: 'Директор автосервиса, ул. Тимирязева'
-    },
-    dental: {
-      company: 'Стоматология «ДентаЛюкс»',
-      metric: 'Окупаемость пакета минут с 1-го пациента',
-      quote:
-        '«Пациент с острой болью получает ответ мгновенно. Ассистент вежливо подбирает окно у терапевта и отправляет пациенту SMS-визитку со схемой проезда».',
-      role: 'Главный врач клиники, пр-т Победителей'
-    }
-  };
 
   const bentoFeatures = [
     {
@@ -376,43 +318,6 @@ export const FeatureShowcase: React.FC = () => {
               </Card>
             ))}
           </div>
-
-          {/* Customer Testimonial Strip */}
-          <Card className="rounded-2xl border-slate-200/90 bg-white/90 p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="flex flex-wrap items-center gap-2">
-              {(['drive', 'sto', 'dental'] as const).map((key) => {
-                const isSelected = activeCaseStudy === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setActiveCaseStudy(key)}
-                    className={`px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {caseStudies[key].company}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex-1 lg:px-4 space-y-1">
-              <div className="text-xs font-medium text-emerald-600 flex items-center gap-1.5">
-                <CheckCircleIcon size={15} />
-                <span>{caseStudies[activeCaseStudy].metric}</span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-900 font-normal leading-relaxed">
-                {caseStudies[activeCaseStudy].quote}
-              </p>
-              <div className="text-[11px] text-slate-500">
-                {caseStudies[activeCaseStudy].role}
-              </div>
-            </div>
-          </Card>
-
         </div>
 
       </div>
