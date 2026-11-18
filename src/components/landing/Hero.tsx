@@ -325,9 +325,9 @@ export const Hero: React.FC<HeroProps> = ({
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.08] font-light">
-              Оживляем голосовые технологии.{' '}
+              Ни одного пропущенного звонка.{' '}
               <span className="font-normal text-black">
-                На линии 24/7.
+                ИИ-администратор отвечает 24/7.
               </span>
             </h1>
 
@@ -612,12 +612,12 @@ export const Hero: React.FC<HeroProps> = ({
                     «{currentAnswerText}»
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                     <Button
                       type="button"
                       size="sm"
                       onClick={handleOrbToggle}
-                      className="rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2"
+                      className="rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2 shrink-0"
                     >
                       {isSpeaking ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
                       <span>{isSpeaking ? 'Пауза' : 'Озвучить ответ'}</span>
@@ -629,10 +629,10 @@ export const Hero: React.FC<HeroProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={onOpenVoiceTest}
-                        className="text-xs text-slate-700 hover:text-slate-950 gap-1"
+                        className="text-xs text-slate-700 hover:text-slate-950 gap-1 shrink-0 max-w-full"
                       >
-                        <span>Задать свой вопрос микрофоном</span>
-                        <ArrowRightIcon size={14} />
+                        <span className="truncate">Задать свой вопрос микрофоном</span>
+                        <ArrowRightIcon size={14} className="shrink-0" />
                       </Button>
                     )}
                   </div>

@@ -8,6 +8,8 @@ import { HowItWorks } from './components/landing/HowItWorks';
 import { FeatureShowcase } from './components/landing/FeatureShowcase';
 import { FaqSection } from './components/landing/FaqSection';
 import { CtaSection } from './components/landing/CtaSection';
+import { LostRevenueCalculator } from './components/landing/LostRevenueCalculator';
+import { PricingSection } from './components/landing/PricingSection';
 import { Footer, LegalDocType } from './components/Footer';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import {
@@ -489,6 +491,16 @@ export function App() {
 
               <IntegrationsStrip />
 
+              <LostRevenueCalculator
+                onOpenAuth={() => {
+                  if (user) setCurrentView('dashboard');
+                  else {
+                    setAuthModalInitialMode('signup');
+                    setIsAuthModalOpen(true);
+                  }
+                }}
+              />
+
               <VoiceComparison />
 
               <FeatureShowcase />
@@ -500,6 +512,16 @@ export function App() {
                   setIsAuthModalOpen(true);
                 }
               }} />
+
+              <PricingSection
+                onOpenAuth={() => {
+                  if (user) setCurrentView('dashboard');
+                  else {
+                    setAuthModalInitialMode('signup');
+                    setIsAuthModalOpen(true);
+                  }
+                }}
+              />
 
               <FaqSection />
 

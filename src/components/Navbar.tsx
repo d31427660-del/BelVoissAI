@@ -115,6 +115,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Как это работает
               </a>
               <a
+                href="#pricing"
+                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors font-medium text-slate-900"
+              >
+                Тарифы
+              </a>
+              <a
                 href="#integrations"
                 className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
               >

@@ -81,14 +81,19 @@ export const IntegrationsStrip: React.FC = () => {
     <section id="integrations" className="py-14 bg-transparent border-y border-black/[0.06] scroll-mt-20">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
         
-        {/* ElevenLabs-Style Section Header Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-7">
-          <h2 className="text-xs sm:text-sm font-semibold text-[#71717a] tracking-tight">
-            Единый контур связи с телеком-операторами, платёжными системами и CRM Беларуси
-          </h2>
+        {/* Section Header Row */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-8">
+          <div>
+            <span className="text-xs font-semibold font-mono text-emerald-600 uppercase tracking-wider block mb-1">
+              Экосистема телефонии и CRM
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-light text-slate-950 tracking-tight">
+              Единый контур связи с операторами и системами Беларуси
+            </h2>
+          </div>
           <a
             href="#features"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a0a0c] hover:underline transition-all self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-black hover:underline transition-all self-start sm:self-auto shrink-0"
           >
             <span>Архитектура подключения за 5 минут</span>
             <ArrowRightIcon size={14} />
