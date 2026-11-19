@@ -32,8 +32,11 @@ return [
     'yandex_folder_id' => $fnEnv ? voxi_env(['YANDEX_FOLDER_ID']) : (getenv('YANDEX_FOLDER_ID') ?: ''),
 
     // --- 3. Платёжный шлюз bePaid (ЕРИП + карты РБ в BYN) ---
+    'bepaid_api_url'         => $fnEnv ? voxi_env(['BEPAID_API_URL'], 'https://api.bepaid.by') : (getenv('BEPAID_API_URL') ?: 'https://api.bepaid.by'),
+    'bepaid_checkout_url'    => $fnEnv ? voxi_env(['BEPAID_CHECKOUT_URL'], 'https://checkout.bepaid.by') : (getenv('BEPAID_CHECKOUT_URL') ?: 'https://checkout.bepaid.by'),
     'bepaid_shop_id'         => $fnEnv ? voxi_env(['BEPAID_SHOP_ID']) : (getenv('BEPAID_SHOP_ID') ?: ''),
     'bepaid_secret_key'      => $fnEnv ? voxi_env(['BEPAID_SECRET_KEY']) : (getenv('BEPAID_SECRET_KEY') ?: ''),
+    'bepaid_public_key'      => $fnEnv ? voxi_env(['BEPAID_PUBLIC_KEY']) : (getenv('BEPAID_PUBLIC_KEY') ?: ''),
     'bepaid_test_mode'       => ($fnEnv ? voxi_env(['BEPAID_TEST_MODE'], 'true') : (getenv('BEPAID_TEST_MODE') ?: 'true')) !== 'false',
     'bepaid_erip_service_no' => $fnEnv ? voxi_env(['BEPAID_ERIP_SERVICE_NO'], '99999999') : (getenv('BEPAID_ERIP_SERVICE_NO') ?: '99999999'),
     'public_site_url'        => $fnEnv ? voxi_env(['PUBLIC_SITE_URL']) : (getenv('PUBLIC_SITE_URL') ?: ''),

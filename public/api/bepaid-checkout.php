@@ -162,7 +162,8 @@ if ($paymentMethod === 'erip') {
 }
 
 $basicAuth = base64_encode("{$shopId}:{$secretKey}");
-$ch = curl_init('https://checkout.bepaid.by/ctp/api/checkouts');
+$checkoutBaseUrl = rtrim((string)($VOXI_CONFIG['bepaid_checkout_url'] ?? 'https://checkout.bepaid.by'), '/');
+$ch = curl_init("{$checkoutBaseUrl}/ctp/api/checkouts");
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_RETURNTRANSFER => true,
