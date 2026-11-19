@@ -11,6 +11,7 @@ export type CallSentiment = 'positive' | 'neutral' | 'negative';
 export interface YclientsSlotConfig {
   isEnabled: boolean;
   companyId: string;
+  googleCalendarId?: string;
   partnerToken: string;
   platform: 'none' | 'yclients' | 'google_calendar';
   autoBookSlots: boolean;
@@ -148,6 +149,7 @@ export interface MinutePackage {
 
 export interface CallLog {
   id: string;
+  isTest?: boolean;
   niche?: BusinessNiche;
   callerNumber: string;
   callerName?: string;

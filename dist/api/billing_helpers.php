@@ -131,7 +131,7 @@ function voxi_record_postpaid_usage(
     }
 
     $desc = $freeUsed > 0 && $billableMinutes <= 0
-        ? "Звонок {$callerNumber} ({$durationSec} сек, из 15 бесплатных мин)"
+        ? "Звонок {$callerNumber} ({$durationSec} сек, списано с баланса минут)"
         : "Звонок {$callerNumber} ({$durationSec} сек, в счёт месяца)";
 
     $pdo->prepare(
@@ -198,12 +198,15 @@ function voxi_sync_user_billing_status(PDO $pdo, string $userId): void
 
     $debt = voxi_calculate_unpaid_debt($pdo, $userId);
     $limit = (float)($u['credit_limit_byn'] ?? 100.00);
+    $wasSuspended = ((string)($u['billing_status'] ?? 'active')) === 'suspended';
 
     if ($overdueCount === 0 && $debt <= $limit) {
         $pdo->prepare("UPDATE users SET billing_status = 'active', updated_at = NOW() WHERE id = ?")
             ->execute([$userId]);
-        $pdo->prepare('UPDATE assistants SET is_active = 1, updated_at = NOW() WHERE user_id = ?')
-            ->execute([$userId]);
+        if ($wasSuspended) {
+            $pdo->prepare('UPDATE assistants SET is_active = 1, updated_at = NOW() WHERE user_id = ?')
+                ->execute([$userId]);
+        }
     }
 }
 

@@ -19,7 +19,7 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
   // Conservative estimate: 40% of missed calls would have converted into orders
   const lostOrders = Math.round(missedCallsPerMonth * 0.4);
   const lostRevenueMonth = lostOrders * averageCheck;
-  const voxiCostMonth = 119; // Price for 300 minutes package
+  const voxiCostMonth = 120; // Price for 300 minutes package
   const netProfitRetained = Math.max(0, lostRevenueMonth - voxiCostMonth);
 
   return (
@@ -60,6 +60,7 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                   </div>
                   <input
                     type="range"
+                    aria-label="Входящих звонков в день"
                     min="5"
                     max="150"
                     step="5"
@@ -85,6 +86,7 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                   </div>
                   <input
                     type="range"
+                    aria-label="Процент неотвеченных вызовов"
                     min="5"
                     max="50"
                     step="5"
@@ -109,6 +111,7 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                   </div>
                   <input
                     type="range"
+                    aria-label="Средний чек услуги в BYN"
                     min="15"
                     max="500"
                     step="5"

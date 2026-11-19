@@ -216,11 +216,11 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               {/* Postpaid Summary Banner */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[11px] text-slate-500 block">Бесплатный бонус</span>
+                  <span className="text-[11px] text-slate-500 block">Баланс минут (пакет + бонус)</span>
                   <strong className="text-sm font-mono text-emerald-700">
                     {(billing?.freeMinutesRemaining ?? user.balanceMinutes ?? 0).toFixed(1)} мин
                   </strong>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Не идут в счёт месяца</span>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Списываются до счёта месяца</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">

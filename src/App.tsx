@@ -50,15 +50,20 @@ const AdminPanel = lazy(() =>
   import('./components/admin/AdminPanel').then((m) => ({ default: m.AdminPanel }))
 );
 
-function getInitialViewFromLocation(): 'landing' | 'dashboard' | 'admin' {
+function getInitialViewFromLocation(): 'landing' | 'dashboard' | 'admin' | 'not_found' {
   if (typeof window === 'undefined') return 'landing';
-  if (window.location.pathname.startsWith('/admin') || window.location.hash === '#admin') {
+  const rawPath = window.location.pathname.toLowerCase();
+  const normalizedPath = rawPath.length > 1 ? rawPath.replace(/\/+$/, '') : rawPath;
+  if (normalizedPath.startsWith('/admin') || window.location.hash === '#admin') {
     return 'admin';
   }
-  if (window.location.pathname.startsWith('/dashboard') || window.location.hash === '#dashboard') {
+  if (normalizedPath.startsWith('/dashboard') || window.location.hash === '#dashboard') {
     return 'dashboard';
   }
-  return 'landing';
+  if (['/', '/index.html', '/privacy', '/offer', '/sla'].includes(normalizedPath)) {
+    return 'landing';
+  }
+  return 'not_found';
 }
 
 function getInitialLegalDocFromLocation(): LegalDocType | null {
@@ -76,7 +81,7 @@ function withMandatoryNotice(a: AgentConfig): AgentConfig {
 }
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'admin'>(getInitialViewFromLocation);
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'admin' | 'not_found'>(getInitialViewFromLocation);
 
   useEffect(() => {
     const handleHash = () => {
@@ -93,6 +98,7 @@ export function App() {
   const [isVoiceTestModalOpen, setIsVoiceTestModalOpen] = useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [selectedPackageForTopUp, setSelectedPackageForTopUp] = useState<MinutePackage | null>(null);
+  const [pendingPackageId, setPendingPackageId] = useState<'pack_300' | 'pack_1000' | null>(null);
   const [pendingVoiceTestSelection, setPendingVoiceTestSelection] = useState<{
     niche: BusinessNiche;
     voice: VoiceId;
@@ -157,17 +163,18 @@ export function App() {
             setUser(bundle.user);
             if (bundle.agent) {
               const cleaned = { ...bundle.agent };
-              if (isMockCompanyOrTest(cleaned.companyName)) {
+              const wasDemoCompany = isMockCompanyOrTest(cleaned.companyName);
+              if (wasDemoCompany) {
                 cleaned.companyName = bundle.user?.companyName && !isMockCompanyOrTest(bundle.user.companyName) ? bundle.user.companyName : '';
-              }
-              if (cleaned.phone === '+375 (29) 112-44-55' || cleaned.phone === '+375 (29) 700-11-22') {
-                cleaned.phone = '';
-              }
-              if (cleaned.address && cleaned.address.includes('Сурганова')) {
-                cleaned.address = '';
-              }
-              if (cleaned.pricingAndServices && cleaned.pricingAndServices.includes('категории "B"')) {
-                cleaned.pricingAndServices = '';
+                if (cleaned.phone === '+375 (29) 112-44-55' || cleaned.phone === '+375 (29) 700-11-22') {
+                  cleaned.phone = '';
+                }
+                if (cleaned.address && cleaned.address.includes('Сурганова')) {
+                  cleaned.address = '';
+                }
+                if (cleaned.pricingAndServices && cleaned.pricingAndServices.includes('категории "B"')) {
+                  cleaned.pricingAndServices = '';
+                }
               }
               cleaned.name = `${cleaned.voice === 'maxim' ? 'Максим' : 'Анна'} — ${cleaned.companyName || 'Голосовой ассистент'}`;
               if (bundle.user?.billing?.billingStatus === 'suspended') {
@@ -223,8 +230,11 @@ export function App() {
       ispGetMe().then((bundle) => {
         if (bundle) {
           setUser(bundle.user);
-          if (bundle.user.billing?.billingStatus === 'active') {
-            setAgent((prev) => ({ ...prev, isActive: true }));
+          if (bundle.agent) {
+            setAgent((prev) => ({
+              ...prev,
+              isActive: bundle.user.billing?.billingStatus === 'suspended' ? false : bundle.agent!.isActive,
+            }));
           }
           setCurrentView('dashboard');
         }
@@ -233,8 +243,10 @@ export function App() {
       import('canvas-confetti').then(({ default: confetti }) => {
         confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
       }).catch(() => {});
+    } else if (paymentStatus === 'cancelled') {
+      setPaymentToast('Оплата отменена. Вы можете повторить попытку в любой момент в разделе «Тариф и оплата».');
     } else if (paymentStatus === 'declined' || paymentStatus === 'failed') {
-      setPaymentToast('Платёж отклонён банком или отменён. Вы можете повторить попытку в кабинете.');
+      setPaymentToast('Платёж отклонён банком. Вы можете повторить попытку в кабинете.');
     }
 
     const cleanUrl = window.location.pathname;
@@ -253,7 +265,9 @@ export function App() {
     }
 
     let pageTitle = 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
-    if (currentView === 'admin') {
+    if (currentView === 'not_found') {
+      pageTitle = 'Страница не найдена (404) — Voxi.by';
+    } else if (currentView === 'admin') {
       pageTitle = 'Мастер-панель администратора — Voxi.by';
     } else if (currentView === 'dashboard') {
       pageTitle = `Личный кабинет — ${user?.companyName || 'Voxi.by'}`;
@@ -265,6 +279,10 @@ export function App() {
       pageTitle = 'Соглашение об уровне сервиса (SLA 99.9%) — Voxi.by';
     }
     document.title = pageTitle;
+
+    if (currentView === 'not_found') {
+      return;
+    }
 
     if (currentView === 'admin') {
       if (window.location.hash !== '#admin' && !window.location.pathname.startsWith('/admin')) {
@@ -291,6 +309,8 @@ export function App() {
         setCurrentView('admin');
       } else if (nextView === 'dashboard' && user) {
         setCurrentView('dashboard');
+      } else if (nextView === 'not_found') {
+        setCurrentView('not_found');
       } else {
         setCurrentView('landing');
       }
@@ -304,6 +324,7 @@ export function App() {
     const voiceName = nextVoice === 'maxim' ? 'Максим' : 'Анна';
     const effectiveCompany = (!isMockCompanyOrTest(user?.companyName) ? user?.companyName : '') ||
                              (!isMockCompanyOrTest(base.companyName) ? base.companyName : '') || '';
+    const wasDemoBase = isMockCompanyOrTest(base.companyName);
     const updatedAgent: AgentConfig = {
       ...base,
       niche,
@@ -311,11 +332,11 @@ export function App() {
       name: `${voiceName} — ${effectiveCompany || 'Голосовой ассистент'}`,
       companyName: effectiveCompany,
       city: base.city || 'Минск',
-      address: base.address?.includes('Сурганова') ? '' : (base.address || ''),
-      phone: (base.phone === '+375 (29) 112-44-55' || base.phone === '+375 (29) 700-11-22') ? '' : (base.phone || ''),
+      address: wasDemoBase && base.address?.includes('Сурганова') ? '' : (base.address || ''),
+      phone: wasDemoBase && (base.phone === '+375 (29) 112-44-55' || base.phone === '+375 (29) 700-11-22') ? '' : (base.phone || ''),
       workingHours: base.workingHours || 'Пн-Пт: 09:00 - 19:00',
-      pricingAndServices: base.pricingAndServices?.includes('категории "B"') ? '' : (base.pricingAndServices || ''),
-      knowledgeBase: base.knowledgeBase?.includes('Volkswagen Polo') ? '' : (base.knowledgeBase || ''),
+      pricingAndServices: wasDemoBase && base.pricingAndServices?.includes('категории "B"') ? '' : (base.pricingAndServices || ''),
+      knowledgeBase: wasDemoBase && base.knowledgeBase?.includes('Volkswagen Polo') ? '' : (base.knowledgeBase || ''),
       firstMessage: adaptGreetingForVoice(
         base.firstMessage || `Здравствуйте! Вас приветствует компания. Меня зовут ${voiceName}. Разговор записывается в целях контроля качества. Чтобы переключиться на менеджера, скажите «соедините с менеджером». Чем могу вам помочь?`,
         nextVoice,
@@ -391,6 +412,18 @@ export function App() {
   const handleLogout = async () => {
     await ispSignOut();
     setUser(null);
+    const freshAgent: AgentConfig = { ...DEFAULT_AGENT_CONFIG };
+    freshAgent.systemPrompt = generateSystemPrompt(freshAgent);
+    setAgent(freshAgent);
+    setCallLogs([]);
+    setSipSettings({ ...DEFAULT_SIP_SETTINGS });
+    setTelegramSettings({ ...DEFAULT_TELEGRAM_SETTINGS });
+    setWebhookSettings({ ...DEFAULT_WEBHOOK_SETTINGS });
+    setPaymentToast(null);
+    setSelectedPackageForTopUp(null);
+    setPendingPackageId(null);
+    setPendingVoiceTestSelection(null);
+    setIsTopUpModalOpen(false);
     setCurrentView('landing');
   };
 
@@ -514,9 +547,14 @@ export function App() {
               }} />
 
               <PricingSection
-                onOpenAuth={() => {
-                  if (user) setCurrentView('dashboard');
-                  else {
+                onOpenAuth={(pkgId) => {
+                  if (pkgId) {
+                    setPendingPackageId(pkgId);
+                  }
+                  if (user) {
+                    setCurrentView('dashboard');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  } else {
                     setAuthModalInitialMode('signup');
                     setIsAuthModalOpen(true);
                   }
@@ -536,6 +574,29 @@ export function App() {
                 onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
               />
             </div>
+          </div>
+        ) : currentView === 'not_found' ? (
+          <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 py-24 text-center bg-[#FAF7F2]">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-black/[0.06] text-xs font-mono font-semibold text-black mb-4">
+              404
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-semibold text-slate-950 tracking-tight mb-3">
+              Страница не найдена
+            </h1>
+            <p className="text-sm text-slate-600 max-w-md mb-8 leading-relaxed">
+              Похоже, адрес введён с опечаткой или страница была перемещена. Вернитесь на главную страницу Voxi.by.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView('landing');
+                window.history.pushState({ view: 'landing' }, '', '/');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-6 py-3 rounded-full bg-slate-950 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Перейти на главную
+            </button>
           </div>
         ) : currentView === 'admin' ? (
           <Suspense
@@ -594,6 +655,8 @@ export function App() {
                 onCallCompleted={handleRecordCompletedCall}
                 onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
                 onOpenTopUp={() => setIsTopUpModalOpen(true)}
+                initialSelectedPackage={pendingPackageId}
+                onInitialPackageConsumed={() => setPendingPackageId(null)}
                 onExitToLanding={() => {
                   setCurrentView('landing');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -716,6 +779,7 @@ export function App() {
             isOpen={isVoiceTestModalOpen}
             initialNiche={agent.niche}
             initialVoice={agent.voice}
+            userAgent={user ? agent : undefined}
             onClose={() => setIsVoiceTestModalOpen(false)}
             onCallCompleted={handleRecordCompletedCall}
             onProceedToDashboard={(selectedNiche, selectedVoice) => {

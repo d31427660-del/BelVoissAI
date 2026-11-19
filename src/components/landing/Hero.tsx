@@ -370,17 +370,14 @@ export const Hero: React.FC<HeroProps> = ({
               <strong className="font-medium text-black">Voxi Голоса</strong> с живой интонацией — до прямой записи клиентов в YCLIENTS, Bitrix24 и Telegram.
             </p>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#777169] border-t border-black/[0.075] pt-4">
-              <span className="inline-flex items-center gap-1.5 font-medium text-black">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#777169] border-t border-black/[0.075] pt-4">
+              <span className="inline-flex items-center gap-1.5 font-medium text-black whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                0 BYN абонплата
+                от 0 BYN абонплата
               </span>
-              <span>•</span>
-              <span className="font-mono text-xs text-black font-medium">520ms latency</span>
-              <span>•</span>
-              <span>ЕРИП и bePaid</span>
-              <span>•</span>
-              <a href="#benchmark" className="text-black hover:underline font-medium">
+              <span className="font-mono text-xs text-black font-medium whitespace-nowrap">520ms latency</span>
+              <span className="whitespace-nowrap">ЕРИП и bePaid</span>
+              <a href="#benchmark" className="text-black hover:underline font-medium whitespace-nowrap">
                 Бенчмарк речи →
               </a>
             </div>

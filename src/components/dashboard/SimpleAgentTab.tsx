@@ -83,11 +83,12 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
   const [promptGenStatus, setPromptGenStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    const cleanCompany = isMockCompanyOrTest(agent.companyName) ? '' : agent.companyName;
-    const cleanAddress = agent.address?.includes('Сурганова') ? '' : (agent.address || '');
-    const cleanPhone = (agent.phone === '+375 (29) 112-44-55' || agent.phone === '+375 (29) 700-11-22') ? '' : (agent.phone || '');
-    const cleanPricing = agent.pricingAndServices?.includes('категории "B"') ? '' : (agent.pricingAndServices || '');
-    const cleanKnowledge = agent.knowledgeBase?.includes('Volkswagen Polo') ? '' : (agent.knowledgeBase || '');
+    const isDemo = isMockCompanyOrTest(agent.companyName);
+    const cleanCompany = isDemo ? '' : agent.companyName;
+    const cleanAddress = isDemo && agent.address?.includes('Сурганова') ? '' : (agent.address || '');
+    const cleanPhone = isDemo && (agent.phone === '+375 (29) 112-44-55' || agent.phone === '+375 (29) 700-11-22') ? '' : (agent.phone || '');
+    const cleanPricing = isDemo && agent.pricingAndServices?.includes('категории "B"') ? '' : (agent.pricingAndServices || '');
+    const cleanKnowledge = isDemo && agent.knowledgeBase?.includes('Volkswagen Polo') ? '' : (agent.knowledgeBase || '');
     const voiceLabel = agent.voice === 'maxim' ? 'Максим' : 'Анна';
     const cleanName = `${voiceLabel} — ${cleanCompany || 'Голосовой ассистент'}`;
     const companyGreeting = cleanCompany ? `компания «${cleanCompany}»` : 'наша компания';
@@ -574,9 +575,11 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
                     <span>{isPlayingThis ? 'Остановить' : 'Послушать голос'}</span>
                   </button>
 
-                  <span className={`text-[11px] font-semibold ${isSelected ? 'text-emerald-400' : 'text-transparent'}`}>
-                    ✓ Выбран
-                  </span>
+                  {isSelected && (
+                    <span className="text-[11px] font-semibold text-emerald-400">
+                      ✓ Выбран
+                    </span>
+                  )}
                 </div>
               </div>
             );

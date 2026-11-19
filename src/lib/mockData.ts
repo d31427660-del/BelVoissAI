@@ -3,7 +3,7 @@ import { AgentConfig, BusinessNiche, SipSettings, TelegramSettings, WebhookSetti
 export const MINUTE_PACKAGES: MinutePackage[] = [
   {
     id: 'pack_100',
-    name: 'Старт',
+    name: 'Пакет 100 минут',
     minutes: 100,
     priceByn: 45,
     ratePerMinute: 0.45,
@@ -13,7 +13,7 @@ export const MINUTE_PACKAGES: MinutePackage[] = [
   },
   {
     id: 'pack_300',
-    name: 'Оптимальный',
+    name: 'Пакет 300 минут',
     minutes: 300,
     priceByn: 120,
     ratePerMinute: 0.40,
@@ -24,7 +24,7 @@ export const MINUTE_PACKAGES: MinutePackage[] = [
   },
   {
     id: 'pack_1000',
-    name: 'Масштаб / Сеть',
+    name: 'Пакет 1000 минут',
     minutes: 1000,
     priceByn: 350,
     ratePerMinute: 0.35,

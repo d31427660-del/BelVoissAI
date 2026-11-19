@@ -92,43 +92,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <a
                 href="#showcase"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Платформа
               </a>
               <a
                 href="#benchmark"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Бенчмарк речи
               </a>
               <a
                 href="#features"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Возможности
               </a>
               <a
                 href="#how-it-works"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Как это работает
               </a>
               <a
                 href="#pricing"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors font-medium text-slate-900"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors font-medium text-slate-900 whitespace-nowrap"
               >
                 Тарифы
               </a>
               <a
                 href="#integrations"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Телефония РБ
               </a>
               <a
                 href="#faq"
-                className="px-3 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Вопросы
               </a>
@@ -249,6 +249,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
               <a href="#integrations" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
                 Телефония МТС и А1
+              </a>
+              <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
+                Тарифы
               </a>
               <a href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
                 Вопросы и ответы

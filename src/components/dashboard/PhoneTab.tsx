@@ -34,7 +34,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 }) => {
   const [localSip, setLocalSip] = useState<SipSettings>({
     ...sipSettings,
-    assignedDid: sipSettings.assignedDid || '+375 (44) 500-10-01',
+    assignedDid: sipSettings.assignedDid || '',
     byoSipMode: sipSettings.byoSipMode ?? false,
     fallbackEnabled: sipSettings.fallbackEnabled ?? true,
     fallbackPhone: sipSettings.fallbackPhone || agent.phone || '',
@@ -79,10 +79,11 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
     setSipTestResult(result);
   };
 
-  const assignedGatewayNumber = localSip.assignedDid?.trim() || '+375 (44) 500-10-01';
-  const assignedGatewayE164 = '+' + (assignedGatewayNumber.replace(/\D+/g, '') || '375445001001');
-  const ussdNoAnswer = `**61*${assignedGatewayE164}**10#`;
-  const ussdAlways = `**21*${assignedGatewayE164}#`;
+  const assignedGatewayNumber = localSip.assignedDid?.trim() || '';
+  const hasAssignedDid = assignedGatewayNumber !== '' && assignedGatewayNumber.replace(/\D+/g, '').length >= 9;
+  const assignedGatewayE164 = hasAssignedDid ? '+' + assignedGatewayNumber.replace(/\D+/g, '') : '';
+  const ussdNoAnswer = hasAssignedDid ? `**61*${assignedGatewayE164}**10#` : '';
+  const ussdAlways = hasAssignedDid ? `**21*${assignedGatewayE164}#` : '';
 
   const handleCopyUssd = (code: string) => {
     try {
@@ -209,7 +210,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
           >
             <div className="flex items-center justify-between mb-1.5 gap-2">
               <span className="text-xs font-bold">Аренда номера Voxi (А1 ВАТС)</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold whitespace-nowrap shrink-0 ${
                 !localSip.byoSipMode ? 'bg-amber-400 text-slate-950' : 'bg-amber-100 text-amber-900'
               }`}>
                 15 BYN/мес
@@ -231,7 +232,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
           >
             <div className="flex items-center justify-between mb-1.5 gap-2">
               <span className="text-xs font-bold">Подключить свой SIP самостоятельно</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold whitespace-nowrap shrink-0 ${
                 localSip.byoSipMode ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'
               }`}>
                 0 BYN/мес
@@ -245,7 +246,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
         {!localSip.byoSipMode ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
               <div>
                 <FieldLabel
                   htmlFor="caller-id"
@@ -278,11 +279,17 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   id="gateway-number"
                   type="text"
                   readOnly
-                  value={assignedGatewayNumber}
-                  className="w-full px-3 py-2 rounded-[8px] bg-black/[0.04] border border-black/[0.12] text-xs text-black font-mono font-bold focus:outline-none"
+                  value={hasAssignedDid ? assignedGatewayNumber : 'Выделяется менеджером (до 15 мин)'}
+                  className={`w-full px-3 py-2 rounded-[8px] border text-xs focus:outline-none ${
+                    hasAssignedDid
+                      ? 'bg-black/[0.04] border-black/[0.12] text-black font-mono font-bold'
+                      : 'bg-amber-50/70 border-amber-200 text-amber-900 font-medium'
+                  }`}
                 />
                 <p className="text-[11px] text-[#777169] mt-1">
-                  Закреплён за вашей организацией в единой АТС Voxi.by.
+                  {hasAssignedDid
+                    ? 'Закреплён за вашей организацией в единой АТС Voxi.by.'
+                    : 'Персональный номер А1 ВАТС назначается менеджером сразу после регистрации.'}
                 </p>
               </div>
             </div>
@@ -293,63 +300,84 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                 Включение ИИ-администратора на вашем телефоне (наберите код с мобильного):
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-black">Режим 1: Если не ответили за 10 сек</span>
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Рекомендуем
-                      </span>
+              {hasAssignedDid ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-black">Режим 1: Если не ответили за 10 сек</span>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Рекомендуем
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
+                          Сначала звонит ваш телефон. Если менеджер занят или не поднял трубку за 10 секунд — отвечает ИИ.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
+                        <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
+                          {ussdNoAnswer}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyUssd(ussdNoAnswer)}
+                          className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
+                        >
+                          {copiedUssd === ussdNoAnswer ? '✓ Скопировано' : 'Скопировать код'}
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
-                      Сначала звонит ваш телефон. Если менеджер занят или не поднял трубку за 10 секунд — отвечает ИИ.
+
+                    <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-black">Режим 2: Все звонки сразу на ИИ 24/7</span>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                            Автопилот
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
+                          ИИ отвечает мгновенно на каждый звонок и переключает на человека только по прямой просьбе клиента.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
+                        <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
+                          {ussdAlways}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyUssd(ussdAlways)}
+                          className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
+                        >
+                          {copiedUssd === ussdAlways ? '✓ Скопировано' : 'Скопировать код'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-[#777169] pt-1">
+                    Наберите код на смартфоне и нажмите кнопку вызова. Для отмены переадресации наберите <code className="font-mono font-semibold text-black">##002#</code>.
+                  </div>
+                </>
+              ) : (
+                <div className="p-3.5 rounded-[10px] bg-amber-50/70 border border-amber-200 text-xs text-amber-950 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="font-semibold">Персональный номер шлюза ещё не закреплён</div>
+                    <p className="text-[11px] text-amber-800 mt-0.5">
+                      USSD-коды переадресации появятся здесь автоматически сразу после выделения номера А1 ВАТС (обычно до 15 минут). Чтобы ускорить подключение, напишите менеджеру.
                     </p>
                   </div>
-                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
-                    <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
-                      {ussdNoAnswer}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyUssd(ussdNoAnswer)}
-                      className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
-                    >
-                      {copiedUssd === ussdNoAnswer ? '✓ Скопировано' : 'Скопировать код'}
-                    </button>
-                  </div>
+                  <a
+                    href="https://t.me/voxi_manager"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-[8px] bg-amber-900 hover:bg-amber-800 text-white text-[11px] font-semibold transition-colors text-center"
+                  >
+                    Написать @voxi_manager
+                  </a>
                 </div>
-
-                <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-black">Режим 2: Все звонки сразу на ИИ 24/7</span>
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                        Автопилот
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
-                      ИИ отвечает мгновенно на каждый звонок и переключает на человека только по прямой просьбе клиента.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
-                    <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
-                      {ussdAlways}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyUssd(ussdAlways)}
-                      className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
-                    >
-                      {copiedUssd === ussdAlways ? '✓ Скопировано' : 'Скопировать код'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-[11px] text-[#777169] pt-1">
-                Наберите код на смартфоне и нажмите кнопку вызова. Для отмены переадресации наберите <code className="font-mono font-semibold text-black">##002#</code>.
-              </div>
+              )}
             </div>
           </>
         ) : (
@@ -463,13 +491,18 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
       {/* CARD 2: Перевод звонка на сотрудника */}
       <div className="p-5 sm:p-6 rounded-[16px] liquid-glass-card space-y-4">
-        <div>
-          <h3 className="text-sm font-medium text-black">
-            2. Перевод звонка на сотрудника
-          </h3>
-          <p className="text-xs text-[#777169] mt-0.5">
-            Если клиент попросит человека или бот поймет, что вопрос требует живого участия
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
+            02
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-black">
+              Перевод звонка на сотрудника
+            </h3>
+            <p className="text-xs text-[#777169] mt-0.5">
+              Если клиент попросит человека или бот поймет, что вопрос требует живого участия
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -556,19 +589,22 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               <div className="text-[11px] text-[#777169]">Бот произнесет эту фразу в начале звонка</div>
             </div>
             <input
+              id="recording-disclaimer-toggle"
               type="checkbox"
+              aria-label="Предупреждать клиента о записи разговора"
               checked={localSip.recordingDisclaimerEnabled}
               onChange={(e) => setLocalSip({ ...localSip, recordingDisclaimerEnabled: e.target.checked })}
-              className="w-4 h-4 rounded accent-black"
+              className="w-4 h-4 rounded accent-black cursor-pointer"
             />
           </div>
 
           {localSip.recordingDisclaimerEnabled && (
             <div>
-              <label className="text-[11px] font-medium text-black block mb-1">
+              <label htmlFor="recording-disclaimer-text" className="text-[11px] font-medium text-black block mb-1">
                 Фраза предупреждения
               </label>
               <input
+                id="recording-disclaimer-text"
                 type="text"
                 value={localSip.disclaimerText}
                 onChange={(e) => setLocalSip({ ...localSip, disclaimerText: e.target.value })}

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardTitle } from '@/components/ui/card';
 
 interface PricingSectionProps {
-  onOpenAuth: () => void;
+  onOpenAuth: (packageId?: 'pack_300' | 'pack_1000') => void;
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) => {
@@ -120,7 +120,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={onOpenAuth}
+                onClick={() => onOpenAuth()}
                 className="w-full rounded-full border-slate-300 hover:bg-slate-100 text-slate-900 text-xs font-medium cursor-pointer"
               >
                 Попробовать бесплатно
@@ -182,7 +182,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
               <Button
                 type="button"
                 size="lg"
-                onClick={onOpenAuth}
+                onClick={() => onOpenAuth('pack_300')}
                 className="w-full rounded-full bg-white hover:bg-slate-100 text-slate-950 text-xs font-semibold cursor-pointer shadow-md"
               >
                 Купить пакет 300 минут
@@ -240,7 +240,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={onOpenAuth}
+                onClick={() => onOpenAuth('pack_1000')}
                 className="w-full rounded-full border-slate-900 bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium cursor-pointer"
               >
                 Купить пакет 1000 минут
@@ -299,7 +299,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
               <Button
                 type="button"
                 size="lg"
-                onClick={onOpenAuth}
+                onClick={() => onOpenAuth()}
                 className="w-full sm:w-auto rounded-full bg-slate-900 hover:bg-slate-800 text-white px-6 sm:px-8 text-xs font-medium cursor-pointer h-11"
               >
                 <span>Начать на тарифе PAYG с 15 бесплатными минутами →</span>

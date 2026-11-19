@@ -39,6 +39,8 @@ interface DashboardLayoutProps {
   onCallCompleted?: (log: CallLog) => void;
   onOpenVoiceTest: () => void;
   onOpenTopUp: () => void;
+  initialSelectedPackage?: 'pack_300' | 'pack_1000' | null;
+  onInitialPackageConsumed?: () => void;
   onExitToLanding?: () => void;
   onLogout?: () => void;
 }
@@ -57,13 +59,23 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   callLogs,
   onCallCompleted,
   onOpenVoiceTest,
+  initialSelectedPackage,
+  onInitialPackageConsumed,
   onExitToLanding,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'leads' | 'phone' | 'billing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'agent' | 'leads' | 'phone' | 'billing'>(
+    initialSelectedPackage ? 'billing' : 'overview'
+  );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
+
+  React.useEffect(() => {
+    if (initialSelectedPackage) {
+      setActiveTab('billing');
+    }
+  }, [initialSelectedPackage]);
 
   const handleSaveAgentWithToast = (updatedAgent: AgentConfig) => {
     onSaveAgent(updatedAgent);
@@ -128,8 +140,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     },
     {
       id: 'phone' as const,
-      label: 'Подключение номера',
-      subtitle: 'Телефон и перевод звонков',
+      label: 'Телефония',
+      subtitle: 'Номер и перевод',
       icon: <PhoneCall className="w-4 h-4 shrink-0" />,
       iconBg: 'bg-teal-50 text-teal-600 border-teal-200/70',
       badge: isOwnSip ? '0 BYN' : '15 BYN'
@@ -438,7 +450,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               >
                 <Wallet className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span className="whitespace-nowrap">
-                  {freeMins > 0 ? `Бонус: ${freeMins.toFixed(0)} мин` : `${unpaidDebtByn.toFixed(2)} BYN`}
+                  {freeMins > 0 ? `Баланс: ${freeMins.toFixed(0)} мин` : `${unpaidDebtByn.toFixed(2)} BYN`}
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full ml-0.5 font-bold whitespace-nowrap bg-amber-500 text-slate-950">
                   Тариф и оплата
@@ -463,10 +475,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 type="button"
                 onClick={handleGlobalSave}
                 title="Сохранить текущие настройки"
-                className="px-4 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                className="px-3 sm:px-4 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs whitespace-nowrap"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Сохранить изменения</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">Сохранить изменения</span>
+                <span className="sm:hidden">Сохранить</span>
               </button>
             ) : (
               <button
@@ -552,6 +565,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               onSaveSip={onSaveSip}
               onUserUpdated={onUserUpdated}
               onNavigateTab={(t) => setActiveTab(t)}
+              initialSelectedPackage={initialSelectedPackage}
+              onInitialPackageConsumed={onInitialPackageConsumed}
             />
           )}
         </div>

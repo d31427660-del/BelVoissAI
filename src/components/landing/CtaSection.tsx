@@ -65,31 +65,29 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenAuth, onOpenVoiceT
                 <span>Поговорить с Voxi в браузере</span>
               </Button>
 
-              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-x-3 gap-y-1 text-[11px] text-white/75">
-                <span>Вопросы по подключению:</span>
+              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1.5 text-[11px] text-white/75">
+                <span className="whitespace-nowrap">Вопросы по подключению:</span>
                 <a
                   href={VOXI_CONTACTS.telegramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white hover:underline font-medium inline-flex items-center gap-1 transition-opacity hover:opacity-90"
+                  className="text-white hover:underline font-medium inline-flex items-center gap-1 transition-opacity hover:opacity-90 whitespace-nowrap"
                 >
                   <TelegramIcon size={12} />
                   <span>Telegram</span>
                 </a>
-                <span className="text-white/30">•</span>
                 <a
                   href={VOXI_CONTACTS.whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white hover:underline font-medium inline-flex items-center gap-1 transition-opacity hover:opacity-90"
+                  className="text-white hover:underline font-medium inline-flex items-center gap-1 transition-opacity hover:opacity-90 whitespace-nowrap"
                 >
                   <WhatsAppIcon size={12} />
                   <span>WhatsApp</span>
                 </a>
-                <span className="text-white/30">•</span>
                 <a
                   href={VOXI_CONTACTS.phoneTel}
-                  className="text-white hover:underline font-medium font-mono"
+                  className="text-white hover:underline font-medium font-mono whitespace-nowrap"
                 >
                   {VOXI_CONTACTS.phoneDisplay}
                 </a>

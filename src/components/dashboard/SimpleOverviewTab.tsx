@@ -169,24 +169,22 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
                   {isBotOnline
                     ? 'Принимает звонки 24/7'
                     : isSuspended
-                    ? 'Приостановлен (превышен лимит 100 BYN)'
+                    ? `Приостановлен (превышен лимит ${creditLimitByn} BYN)`
                     : 'Поставлен на паузу'}
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-300">
-                <span>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-zinc-300">
+                <span className="whitespace-nowrap">
                   Голос бота: <strong className="text-white">{agent.voice === 'maxim' ? 'Максим' : 'Анна'}</strong>
                 </span>
-                <span className="text-zinc-600">•</span>
-                <span>
+                <span className="whitespace-nowrap">
                   Номер линии:{' '}
                   <strong className="text-white font-mono">
                     {sipSettings.callerId || '+375 (29) — не указан'}
                   </strong>
                 </span>
-                <span className="text-zinc-600">•</span>
-                <span>
+                <span className="whitespace-nowrap">
                   Тариф:{' '}
                   <button
                     type="button"
@@ -214,15 +212,30 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
 
             <button
               type="button"
-              onClick={onToggleActive}
-              title={agent.isActive ? 'Временно отключить ответы бота' : 'Снова включить ответы бота на звонки'}
-              className={`px-4 h-10 rounded-full text-xs font-medium transition-all cursor-pointer border ${
-                agent.isActive
-                  ? 'bg-white/10 hover:bg-white/15 text-white border-white/15'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+              disabled={isSuspended}
+              onClick={() => {
+                if (!isSuspended) onToggleActive();
+              }}
+              title={
+                isSuspended
+                  ? 'Приём звонков приостановлен из-за задолженности. Оплатите счёт во вкладке «Тариф и оплата».'
+                  : agent.isActive
+                  ? 'Временно отключить ответы бота'
+                  : 'Снова включить ответы бота на звонки'
+              }
+              className={`px-4 h-10 rounded-full text-xs font-medium transition-all border ${
+                isSuspended
+                  ? 'bg-rose-500/20 text-rose-200 border-rose-400/30 cursor-not-allowed opacity-80'
+                  : agent.isActive
+                  ? 'bg-white/10 hover:bg-white/15 text-white border-white/15 cursor-pointer'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 cursor-pointer'
               }`}
             >
-              {agent.isActive ? 'Поставить на паузу' : 'Включить приём звонков'}
+              {isSuspended
+                ? 'Приостановлен до оплаты'
+                : agent.isActive
+                ? 'Поставить на паузу'
+                : 'Включить приём звонков'}
             </button>
           </div>
         </div>
@@ -473,7 +486,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           <div className="text-[11px] text-slate-600 flex items-center justify-between">
             <span className="font-medium text-emerald-700">
               {freeMins > 0
-                ? `Бонус: ${freeMins.toFixed(1)} мин (0 BYN)`
+                ? `Баланс: ${freeMins.toFixed(1)} мин (пакет + бонус)`
                 : `Тариф: ${(user.ratePerMinute || 0.45).toFixed(2)} BYN/мин`}
             </span>
             <span className="text-slate-500">Карта / ЕРИП</span>

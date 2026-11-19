@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CloseCircleIcon as X,
@@ -13,20 +13,29 @@ interface GuideModalProps {
 }
 
 export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const steps = [
     {
       num: '1',
-      title: 'Выберите сферу бизнеса и голос (вкладка «Настройка бота»)',
+      title: 'Укажите сферу бизнеса и голос (вкладка «Настройка бота»)',
       time: '1 минута',
-      desc: 'Выберите подходящий шаблон (Автосервис, Салон красоты, Автошкола или Стоматология). Система сразу заполнит примерный список услуг и приветствие — вам останется только поправить под себя.',
+      desc: 'Напишите в свободной форме, чем занимается ваша компания (например, «Автосервис», «Стоматология», «Аренда спецтехники») и выберите голос ассистента — ИИ сам подстроит сценарий диалога.',
       tip: 'Голос Анны чаще выбирают для клиник, салонов и автошкол, а голос Максима — для СТО и сервисных центров.'
     },
     {
       num: '2',
       title: 'Укажите ваши цены в BYN, адрес и часы работы',
-      time: '2 минуты',
+      time: '1 минута',
       desc: 'Впишите название компании, точный адрес с ориентиром, время работы и основные услуги с ценами в белорусских рублях (BYN). Рядом с каждым полем есть кнопка «Подсказка» с готовым примером.',
       tip: 'Пишите цены просто: «Замена масла — 45 BYN, диагностика подвески — 35 BYN». Бот сам произнесёт сумму словами.'
     },
@@ -41,14 +50,22 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
       num: '4',
       title: 'Настройте Telegram для заявок и подключите номер',
       time: '2 минуты',
-      desc: 'Во вкладке «Заявки» укажите Telegram Chat ID для мгновенных уведомлений, а во вкладке «Подключение номера» выберите выделенный номер А1 ВАТС либо подключите свою линию SIP.',
+      desc: 'Во вкладке «Заявки» укажите Telegram Chat ID для мгновенных уведомлений, а во вкладке «Телефония» выберите выделенный номер А1 ВАТС либо подключите свою линию SIP.',
       tip: 'Нажмите «Где взять ID?» рядом с полем Telegram — там написано, как получить ваш ID в Telegram за пару кликов.'
     }
   ];
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guide-modal-title"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -63,7 +80,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 <HelpCircle className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-black">
+                <h3 id="guide-modal-title" className="text-sm font-medium text-black">
                   Как настроить и запустить бота за 5 минут
                 </h3>
                 <p className="text-[11px] text-[#777169]">

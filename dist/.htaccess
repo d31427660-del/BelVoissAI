@@ -92,10 +92,10 @@ Options -Indexes
   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # Запрет прямого доступа к служебным файлам конфигурации PHP
-  RewriteRule ^api/(config|bootstrap)\.php$ - [F,L]
+  RewriteRule ^api/(config|bootstrap|billing_helpers)\.php$ - [F,L]
 
   # Маршрутизация путей /api/<endpoint> на локальные PHP-обработчики ISPmanager (работает и на основном, и на временном домене)
-  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|dispatch-webhook|calendar|telephony|vapi-webhook|telegram-webhook)/?$ api/$1.php [QSA,L]
+  RewriteRule ^api/(db|chat|tts|bepaid-checkout|bepaid-webhook|cron-billing|dispatch-webhook|calendar|telephony|vapi-webhook|telegram-webhook)/?$ api/$1.php [QSA,L]
 
   # Существующие статические файлы и директории отдавать напрямую
   RewriteCond %{REQUEST_FILENAME} -f [OR]

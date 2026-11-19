@@ -47,7 +47,10 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
   // CRM & Webhook integration states
   const [partnerToken, setPartnerToken] = useState(agent.yclientsConfig?.partnerToken || '');
-  const [googleCalendarId, setGoogleCalendarId] = useState(agent.yclientsConfig?.companyId || '');
+  const [googleCalendarId, setGoogleCalendarId] = useState(
+    agent.yclientsConfig?.googleCalendarId ||
+      (agent.yclientsConfig?.platform === 'google_calendar' ? agent.yclientsConfig?.companyId || '' : '')
+  );
   const [webhookUrl, setWebhookUrl] = useState(webhookSettings?.webhookUrl || '');
   const [webhookEnabled, setWebhookEnabled] = useState(webhookSettings?.isEnabled ?? false);
 
@@ -124,15 +127,16 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       } : {
         isEnabled: smsFollowUpEnabled,
         channel: 'sms',
-        provider: 'mock',
-        template: 'Здравствуйте, {clientName}! Вы записаны в {companyName} на {bookingTime}. Наш адрес: {address}. Ждём вас!',
+        provider: 'sms_by',
+        template: 'Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} на {ВРЕМЯ}. Наш адрес: {АДРЕС}. Ждём вас!',
         sendMapLink: false,
         notifyOnlyOnLead: true
       },
       yclientsConfig: {
         isEnabled: Boolean(partnerToken.trim() || googleCalendarId.trim()),
         partnerToken: partnerToken.trim(),
-        companyId: googleCalendarId.trim(),
+        companyId: agent.yclientsConfig?.companyId || '',
+        googleCalendarId: googleCalendarId.trim(),
         platform: partnerToken.trim() ? 'yclients' : (googleCalendarId.trim() ? 'google_calendar' : 'none'),
         autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? false,
         notifyClientSms: agent.yclientsConfig?.notifyClientSms ?? false,
@@ -333,7 +337,9 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
             </div>
           </div>
           <input
+            id="sms-followup-toggle"
             type="checkbox"
+            aria-label="SMS-визитка клиенту сразу после звонка"
             checked={smsFollowUpEnabled}
             onChange={(e) => setSmsFollowUpEnabled(e.target.checked)}
             className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
@@ -482,9 +488,9 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    {log.callerNumber && (
+                    {log.callerNumber && !log.isTest && !log.callerNumber.includes('(Тест)') && log.callerNumber.replace(/[^\d+]/g, '').length >= 7 && (
                       <a
-                        href={`tel:${log.callerNumber}`}
+                        href={`tel:${log.callerNumber.replace(/[^\d+]/g, '')}`}
                         className="px-3 py-1.5 rounded-[8px] bg-black text-white text-xs font-medium inline-flex items-center gap-1.5 hover:bg-black/80 transition-colors"
                       >
                         <Phone className="w-3 h-3" />

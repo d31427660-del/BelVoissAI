@@ -17,7 +17,7 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
     content: [
       '1. Оператор обработки персональных данных: Индивидуальный предприниматель Беляков Кирилл Олегович (УНП 193991846, Республика Беларусь, 220045, г. Минск, ул. Наполеона Орды, д. 11, кв. 58, e-mail: info@voxi.by). Настоящая Политика разработана во исполнение Закона Республики Беларусь от 07.05.2021 № 99-З «О защите персональных данных».',
       '2. Состав и цели обработки: при регистрации и использовании платформы Voxi.by обрабатываются адрес электронной почты, наименование организации/ИП, контактный телефон, а также передаваемые Заказчиком в рамках поручения на обработку данные телефонных вызовов (аудиозаписи, номера абонентов и текстовые расшифровки) исключительно в целях предоставления функционала голосового ИИ-администратора, формирования заявок в CRM Заказчика и исполнения договора.',
-      '3. Защита и хранение данных: изоляция данных между аккаунтами обеспечивается на уровне СУБД с применением политик Row Level Security (RLS) и шифрования при передаче (TLS 1.3). Доступ третьих лиц к учетным данным и журналам вызовов исключён, за исключением привлечённых уполномоченных лиц (облачная инфраструктура, речевые сервисы и платёжный агрегатор ООО «ИКомЧардж» / bePaid) в объёме, строго необходимом для оказания услуги.',
+      '3. Защита и хранение данных: изоляция данных между аккаунтами обеспечивается логической изоляцией на уровне учётной записи (tenant isolation) и шифрованием при передаче (TLS 1.3). Доступ третьих лиц к учетным данным и журналам вызовов исключён, за исключением привлечённых уполномоченных лиц (облачная инфраструктура, речевые сервисы и платёжный агрегатор ООО «ИКомЧардж» / bePaid) в объёме, строго необходимом для оказания услуги.',
       '4. Права субъектов персональных данных: субъект вправе в любое время отозвать согласие, запросить информацию об обработке своих данных, потребовать их изменения или безвозвратного удаления, направив обращение на info@voxi.by либо через функцию удаления в личном кабинете. Запрос исполняется в срок до 15 календарных дней (удаление записей звонков — в течение 24 часов).',
       '5. Обработка файлов cookie: сайт использует технические (обязательные) файлы cookie и локальное хранилище браузера для обеспечения авторизации, информационной безопасности и сохранения пользовательского выбора (срок хранения — до 12 месяцев). Функциональные и аналитические файлы cookie обрабатываются исключительно при наличии согласия пользователя и могут быть отключены в любой момент через кнопку «Настройки файлов cookie» в нижней части страницы.'
     ]
@@ -53,8 +53,30 @@ export const Footer: React.FC<FooterProps> = ({
 
   const activeDocModal = externalDocModal ?? internalDocModal;
 
+  const openInternalDoc = (doc: LegalDocType) => {
+    setInternalDocModal(doc);
+    if (typeof window !== 'undefined') {
+      const pathMap: Record<LegalDocType, string> = {
+        privacy: '/privacy',
+        offer: '/offer',
+        sla: '/sla',
+      };
+      const titleMap: Record<LegalDocType, string> = {
+        privacy: 'Политика конфиденциальности (Закон РБ № 99-З) — Voxi.by',
+        offer: 'Публичный договор (оферта) — Voxi.by',
+        sla: 'Соглашение об уровне сервиса (SLA 99.9%) — Voxi.by',
+      };
+      window.history.pushState({ legalDoc: doc }, '', pathMap[doc]);
+      document.title = titleMap[doc];
+    }
+  };
+
   const closeDocModal = () => {
     setInternalDocModal(null);
+    if (typeof window !== 'undefined' && ['/privacy', '/offer', '/sla'].includes(window.location.pathname.toLowerCase())) {
+      window.history.pushState({ view: 'landing' }, '', '/');
+      document.title = 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
+    }
     onCloseExternalDocModal?.();
   };
 
@@ -165,6 +187,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Возможности платформы</a></li>
               <li><a href="#how-it-works" onClick={(e) => handleLinkClick(e, 'how-it-works')} className="hover:text-[#1d1d1f] transition-colors">Как это работает</a></li>
               <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония МТС и А1</a></li>
+              <li><a href="#pricing" onClick={(e) => handleLinkClick(e, 'pricing')} className="hover:text-[#1d1d1f] transition-colors">Тарифы и цены</a></li>
               <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')} className="hover:text-[#1d1d1f] transition-colors">Вопросы и ответы</a></li>
             </ul>
           </div>
@@ -269,7 +292,7 @@ export const Footer: React.FC<FooterProps> = ({
             © 2026 Voxi.by — ИП Беляков К. О. (УНП 193991846). Все права защищены.
           </div>
           <div className="flex flex-wrap justify-center gap-5">
-            <button type="button" onClick={() => setInternalDocModal('privacy')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
+            <button type="button" onClick={() => openInternalDoc('privacy')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
               Политика конфиденциальности (Закон <span className="whitespace-nowrap">№ 99‑З</span>)
             </button>
             {onOpenCookieSettings && (
@@ -277,10 +300,10 @@ export const Footer: React.FC<FooterProps> = ({
                 Настройки файлов cookie
               </button>
             )}
-            <button type="button" onClick={() => setInternalDocModal('offer')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
+            <button type="button" onClick={() => openInternalDoc('offer')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
               Публичная оферта и оплата
             </button>
-            <button type="button" onClick={() => setInternalDocModal('sla')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
+            <button type="button" onClick={() => openInternalDoc('sla')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
               SLA 99.9%
             </button>
           </div>

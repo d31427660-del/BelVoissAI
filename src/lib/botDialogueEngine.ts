@@ -661,6 +661,7 @@ export function createCallLogFromDialogue(params: {
 
   return {
     id: `call-live-${Date.now()}`,
+    isTest: true,
     niche,
     callerNumber: extractedPhone,
     callerName: finalCallerName,

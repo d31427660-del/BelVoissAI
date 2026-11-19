@@ -58,7 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [companyName, setCompanyName] = useState('');
-  const [consentAccepted, setConsentAccepted] = useState(true);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
@@ -390,7 +390,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <div className="text-center text-xs text-[#777169] flex items-center justify-center gap-1.5">
           <ShieldCheckIcon size={15} className="text-black" aria-hidden="true" />
-          <span>Защита данных (Закон № 99‑З) • ИП Беляков К. О.</span>
+          <span>Защита данных (Закон №{'\u00A0'}99‑З) • ИП{'\u00A0'}Беляков{'\u00A0'}К.{'\u00A0'}О.</span>
         </div>
 
       </div>

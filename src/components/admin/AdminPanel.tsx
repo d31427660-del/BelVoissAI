@@ -157,8 +157,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
   <div class="sub">г. Минск • Дата составления: ${safeDate} г.</div>
 
   <div class="meta">
-    <p><strong>Исполнитель:</strong> Индивидуальный предприниматель Беляков Кирилл Олегович, УНП 193991846, 220045, Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58, р/с BY88ALFA30132G19399184600000 в ЗАО «Альфа-Банк», БИК ALFABY2X.</p>
-    <p><strong>Заказчик:</strong> ${safeClientName}, УНП ${safeUnp}.</p>
+    <p><strong>Исполнитель:</strong> Индивидуальный предприниматель Беляков Кирилл Олегович, УНП 193991846, 220045, Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58 (банковские реквизиты согласно договору/счёту).</p>
+    <p><strong>Заказчик:</strong> ${safeClientName}${safeUnp ? `, УНП ${safeUnp}` : ''}.</p>
     <p><strong>Основание:</strong> Публичный договор (оферта) возмездного оказания услуг Voxi.by, счёт № ${safeInvoice}.</p>
   </div>
 
@@ -185,7 +185,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
     </tbody>
   </table>
 
-  <p class="text-right"><strong>Итого оказано услуг на сумму: ${tx.amountByn.toFixed(2)} BYN (Без НДС, гл. 32 НК РБ).</strong></p>
+  <p class="text-right"><strong>Итого оказано услуг на сумму: ${tx.amountByn.toFixed(2)} BYN (Без НДС в соответствии со ст. 113 НК РБ).</strong></p>
   <p style="font-size: 9pt; color: #333;">Услуги оказаны в полном объёме, в установленные сроки. Заказчик претензий по объёму, качеству и срокам оказания услуг не имеет. Первичный учётный документ составлен единолично в соответствии с постановлением Министерства финансов Республики Беларусь № 13.</p>
 
   <table class="signs">
@@ -199,7 +199,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
       <td>
         <strong>ЗАКАЗЧИК:</strong><br>
         ${safeClientName}<br>
-        УНП ${safeUnp}<br><br>
+        ${safeUnp ? `УНП ${safeUnp}` : 'УНП: _______________'}<br><br>
         _______________________ / ________________ /
       </td>
     </tr>

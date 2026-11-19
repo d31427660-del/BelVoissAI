@@ -29,6 +29,13 @@ interface VoiceTestModalProps {
   isOpen: boolean;
   initialNiche?: BusinessNiche;
   initialVoice?: VoiceId;
+  userAgent?: {
+    companyName?: string;
+    city?: string;
+    address?: string;
+    phone?: string;
+    workingHours?: string;
+  };
   onClose: () => void;
   onCallCompleted?: (log: CallLog) => void;
   onProceedToDashboard: (niche: BusinessNiche, voice: VoiceId) => void;
@@ -45,8 +52,9 @@ const CATEGORY_TABS: Array<{ id: BusinessNiche; shortLabel: string }> = [
 
 export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   isOpen,
-  initialNiche = 'driving_school',
+  initialNiche = 'auto_service',
   initialVoice = 'anna',
+  userAgent,
   onClose,
   onCallCompleted,
   onProceedToDashboard,
@@ -54,7 +62,33 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
-  const [selectedNiche, setSelectedNiche] = useState<BusinessNiche>(initialNiche);
+  const isPresetNiche = (n: BusinessNiche): boolean => CATEGORY_TABS.some((t) => t.id === n);
+  const hasUserCompany = Boolean(userAgent?.companyName?.trim());
+  const resolvedInitialNiche: BusinessNiche = isPresetNiche(initialNiche)
+    ? initialNiche
+    : hasUserCompany
+    ? 'custom'
+    : 'auto_service';
+
+  const getTemplateForNiche = useCallback(
+    (niche: BusinessNiche) => {
+      if (niche === 'custom' && userAgent?.companyName?.trim()) {
+        const base = NICHE_TEMPLATES.custom;
+        return {
+          ...base,
+          companyName: userAgent.companyName.trim(),
+          city: userAgent.city?.trim() || 'Минск',
+          address: userAgent.address?.trim() || '',
+          phone: userAgent.phone?.trim() || '',
+          workingHours: userAgent.workingHours?.trim() || base.workingHours,
+        };
+      }
+      return isPresetNiche(niche) ? NICHE_TEMPLATES[niche] : NICHE_TEMPLATES.auto_service;
+    },
+    [userAgent]
+  );
+
+  const [selectedNiche, setSelectedNiche] = useState<BusinessNiche>(resolvedInitialNiche);
   const [selectedVoice, setSelectedVoice] = useState<VoiceId>(initialVoice);
   const [callState, setCallState] = useState<CallState>('ready');
   const [callDuration, setCallDuration] = useState(0);
@@ -79,7 +113,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const callStateRef = useRef<CallState>('ready');
   const isBotSpeakingRef = useRef(false);
   const isBotThinkingRef = useRef(false);
-  const selectedNicheRef = useRef<BusinessNiche>(initialNiche);
+  const selectedNicheRef = useRef<BusinessNiche>(resolvedInitialNiche);
   const selectedVoiceRef = useRef<VoiceId>(initialVoice);
   const callDurationRef = useRef(0);
   const callLoggedRef = useRef(false);
@@ -97,7 +131,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const flushCompletedCallLog = useCallback(() => {
     if (callLoggedRef.current) return;
     const niche = selectedNicheRef.current;
-    const tmpl = NICHE_TEMPLATES[niche] || NICHE_TEMPLATES.driving_school;
+    const tmpl = getTemplateForNiche(niche);
     const log = createCallLogFromDialogue({
       niche,
       companyName: tmpl.companyName,
@@ -109,7 +143,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       callLoggedRef.current = true;
       onCallCompletedRef.current?.(log);
     }
-  }, []);
+  }, [getTemplateForNiche]);
 
   useEffect(() => {
     callStateRef.current = callState;
@@ -132,8 +166,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     selectedVoiceRef.current = selectedVoice;
   }, [selectedVoice]);
 
-  const currentTemplate = NICHE_TEMPLATES[selectedNiche];
-  const quickQuestions = NICHE_QUICK_QUESTIONS[selectedNiche] || NICHE_QUICK_QUESTIONS.driving_school;
+  const currentTemplate = getTemplateForNiche(selectedNiche);
+  const quickQuestions = NICHE_QUICK_QUESTIONS[selectedNiche] || NICHE_QUICK_QUESTIONS.auto_service;
   const voiceDisplayName = selectedVoice === 'maxim' ? 'Максим' : 'Анна';
 
   const formatTime = (secs: number) => {
@@ -204,7 +238,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
       const activeNiche = selectedNicheRef.current;
       const activeVoice = selectedVoiceRef.current;
-      const tmpl = NICHE_TEMPLATES[activeNiche];
+      const tmpl = getTemplateForNiche(activeNiche);
 
       setIsBotThinking(true);
       isBotThinkingRef.current = true;
@@ -332,7 +366,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     (nicheOverride?: BusinessNiche, voiceOverride?: VoiceId) => {
       const targetNiche = nicheOverride ?? selectedNicheRef.current;
       const targetVoice = voiceOverride ?? selectedVoiceRef.current;
-      const tmpl = NICHE_TEMPLATES[targetNiche];
+      const tmpl = getTemplateForNiche(targetNiche);
 
       cleanupActiveCallAudio();
       callLoggedRef.current = false;
@@ -429,8 +463,8 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     if (!dialog) return;
 
     if (isOpen) {
-      selectedNicheRef.current = initialNiche;
-      setSelectedNiche(initialNiche);
+      selectedNicheRef.current = resolvedInitialNiche;
+      setSelectedNiche(resolvedInitialNiche);
       selectedVoiceRef.current = initialVoice;
       setSelectedVoice(initialVoice);
       callLoggedRef.current = false;
@@ -579,20 +613,21 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
             <span className="text-[11px] font-normal text-[#777169]">Выберите сферу бизнеса:</span>
             <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] border border-black/[0.06] text-[11px]">
               {[
-                { id: 'anna' as const, label: 'Анна (женский)' },
-                { id: 'maxim' as const, label: 'Максим (мужской)' },
+                { id: 'anna' as const, short: 'Анна', label: 'Анна (женский)' },
+                { id: 'maxim' as const, short: 'Максим', label: 'Максим (мужской)' },
               ].map((v) => (
                 <button
                   key={v.id}
                   type="button"
                   onClick={() => handleSelectVoice(v.id)}
-                  className={`px-2.5 py-1 rounded-full font-normal transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-full font-normal transition-all cursor-pointer whitespace-nowrap ${
                     selectedVoice === v.id
                       ? 'bg-white text-black shadow-2xs font-medium'
                       : 'text-[#777169] hover:text-black'
                   }`}
                 >
-                  {v.label}
+                  <span className="sm:hidden">{v.short}</span>
+                  <span className="hidden sm:inline">{v.label}</span>
                 </button>
               ))}
             </div>

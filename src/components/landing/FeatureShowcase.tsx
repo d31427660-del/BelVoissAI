@@ -36,8 +36,8 @@ export const FeatureShowcase: React.FC = () => {
     {
       icon: <ShieldCheckIcon size={20} />,
       badge: 'Закон № 99-З',
-      title: 'Безопасность и RLS',
-      description: 'Изоляция данных на уровне организации, серверы в РБ и шифрование записей звонков в соответствии с законодательством.'
+      title: 'Безопасность и изоляция',
+      description: 'Логическая изоляция данных на уровне аккаунта, серверы в РБ и шифрование записей звонков (TLS 1.3) по Закону № 99-З.'
     }
   ];
 
@@ -103,7 +103,7 @@ export const FeatureShowcase: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
                 </div>
                 <span className="text-xs font-mono text-slate-400 ml-3">
-                  voxi.by/app • Личный кабинет
+                  voxi.by/dashboard • Личный кабинет
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs font-mono">

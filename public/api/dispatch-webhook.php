@@ -9,6 +9,19 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     voxi_json(['error' => 'Method Not Allowed'], 405);
 }
 
+if (!voxi_is_db_configured($VOXI_CONFIG)) {
+    voxi_json(['ok' => false, 'error' => 'Сервис временно недоступен'], 503);
+}
+try {
+    $pdo = voxi_get_pdo($VOXI_CONFIG);
+    $authUser = voxi_find_authenticated_user($pdo);
+} catch (Throwable) {
+    voxi_json(['ok' => false, 'error' => 'Сервис временно недоступен'], 503);
+}
+if (!$authUser) {
+    voxi_json(['ok' => false, 'error' => 'Требуется авторизация в личном кабинете'], 401);
+}
+
 function voxi_is_private_or_internal_ip(string $ip): bool
 {
     // Filter private and reserved ranges

@@ -20,9 +20,9 @@ if ($shopId === '' || $secretKey === '') {
 }
 
 $packages = [
-    'pack_100' => ['minutes' => 100, 'priceByn' => 45, 'name' => 'Старт (100 минут)'],
-    'pack_300' => ['minutes' => 300, 'priceByn' => 120, 'name' => 'Бизнес (300 минут)'],
-    'pack_1000' => ['minutes' => 1000, 'priceByn' => 350, 'name' => 'Сеть / Колл-центр (1000 минут)'],
+    'pack_100' => ['minutes' => 100, 'priceByn' => 45, 'name' => 'Пакет 100 минут'],
+    'pack_300' => ['minutes' => 300, 'priceByn' => 120, 'name' => 'Пакет 300 минут'],
+    'pack_1000' => ['minutes' => 1000, 'priceByn' => 350, 'name' => 'Пакет 1000 минут'],
 ];
 
 $body = voxi_read_json_body();
@@ -118,7 +118,17 @@ $pdo->prepare(
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
 )->execute([$orderId, $userId, $targetInvoiceId, $orderKind, $minutes, $amountKopecks, 'BYN', 'pending', $isTest ? 1 : 0]);
 $trackingId = $orderId;
-$eripServiceNo = (string)($VOXI_CONFIG['bepaid_erip_service_no'] ?: '99999999');
+$eripServiceNo = trim((string)($VOXI_CONFIG['bepaid_erip_service_no'] ?? ''));
+if ($paymentMethod === 'erip' && !$isTest && ($eripServiceNo === '' || $eripServiceNo === '99999999')) {
+    voxi_json([
+        'configured' => false,
+        'error' => 'Оплата через ЕРИП временно недоступна (не задан боевой номер услуги ЕРИП). Пожалуйста, оплатите банковской картой.',
+    ], 503);
+}
+if ($eripServiceNo === '') {
+    $eripServiceNo = '99999999';
+}
+$eripOrderId = substr(preg_replace('/\D+/', '', (string)hexdec(substr(str_replace('-', '', $orderId), 0, 12))) ?: (string)random_int(10000000, 99999999), 0, 12);
 
 $checkout = [
     'test' => $isTest,
@@ -146,7 +156,7 @@ if ($paymentMethod === 'erip') {
     $checkout['payment_method'] = [
         'types' => ['erip'],
         'erip' => [
-            'order_id' => substr((string)time(), -8),
+            'order_id' => $eripOrderId,
             'account_number' => $email !== '' ? $email : $userId,
             'service_no' => $eripServiceNo,
             'service_info' => [

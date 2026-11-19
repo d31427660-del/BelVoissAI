@@ -9,6 +9,19 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     voxi_json(['error' => 'Method Not Allowed'], 405);
 }
 
+if (!voxi_is_db_configured($VOXI_CONFIG)) {
+    voxi_json(['ok' => false, 'error' => 'Сервис временно недоступен'], 503);
+}
+try {
+    $pdo = voxi_get_pdo($VOXI_CONFIG);
+    $authUser = voxi_find_authenticated_user($pdo);
+} catch (Throwable) {
+    voxi_json(['ok' => false, 'error' => 'Сервис временно недоступен'], 503);
+}
+if (!$authUser) {
+    voxi_json(['ok' => false, 'error' => 'Требуется авторизация в личном кабинете'], 401);
+}
+
 $body = voxi_read_json_body();
 $action = trim((string)($body['action'] ?? ''));
 
@@ -108,14 +121,38 @@ if ($action === 'test_sip') {
         voxi_json(['ok' => false, 'error' => 'Некорректное доменное имя или IP SIP-сервера'], 400);
     }
 
-    $t0 = microtime(true);
-    $resolvedIp = @gethostbyname($host);
-    if ($resolvedIp === $host && !filter_var($host, FILTER_VALIDATE_IP)) {
-        voxi_json([
-            'ok' => false,
-            'error' => "Не удалось разрешить DNS-имя SIP-сервера «{$host}». Проверьте адрес у вашего оператора связи.",
-        ], 400);
+    $hostLower = strtolower($host);
+    if (
+        $hostLower === 'localhost'
+        || str_ends_with($hostLower, '.localhost')
+        || str_ends_with($hostLower, '.local')
+        || str_ends_with($hostLower, '.internal')
+    ) {
+        voxi_json(['ok' => false, 'error' => 'Запрещено проверять локальные адреса сервера'], 400);
     }
+
+    $t0 = microtime(true);
+    $resolvedIps = @gethostbynamel($host);
+    if (!is_array($resolvedIps) || empty($resolvedIps)) {
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $resolvedIps = [$host];
+        } else {
+            voxi_json([
+                'ok' => false,
+                'error' => "Не удалось разрешить DNS-имя SIP-сервера «{$host}». Проверьте адрес у вашего оператора связи.",
+            ], 400);
+        }
+    }
+    foreach ($resolvedIps as $ip) {
+        if (
+            !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
+            || str_starts_with($ip, '169.254.')
+            || str_starts_with($ip, '127.')
+        ) {
+            voxi_json(['ok' => false, 'error' => 'Запрещено обращаться к закрытым или внутренним IP-адресам'], 400);
+        }
+    }
+    $resolvedIp = $resolvedIps[0];
 
     // Probe TCP 5060/5061 or UDP 5060 reachability
     $errno = 0;

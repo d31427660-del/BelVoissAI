@@ -15,6 +15,8 @@ interface BillingTabProps {
   onSaveSip: (settings: SipSettings) => void;
   onUserUpdated?: (user: UserSession) => void;
   onNavigateTab?: (tab: 'overview' | 'agent' | 'leads' | 'phone' | 'billing') => void;
+  initialSelectedPackage?: 'pack_300' | 'pack_1000' | null;
+  onInitialPackageConsumed?: () => void;
 }
 
 const DISCOUNT_PACKAGES = [
@@ -45,7 +47,9 @@ export const BillingTab: React.FC<BillingTabProps> = ({
   sipSettings,
   onSaveSip,
   onUserUpdated,
-  onNavigateTab
+  onNavigateTab,
+  initialSelectedPackage,
+  onInitialPackageConsumed
 }) => {
   const billing = user.billing;
   const invoices = billing?.invoices || [];
@@ -82,19 +86,28 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
   // Payment Selection State
   const [selectedTarget, setSelectedTarget] = useState<'pack_300' | 'pack_1000' | 'custom' | 'postpaid'>(
-    unpaidDebtByn >= 0.5 ? 'postpaid' : 'pack_300'
+    initialSelectedPackage || (unpaidDebtByn >= 0.5 ? 'postpaid' : 'pack_300')
   );
 
   useEffect(() => {
-    if (unpaidDebtByn >= 0.5) {
+    if (initialSelectedPackage) {
+      setSelectedTarget(initialSelectedPackage);
+      onInitialPackageConsumed?.();
+    } else if (unpaidDebtByn >= 0.5) {
       setSelectedTarget('postpaid');
     }
-  }, [unpaidDebtByn]);
+  }, [unpaidDebtByn, initialSelectedPackage, onInitialPackageConsumed]);
   const [customMinutes, setCustomMinutes] = useState<string>('100');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'erip'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [rentalSavedNotice, setRentalSavedNotice] = useState<string | null>(null);
+
+  const rawCustomMins = parseInt(customMinutes || '0', 10) || 0;
+  const isCustomValid = rawCustomMins >= 50 && rawCustomMins <= 10000;
+  const clampedCustomMins = Math.max(50, Math.min(10000, rawCustomMins || 50));
+  const customRate = clampedCustomMins >= 1000 ? 0.35 : clampedCustomMins >= 300 ? 0.40 : 0.45;
+  const customAmountByn = Math.round(clampedCustomMins * customRate);
 
   const handleToggleRentalMode = async (useOwnSip: boolean) => {
     const updatedSip: SipSettings = {
@@ -127,11 +140,10 @@ export const BillingTab: React.FC<BillingTabProps> = ({
     activeAmountByn = defaultTargetInvoice ? defaultTargetInvoice.remainingDueByn : unpaidDebtByn;
     activeTitle = `Погашение счёта за месяц (${billing?.currentPeriodYm || 'текущий период'})`;
   } else if (selectedTarget === 'custom') {
-    const parsedMins = Math.max(50, Math.min(10000, parseInt(customMinutes || '50', 10) || 50));
-    activeMinutes = parsedMins;
-    activeRate = parsedMins >= 1000 ? 0.35 : parsedMins >= 300 ? 0.40 : 0.45;
-    activeAmountByn = Math.round(parsedMins * activeRate);
-    activeTitle = `Пополнение баланса на ${parsedMins} минут`;
+    activeMinutes = clampedCustomMins;
+    activeRate = customRate;
+    activeAmountByn = customAmountByn;
+    activeTitle = `Пополнение баланса на ${clampedCustomMins} минут`;
   } else {
     const pkg = DISCOUNT_PACKAGES.find((p) => p.id === selectedTarget) || DISCOUNT_PACKAGES[0];
     activeMinutes = pkg.minutes;
@@ -142,6 +154,11 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
   const handleActionSubmit = async () => {
     setErrorMsg(null);
+
+    if (selectedTarget === 'custom' && !isCustomValid) {
+      setErrorMsg('Минимальный объём произвольного пополнения — 50 минут (максимум 10 000 минут).');
+      return;
+    }
 
     if (activeAmountByn < 0.5) {
       setErrorMsg(
@@ -582,11 +599,19 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           })}
 
           {/* Карточка 3: Свой объём минут */}
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => {
               setSelectedTarget('custom');
               setErrorMsg(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setSelectedTarget('custom');
+                setErrorMsg(null);
+              }
             }}
             className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
               selectedTarget === 'custom'
@@ -615,24 +640,32 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                   inputMode="numeric"
                   value={customMinutes}
                   onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
                   onChange={(e) => {
                     setSelectedTarget('custom');
                     setCustomMinutes(e.target.value.replace(/\D/g, ''));
                     setErrorMsg(null);
                   }}
                   className={`w-24 px-2.5 py-1 rounded-lg text-sm font-mono font-bold border focus:outline-none ${
-                    selectedTarget === 'custom'
+                    !isCustomValid && customMinutes !== ''
+                      ? 'border-rose-400 bg-rose-500/15 text-rose-200'
+                      : selectedTarget === 'custom'
                       ? 'bg-white/10 text-white border-white/25'
                       : 'bg-white text-slate-900 border-slate-300'
                   }`}
                   placeholder="100"
                 />
                 <span className="text-xs font-mono font-bold">
-                  = {selectedTarget === 'custom' ? `${activeAmountByn} BYN` : `${Math.round((parseInt(customMinutes || '100', 10) || 100) * 0.45)} BYN`}
+                  = {isCustomValid ? `${customAmountByn} BYN` : 'мин. 50 мин'}
                 </span>
               </div>
+              {!isCustomValid && customMinutes !== '' && (
+                <p className={`text-[10px] mt-1 font-medium ${selectedTarget === 'custom' ? 'text-rose-300' : 'text-rose-600'}`}>
+                  Введите от 50 до 10 000 минут
+                </p>
+              )}
             </div>
-          </button>
+          </div>
 
           {/* Карточка 4: Оплата счёта за месяц */}
           <button

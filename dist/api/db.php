@@ -222,13 +222,7 @@ if ($action === 'status') {
             'driver' => 'mysql-ispmanager',
             'configured' => false,
             'connected' => false,
-            'error' => 'База данных ещё не настроена в .env (заполните DB_NAME, DB_USER, DB_PASS)',
-            'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
-            'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
-            'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
-            'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
-            'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
-            'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
+            'error' => 'База данных ещё не настроена на сервере',
         ]);
     }
     try {
@@ -238,26 +232,15 @@ if ($action === 'status') {
             'driver' => 'mysql-ispmanager',
             'configured' => true,
             'connected' => true,
-            'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
-            'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
-            'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
-            'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
-            'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
         ]);
     } catch (Throwable $e) {
+        error_log('[voxi][db] status connection failed: ' . $e->getMessage());
         voxi_json([
             'ok' => false,
             'driver' => 'mysql-ispmanager',
             'configured' => true,
             'connected' => false,
-            'error' => 'Ошибка подключения к MySQL в ISPmanager. Проверьте DB_NAME, DB_USER и DB_PASS в .env.',
-            'details' => $e->getMessage(),
-            'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
-            'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
-            'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
-            'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
-            'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
-            'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
+            'error' => 'Ошибка подключения к базе данных. Пожалуйста, попробуйте позже.',
         ], 503);
     }
 }
@@ -267,32 +250,19 @@ if (!voxi_is_db_configured($VOXI_CONFIG)) {
         'ok' => false,
         'configured' => false,
         'connected' => false,
-        'error' => 'База данных MySQL ещё не указана в .env или api/config.php (заполните DB_NAME, DB_USER, DB_PASS).',
-        'hint' => 'Создайте БД в ISPmanager (хостинг hoster.by) и запишите параметры в файл .env в корне сайта.',
-        'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
-        'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
-        'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
-        'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
-        'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
-        'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
+        'error' => 'База данных ещё не настроена на сервере.',
     ], 503);
 }
 
 try {
     $pdo = voxi_get_pdo($VOXI_CONFIG);
 } catch (Throwable $e) {
+    error_log('[voxi][db] pdo connection failed: ' . $e->getMessage());
     voxi_json([
         'ok' => false,
         'configured' => true,
         'connected' => false,
-        'error' => 'Не удалось подключиться к БД MySQL в ISPmanager. Проверьте имя БД, логин и пароль в .env или api/config.php.',
-        'details' => $e->getMessage(),
-        'envLoaded' => !empty($GLOBALS['VOXI_ENV_LOADED_FILE']),
-        'envFile' => $GLOBALS['VOXI_ENV_LOADED_FILE'] ?? null,
-        'searchPaths' => $GLOBALS['VOXI_ENV_SEARCH_PATHS'] ?? [],
-        'dbHost' => (string)($VOXI_CONFIG['db_host'] ?? ''),
-        'dbName' => (string)($VOXI_CONFIG['db_name'] ?? ''),
-        'dbUser' => (string)($VOXI_CONFIG['db_user'] ?? ''),
+        'error' => 'Не удалось подключиться к базе данных. Пожалуйста, попробуйте позже.',
     ], 503);
 }
 
@@ -363,7 +333,7 @@ if ($action === 'admin_data') {
             'id' => $uid,
             'name' => (string)$u['email'],
             'companyName' => (string)($u['company_name'] ?: 'Компания РБ'),
-            'unp' => '19' . substr(preg_replace('/\D/', '', (string)crc32($uid)) . '0000000', 0, 7),
+            'unp' => trim((string)($u['unp'] ?? '')),
             'phone' => (string)($u['agent_phone'] ?: ($u['sip_caller_id'] ?: '+375 (29) 000-00-00')),
             'email' => (string)$u['email'],
             'niche' => (string)($u['niche'] ?: 'driving_school'),
@@ -412,16 +382,22 @@ if ($action === 'admin_data') {
         } elseif (stripos($pm, 'bank') !== false || stripos($pm, 'admin') !== false || stripos($pm, 'bonus') !== false) {
             $mappedMethod = 'bank_transfer_act';
         }
+        $txUid = (string)$tx['user_id'];
+        $txInvNum = !empty($tx['external_uid'])
+            ? (string)$tx['external_uid']
+            : (is_array($curInvByUser[$txUid] ?? null) && !empty($curInvByUser[$txUid]['invoice_number'])
+                ? (string)$curInvByUser[$txUid]['invoice_number']
+                : ('TX-' . strtoupper(substr((string)$tx['id'], 0, 8))));
         $transactions[] = [
             'id' => (string)$tx['id'],
-            'clientId' => (string)$tx['user_id'],
+            'clientId' => $txUid,
             'clientName' => (string)($tx['company_name'] ?: $tx['email']),
-            'unp' => '19' . substr(preg_replace('/\D/', '', (string)crc32((string)$tx['user_id'])) . '0000000', 0, 7),
+            'unp' => '',
             'amountByn' => round((float)($tx['amount_byn'] ?? 0), 2),
             'minutesAdded' => round((float)($tx['minutes'] ?? 0), 1),
             'paymentMethod' => $mappedMethod,
             'status' => 'successful',
-            'invoiceNumber' => 'СЧ-' . date('Y') . '/' . (200 + $idx),
+            'invoiceNumber' => $txInvNum,
             'createdAt' => !empty($tx['created_at']) ? date('d.m.Y H:i', strtotime((string)$tx['created_at'])) : date('d.m.Y H:i'),
             'actGenerated' => true,
         ];
@@ -1013,7 +989,11 @@ if ($action === 'save_agent') {
     $firstMsg = (string)($agent['firstMessage'] ?? '');
     $sysPrompt = (string)($agent['systemPrompt'] ?? '');
     $vapiId = !empty($agent['vapiAssistantId']) ? mb_substr((string)$agent['vapiAssistantId'], 0, 128) : null;
-    $isActive = !isset($agent['isActive']) || (bool)$agent['isActive'] ? 1 : 0;
+    $isSuspended = ((string)($authUser['billing_status'] ?? 'active')) === 'suspended';
+    $isActive = $isSuspended ? 0 : (!isset($agent['isActive']) || (bool)$agent['isActive'] ? 1 : 0);
+    if ($isSuspended) {
+        $agent['isActive'] = false;
+    }
     $configJson = json_encode($agent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     $stmt = $pdo->prepare(
@@ -1164,7 +1144,7 @@ if ($action === 'record_call') {
     $transcriptJson = json_encode($log['transcript'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     $isVoicemail = ($status === 'voicemail_detected');
-    $isTestCall = !empty($log['isTest']) || str_starts_with($callId, 'test-') || str_starts_with($callId, 'call-sim-');
+    $isTestCall = !empty($log['isTest']) || str_starts_with($callId, 'test-') || str_starts_with($callId, 'call-sim-') || str_starts_with($callId, 'call-live-');
     $rate = (float)$authUser['rate_per_minute'] > 0 ? (float)$authUser['rate_per_minute'] : 0.45;
     $usedMinutes = ($isTestCall || $isVoicemail) ? 0.0 : max(0.25, round($durationSec / 60, 2));
     $costByn = $isVoicemail ? 0.0 : round($usedMinutes * $rate, 2);

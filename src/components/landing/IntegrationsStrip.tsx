@@ -112,7 +112,7 @@ export const IntegrationsStrip: React.FC = () => {
                       МТС
                     </div>
                     <Badge variant="outline" className="text-xs font-mono font-medium text-emerald-700 bg-emerald-50 border-emerald-200">
-                      99.98% SLA
+                      99.9% SLA
                     </Badge>
                   </div>
                   <div className="space-y-1.5">

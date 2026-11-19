@@ -8,12 +8,17 @@ $botToken = trim((string)($_GET['token'] ?? ($VOXI_CONFIG['telegram_bot_token'] 
 $webhookSecret = trim((string)($VOXI_CONFIG['telegram_webhook_secret'] ?? ''));
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
-// --- 1. Проверка статуса вебхука прямо из браузера (Диагностика) ---
-// Пример: GET /api/telegram-webhook.php?action=check&token=YOUR_BOT_TOKEN
+// --- 1. Проверка статуса вебхука (только для администратора) ---
+// Пример: GET /api/telegram-webhook.php?action=check&pin=YOUR_ADMIN_PIN
 if (isset($_GET['action']) && $_GET['action'] === 'check') {
+    $pin = trim((string)($_GET['pin'] ?? ($_SERVER['HTTP_X_ADMIN_PIN'] ?? '')));
+    $masterPin = trim((string)($VOXI_CONFIG['admin_master_pin'] ?? ''));
+    if ($masterPin === '' || !hash_equals($masterPin, $pin)) {
+        voxi_json(['ok' => false, 'error' => 'Неверный PIN-код администратора'], 401);
+    }
     $tokenToCheck = $botToken;
     if ($tokenToCheck === '') {
-        voxi_json(['ok' => false, 'error' => 'Укажите токен бота: ?action=check&token=123:ABC...'], 400);
+        voxi_json(['ok' => false, 'error' => 'TELEGRAM_BOT_TOKEN не задан в .env'], 400);
     }
     $ch = curl_init("https://api.telegram.org/bot{$tokenToCheck}/getWebhookInfo");
     curl_setopt_array($ch, [
@@ -131,9 +136,47 @@ function voxi_tg_reply(string $botToken, string|int $chatId, string $htmlText, ?
     }
 }
 
+$sampleLeadText = "🔔 <b>Пример карточки лида со звонка Voxi.by</b>\n\n"
+    . "🏢 Компания: <b>Автошкола «Драйв-Минск»</b>\n"
+    . "👤 Клиент: <b>Алексей Смирнов</b>\n"
+    . "📱 Телефон: <code>+375 (29) 682-14-99</code>\n"
+    . "🛠 Запрос: <b>Категория «B» (вечерняя группа)</b>\n"
+    . "🕒 Запись в календарь: <b>Среда, 18:30 (ул. Тимирязева, 65)</b>\n"
+    . "⏱ Длительность звонка: <b>1 мин 25 сек</b> (списано 1.4 мин)\n"
+    . "💰 Оценка сделки: <b>1 250 BYN</b>\n\n"
+    . "📝 <b>Резюме диалога от нейросети:</b>\n"
+    . "<i>Клиент уточнил условия рассрочки на 3 этапа и график вождения. Слот в онлайн-календаре забронирован на среду в 18:30. Клиенту автоматически отправлена SMS-визитка с картой проезда.</i>\n\n"
+    . "✅ <i>Связь с Telegram работает стабильно!</i>";
+
+// Обработка нажатия inline-кнопки (callback_query приходит без $update['message'])
+$callbackQuery = $update['callback_query'] ?? null;
+if (is_array($callbackQuery)) {
+    $cbId = (string)($callbackQuery['id'] ?? '');
+    $cbData = (string)($callbackQuery['data'] ?? '');
+    $cbChatId = $callbackQuery['message']['chat']['id'] ?? null;
+
+    if ($cbId !== '') {
+        $chCb = curl_init("https://api.telegram.org/bot{$botToken}/answerCallbackQuery");
+        curl_setopt_array($chCb, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 4,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['callback_query_id' => $cbId], JSON_UNESCAPED_UNICODE),
+        ]);
+        @curl_exec($chCb);
+        curl_close($chCb);
+    }
+
+    if ($cbData === 'sample_lead' && $cbChatId !== null) {
+        voxi_tg_reply($botToken, $cbChatId, $sampleLeadText);
+    }
+    voxi_json(['ok' => true], 200);
+}
+
 $message = $update['message'] ?? null;
 if (!is_array($message) || empty($message['chat'])) {
-    // Могут приходить callback_query или статусы участников — подтверждаем 200 OK
+    // Статусы участников и прочие события — подтверждаем 200 OK
     voxi_json(['ok' => true], 200);
 }
 
@@ -163,7 +206,7 @@ if ($cmd === '/start' || $cmd === '/id') {
                . "<i>(нажмите на номер, чтобы скопировать)</i>\n\n"
                . "📋 <b>Как подключить уведомления:</b>\n"
                . "1. Скопируйте ваш <b>Chat ID</b> выше.\n"
-               . "2. Откройте личный кабинет <a href=\"https://voxi.by/dashboard\">Voxi.by</a> → вкладка <b>«Интеграции»</b> → блок <b>Telegram</b>.\n"
+               . "2. Откройте личный кабинет <a href=\"https://voxi.by/dashboard\">Voxi.by</a> → вкладка <b>«Заявки»</b> → блок <b>«Получение заявок в Telegram»</b>.\n"
                . "3. Вставьте номер в поле <b>«ID вашего чата или группы»</b> и нажмите кнопку <b>«Отправить тест в Telegram»</b>.\n\n"
                . "👥 <i>Хотите получать заявки в группу с коллегами? Добавьте меня в вашу рабочую группу и отправьте команду <code>/id</code>.</i>";
 
@@ -183,33 +226,18 @@ if ($cmd === '/start' || $cmd === '/id') {
                . "🏢 Группа: <b>" . htmlspecialchars($chatTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</b>\n"
                . "🆔 <b>ID этой группы:</b> <code>{$chatId}</code>\n"
                . "<i>(нажмите на номер, чтобы скопировать)</i>\n\n"
-               . "Скопируйте этот номер и вставьте в кабинете <a href=\"https://voxi.by/dashboard\">Voxi.by</a> в разделе <b>Интеграции → Telegram</b>. Все новые звонки и заявки будут автоматически приходить сюда всей команде!";
+               . "Скопируйте этот номер и вставьте в кабинете <a href=\"https://voxi.by/dashboard\">Voxi.by</a> в разделе <b>Заявки → Telegram</b>. Все новые звонки и заявки будут автоматически приходить сюда всей команде!";
 
         voxi_tg_reply($botToken, $chatId, $reply);
     }
-} elseif ($cmd === '/test' || ($update['callback_query']['data'] ?? '') === 'sample_lead') {
-    $targetId = $chatId ?? ($update['callback_query']['message']['chat']['id'] ?? null);
-    if ($targetId) {
-        $sampleText = "🔔 <b>Пример карточки лида со звонка Voxi.by</b>\n\n"
-                    . "🏢 Компания: <b>Автошкола «Драйв-Минск»</b>\n"
-                    . "👤 Клиент: <b>Алексей Смирнов</b>\n"
-                    . "📱 Телефон: <code>+375 (29) 682-14-99</code>\n"
-                    . "🛠 Запрос: <b>Категория «B» (вечерняя группа)</b>\n"
-                    . "🕒 Запись в календарь: <b>Среда, 18:30 (ул. Тимирязева, 65)</b>\n"
-                    . "⏱ Длительность звонка: <b>1 мин 25 сек</b> (списано 1.4 мин)\n"
-                    . "💰 Оценка сделки: <b>1 250 BYN</b>\n\n"
-                    . "📝 <b>Резюме диалога от нейросети:</b>\n"
-                    . "<i>Клиент уточнил условия рассрочки на 3 этапа и график вождения. Слот в онлайн-календаре забронирован на среду в 18:30. Клиенту автоматически отправлена SMS-визитка с картой проезда.</i>\n\n"
-                    . "✅ <i>Связь с Telegram работает стабильно!</i>";
-
-        voxi_tg_reply($botToken, $targetId, $sampleText);
-    }
+} elseif ($cmd === '/test') {
+    voxi_tg_reply($botToken, $chatId, $sampleLeadText);
 } elseif ($cmd === '/help') {
     $helpText = "ℹ️ <b>Справка Voxi.by Telegram Bot</b>\n\n"
               . "• <code>/start</code> или <code>/id</code> — узнать ваш персональный Chat ID для кабинета\n"
               . "• <code>/test</code> — посмотреть образец карточки входящего лида\n"
               . "• <code>/help</code> — это справочное сообщение\n\n"
-              . "Вопросы по подключению и телефонии: @jmaxess или <a href=\"https://voxi.by\">voxi.by</a>";
+              . "Вопросы по подключению и телефонии: @voxi_manager или <a href=\"https://voxi.by\">voxi.by</a>";
 
     voxi_tg_reply($botToken, $chatId, $helpText);
 }
