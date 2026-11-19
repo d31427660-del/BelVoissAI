@@ -667,17 +667,21 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   {currentTemplate.companyName}
                 </h2>
                 <p className="text-xs text-slate-500 font-mono">
-                  {currentTemplate.phone} • г. {currentTemplate.city}
+                  {[currentTemplate.phone, currentTemplate.city ? `г. ${currentTemplate.city}` : '']
+                    .filter(Boolean)
+                    .join(' • ')}
                 </p>
               </div>
 
               {/* Live Category Context Preview Card */}
               <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 text-left space-y-1.5 shadow-2xs text-xs">
-                <div className="flex items-start gap-2 text-slate-700">
-                  <MapPin size={15} className="text-blue-600 shrink-0 mt-0.5" />
-                  <span>{currentTemplate.address}</span>
-                </div>
-                <div className="text-[11px] text-slate-500 pl-5">
+                {currentTemplate.address && (
+                  <div className="flex items-start gap-2 text-slate-700">
+                    <MapPin size={15} className="text-blue-600 shrink-0 mt-0.5" />
+                    <span>{currentTemplate.address}</span>
+                  </div>
+                )}
+                <div className={`text-[11px] text-slate-500 ${currentTemplate.address ? 'pl-5' : ''}`}>
                   График: {currentTemplate.workingHours} • Голос: <strong className="text-slate-700">{voiceDisplayName}</strong>
                 </div>
               </div>
@@ -705,7 +709,16 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   {currentTemplate.companyName}
                 </h2>
                 <p className="text-xs text-slate-500 font-mono">
-                  {currentTemplate.phone} • {currentTemplate.address.split('(')[0].trim()}
+                  {[
+                    currentTemplate.phone,
+                    currentTemplate.address
+                      ? currentTemplate.address.split('(')[0].trim()
+                      : currentTemplate.city
+                      ? `г. ${currentTemplate.city}`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')}
                 </p>
                 <div className="pt-1 flex justify-center">
                   {callState === 'dialing' ? (
