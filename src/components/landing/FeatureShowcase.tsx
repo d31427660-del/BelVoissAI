@@ -10,8 +10,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { NotificationStack, SlidingTabs } from '@/components/motion';
-import { CalendarMarkIcon, LetterIcon } from '@solar-icons/react/bold-duotone';
+import { SlidingTabs } from '@/components/motion';
 
 export const FeatureShowcase: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'agent' | 'logs'>('agent');
@@ -268,41 +267,6 @@ export const FeatureShowcase: React.FC = () => {
               )}
             </div>
           </Card>
-
-          {/* DesignBookmark Motion (Kokonut UI): Notification stack */}
-          <div className="max-w-xl mx-auto pt-2">
-            <NotificationStack
-              items={[
-                {
-                  id: 'tg-lead',
-                  channel: 'Telegram-бот @voxi_lead',
-                  time: 'только что',
-                  title: 'Новый лид: Маникюр с покрытием · 75 BYN',
-                  body: 'Клиент: Елена (+375 29 614-22-90). Записана на завтра 19:30 к мастеру Дарье. Прикреплена запись звонка.',
-                  accentClass: 'bg-sky-50 text-sky-600 border border-sky-200/80',
-                  icon: <ChatRoundDotsIcon size={16} />,
-                },
-                {
-                  id: 'yclients-sync',
-                  channel: 'YCLIENTS · 2-Way Sync',
-                  time: '1 сек назад',
-                  title: 'Слот #84910 забронирован автоматически',
-                  body: 'Мастер Дарья · 19:30–20:45 · статус «Подтверждено Voxi AI».',
-                  accentClass: 'bg-violet-50 text-violet-600 border border-violet-200/80',
-                  icon: <CalendarMarkIcon size={16} />,
-                },
-                {
-                  id: 'client-sms',
-                  channel: 'SMS-визитка клиенту',
-                  time: '2 сек назад',
-                  title: 'Отправлено напоминание с адресом',
-                  body: '«Ждём вас завтра в 19:30 в студии Эстет, ул. Немига 12. Бесплатная парковка у входа».',
-                  accentClass: 'bg-emerald-50 text-emerald-600 border border-emerald-200/80',
-                  icon: <LetterIcon size={16} />,
-                },
-              ]}
-            />
-          </div>
         </div>
 
         {/* ================================================================= */}

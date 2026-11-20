@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MagneticButton, SlidingTabs, WordRoll, ReadAlong, MorphIsland } from '@/components/motion';
+import { MagneticButton, SlidingTabs, WordRoll, ReadAlong } from '@/components/motion';
 
 interface HeroProps {
   onOpenVoiceTest?: () => void;
@@ -317,7 +317,13 @@ export const Hero: React.FC<HeroProps> = ({
           
           {/* Left Column: H1 + Shadcn UI Buttons & Badges */}
           <div className="lg:col-span-7 space-y-6">
-            <MorphIsland />
+            <Badge
+              variant="outline"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-slate-300 bg-white/80 backdrop-blur-sm text-slate-900 text-xs font-normal shadow-xs"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Голосовой ИИ для бизнеса Беларуси • Отклик 0.5 сек</span>
+            </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.1] font-light">
               Ни одного пропущенного звонка{' '}
