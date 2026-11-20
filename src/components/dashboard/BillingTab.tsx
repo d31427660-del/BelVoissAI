@@ -80,10 +80,10 @@ export const BillingTab: React.FC<BillingTabProps> = ({
   const [callsPerDay, setCallsPerDay] = useState<number>(10);
   const estimatedMonthlyCalls = callsPerDay * 30;
   const estimatedMonthlyMinutes = estimatedMonthlyCalls; // avg ~1 min per call
-  const basePostpaidCostByn = Math.round(estimatedMonthlyMinutes * 0.45) + monthlySubByn;
-  const recommendedRate = estimatedMonthlyMinutes >= 800 ? 0.35 : estimatedMonthlyMinutes >= 250 ? 0.40 : 0.45;
-  const optimizedCostByn = Math.round(estimatedMonthlyMinutes * recommendedRate) + monthlySubByn;
-  const monthlySavingsByn = Math.max(0, basePostpaidCostByn - optimizedCostByn);
+  const basePostpaidCostByn = +(estimatedMonthlyMinutes * 0.45 + monthlySubByn).toFixed(2);
+  const recommendedRate = estimatedMonthlyMinutes >= 1000 ? 0.35 : estimatedMonthlyMinutes >= 300 ? 0.40 : 0.45;
+  const optimizedCostByn = +(estimatedMonthlyMinutes * recommendedRate + monthlySubByn).toFixed(2);
+  const monthlySavingsByn = Math.max(0, Math.round(basePostpaidCostByn - optimizedCostByn));
 
   // Payment Selection State
   const [selectedTarget, setSelectedTarget] = useState<'pack_300' | 'pack_1000' | 'custom' | 'postpaid'>(
@@ -94,10 +94,8 @@ export const BillingTab: React.FC<BillingTabProps> = ({
     if (initialSelectedPackage) {
       setSelectedTarget(initialSelectedPackage);
       onInitialPackageConsumed?.();
-    } else if (unpaidDebtByn >= 0.5) {
-      setSelectedTarget('postpaid');
     }
-  }, [unpaidDebtByn, initialSelectedPackage, onInitialPackageConsumed]);
+  }, [initialSelectedPackage, onInitialPackageConsumed]);
   const [customMinutes, setCustomMinutes] = useState<string>('100');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'erip'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -108,7 +106,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
   const isCustomValid = rawCustomMins >= 50 && rawCustomMins <= 10000;
   const clampedCustomMins = Math.max(50, Math.min(10000, rawCustomMins || 50));
   const customRate = clampedCustomMins >= 1000 ? 0.35 : clampedCustomMins >= 300 ? 0.40 : 0.45;
-  const customAmountByn = Math.round(clampedCustomMins * customRate);
+  const customAmountByn = +(clampedCustomMins * customRate).toFixed(2);
 
   const handleToggleRentalMode = async (useOwnSip: boolean) => {
     const updatedSip: SipSettings = {
@@ -350,14 +348,14 @@ export const BillingTab: React.FC<BillingTabProps> = ({
       <StorageMeter
         title="Расход минут по сценариям и периодам"
         usedMinutes={Math.round(freeMinsUsed + billableMinsThisMonth)}
-        totalMinutes={Math.max(Math.round(freeMinsTotal + billableMinsThisMonth), 300)}
+        totalMinutes={Math.max(15, Math.round(freeMinsTotal + billableMinsThisMonth))}
         segments={[
           {
             id: 'free-used',
             label: 'Бонусные минуты (использовано)',
             minutes: Math.round(freeMinsUsed),
             colorClass: 'bg-emerald-500',
-            detail: `Из ${Math.round(freeMinsTotal)} бонусных минут израсходовано ${Math.round(freeMinsUsed)} мин. Остаток бонуса: ${Math.round(freeMinsRemaining)} мин (не сгорает).`,
+            detail: `Из ${Math.round(freeMinsTotal)} доступных минут израсходовано ${Math.round(freeMinsUsed)} мин. Остаток: ${Math.round(freeMinsRemaining)} мин (не сгорает).`,
           },
           {
             id: 'billable',
@@ -365,13 +363,6 @@ export const BillingTab: React.FC<BillingTabProps> = ({
             minutes: Math.round(billableMinsThisMonth),
             colorClass: 'bg-slate-900',
             detail: `Тарифицируется только фактическое время диалога по ставке ${ratePerMin.toFixed(2)} BYN/мин. Гудки и ожидание — 0 BYN.`,
-          },
-          {
-            id: 'remaining',
-            label: 'Доступный запас минут',
-            minutes: Math.max(0, Math.round(freeMinsRemaining)),
-            colorClass: 'bg-amber-400',
-            detail: 'Остаток на балансе переносится на следующие месяцы и расходуется в первую очередь перед постоплатой.',
           },
         ]}
       />
@@ -493,7 +484,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                   Подвигайте ползунок, чтобы сравнить постоплату и оптовые пакеты
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono text-xs font-bold">
+              <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono text-xs font-bold whitespace-nowrap shrink-0">
                 ~{estimatedMonthlyMinutes} мин/мес
               </span>
             </div>
@@ -552,14 +543,14 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
           <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 flex items-center justify-between gap-2 text-xs text-indigo-950">
             <span>
-              {estimatedMonthlyMinutes >= 250
+              {estimatedMonthlyMinutes >= 300
                 ? `На объёме ~${estimatedMonthlyMinutes} мин/мес выгоднее взять пакет со скидкой (${recommendedRate.toFixed(2)} BYN/мин).`
                 : `При ${callsPerDay} звонках в день можно ничего не покупать вперёд — просто пользуйтесь постоплатой!`}
             </span>
-            {estimatedMonthlyMinutes >= 250 && (
+            {estimatedMonthlyMinutes >= 300 && (
               <a
                 href="#payment-section"
-                onClick={() => setSelectedTarget(estimatedMonthlyMinutes >= 800 ? 'pack_1000' : 'pack_300')}
+                onClick={() => setSelectedTarget(estimatedMonthlyMinutes >= 1000 ? 'pack_1000' : 'pack_300')}
                 className="font-bold text-indigo-700 hover:text-indigo-900 underline shrink-0"
               >
                 Выбрать пакет ↓
@@ -631,18 +622,9 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
           {/* Карточка 3: Свой объём минут */}
           <div
-            role="button"
-            tabIndex={0}
             onClick={() => {
               setSelectedTarget('custom');
               setErrorMsg(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setSelectedTarget('custom');
-                setErrorMsg(null);
-              }
             }}
             className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
               selectedTarget === 'custom'
@@ -652,9 +634,11 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           >
             <div>
               <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-xs font-bold">Своё кол-во минут</span>
+                <label htmlFor="billing-custom-mins" className="text-xs font-bold cursor-pointer">
+                  Своё кол-во минут
+                </label>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                     selectedTarget === 'custom' ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-100 text-amber-900'
                   }`}
                 >
@@ -662,20 +646,26 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                 </span>
               </div>
               <div className="mt-1.5 flex items-center gap-2">
-                <label htmlFor="billing-custom-mins" className="visually-hidden">
-                  Количество минут
-                </label>
                 <input
                   id="billing-custom-mins"
                   type="text"
                   inputMode="numeric"
                   value={customMinutes}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTarget('custom');
+                  }}
                   onChange={(e) => {
                     setSelectedTarget('custom');
                     setCustomMinutes(e.target.value.replace(/\D/g, ''));
                     setErrorMsg(null);
+                  }}
+                  onBlur={() => {
+                    if (customMinutes !== '' && rawCustomMins < 50) {
+                      setCustomMinutes('50');
+                    } else if (rawCustomMins > 10000) {
+                      setCustomMinutes('10000');
+                    }
                   }}
                   className={`w-24 px-2.5 py-1 rounded-lg text-sm font-mono font-bold border focus:outline-none ${
                     !isCustomValid && customMinutes !== ''
@@ -686,8 +676,8 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                   }`}
                   placeholder="100"
                 />
-                <span className="text-xs font-mono font-bold">
-                  = {isCustomValid ? `${customAmountByn} BYN` : 'мин. 50 мин'}
+                <span className="text-xs font-mono font-bold whitespace-nowrap">
+                  = {isCustomValid ? `${customAmountByn.toFixed(2)} BYN` : 'мин. 50 мин'}
                 </span>
               </div>
               {!isCustomValid && customMinutes !== '' && (
@@ -776,13 +766,15 @@ export const BillingTab: React.FC<BillingTabProps> = ({
             <button
               type="button"
               onClick={handleActionSubmit}
-              disabled={isProcessing}
-              className="px-6 h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+              disabled={isProcessing || activeAmountByn < 0.5 || (selectedTarget === 'custom' && !isCustomValid)}
+              className="px-6 h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed shrink-0"
             >
               <WalletMoneyIcon size={18} />
               <span>
                 {isProcessing
                   ? 'Переход в bePaid...'
+                  : activeAmountByn < 0.5
+                  ? 'Нет задолженности к оплате'
                   : paymentMethod === 'erip'
                   ? `Оплатить ${activeAmountByn.toFixed(2)} BYN через ЕРИП`
                   : `Оплатить ${activeAmountByn.toFixed(2)} BYN картой`}
@@ -798,6 +790,68 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           </span>
         </div>
       </div>
+
+      {/* 4. ИСТОРИЯ СЧЕТОВ ПО МЕСЯЦАМ */}
+      {invoices.length > 0 && (
+        <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">История счетов по месяцам</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Все выставленные и текущие расчётные периоды по вашей компании
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-[11px] text-slate-500 font-semibold">
+                  <th className="py-2 pr-3">Период / Счёт</th>
+                  <th className="py-2 px-3">Минуты</th>
+                  <th className="py-2 px-3">Итого</th>
+                  <th className="py-2 px-3">К оплате</th>
+                  <th className="py-2 pl-3 text-right">Статус</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td className="py-2.5 pr-3 font-medium text-slate-900 whitespace-nowrap">
+                      {inv.periodYm} <span className="text-slate-400 font-mono text-[11px]">({inv.invoiceNumber})</span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-slate-700 whitespace-nowrap">
+                      {inv.billableMinutes.toFixed(1)} мин
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-slate-900 whitespace-nowrap">
+                      {inv.totalAmountByn.toFixed(2)} BYN
+                    </td>
+                    <td className="py-2.5 px-3 font-mono font-bold text-slate-950 whitespace-nowrap">
+                      {inv.remainingDueByn.toFixed(2)} BYN
+                    </td>
+                    <td className="py-2.5 pl-3 text-right whitespace-nowrap">
+                      {inv.status === 'paid' ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
+                          Оплачен
+                        </span>
+                      ) : inv.status === 'overdue' ? (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-semibold">
+                          Просрочен
+                        </span>
+                      ) : inv.status === 'issued' ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold">
+                          Выставлен
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                          Текущий
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

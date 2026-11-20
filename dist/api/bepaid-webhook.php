@@ -85,10 +85,51 @@ try {
 
     // Обработка возврата (refund / void)
     if ($status === 'refunded' || $txType === 'refund' || $txType === 'void') {
+        $wasPaid = ($order['status'] === 'paid');
         $pdo->prepare("UPDATE payment_orders SET status = 'refunded', external_uid = ? WHERE id = ?")
             ->execute([$externalUid !== '' ? $externalUid : null, $orderId]);
+
+        $refundAmountByn = round(((int)$order['amount_kopecks']) / 100, 2);
+        $refundMinutes = (float)$order['minutes'];
+        $refundUserId = (string)$order['user_id'];
+        $refundInvoiceId = trim((string)($order['invoice_id'] ?? ''));
+        $refundKind = (string)($order['order_kind'] ?? 'invoice_payment');
+
+        if ($wasPaid) {
+            if ($refundInvoiceId !== '' && in_array($refundKind, ['invoice_payment', 'early_payment'], true)) {
+                $pdo->prepare(
+                    "UPDATE monthly_invoices
+                     SET paid_early_byn = GREATEST(0, paid_early_byn - ?),
+                         status = IF(status = 'paid', 'issued', status),
+                         paid_at = IF(status = 'paid', NULL, paid_at),
+                         updated_at = NOW()
+                     WHERE id = ?"
+                )->execute([$refundAmountByn, $refundInvoiceId]);
+                voxi_sync_user_billing_status($pdo, $refundUserId);
+            } elseif ($refundMinutes > 0) {
+                $pdo->prepare(
+                    'UPDATE users SET balance_minutes = GREATEST(0, balance_minutes - ?), updated_at = NOW() WHERE id = ?'
+                )->execute([$refundMinutes, $refundUserId]);
+            }
+            $pdo->prepare(
+                'INSERT INTO minute_transactions (id, user_id, type, minutes, amount_byn, payment_method, external_uid, description)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([
+                voxi_uuid(), $refundUserId, 'refund', -$refundMinutes, -$refundAmountByn, $paymentMethod, $externalUid,
+                "Возврат платежа bePaid ({$refundAmountByn} BYN)",
+            ]);
+        }
+
         $pdo->commit();
-        error_log("[voxi][bepaid] order {$orderId} was refunded/voided");
+        error_log("[voxi][bepaid] order {$orderId} was refunded/voided (wasPaid=" . ($wasPaid ? '1' : '0') . ')');
+        if (function_exists('voxi_notify_admin_telegram')) {
+            @voxi_notify_admin_telegram(
+                "⚠️ <b>Возврат платежа bePaid</b>\n"
+                . "Заказ: <code>{$orderId}</code>\n"
+                . "Сумма: <b>{$refundAmountByn} BYN</b>\n"
+                . "Статус отката: " . ($wasPaid ? 'баланс/счёт скорректированы' : 'заказ не был оплачен')
+            );
+        }
         voxi_json(['received' => true, 'status' => 'order_marked_refunded'], 200);
     }
 

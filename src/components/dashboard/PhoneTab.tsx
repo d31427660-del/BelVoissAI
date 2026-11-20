@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PhoneCallingRoundedIcon as Phone,
@@ -20,9 +20,10 @@ import { FieldLabel } from './FieldHelp';
 
 interface PhoneTabProps {
   agent: AgentConfig;
-  onSaveAgent: (agent: AgentConfig) => void;
+  onSaveAgent: (agent: AgentConfig) => Promise<void> | void;
   sipSettings: SipSettings;
-  onSaveSip: (settings: SipSettings) => void;
+  onSaveSip: (settings: SipSettings) => Promise<void> | void;
+  numberRentalMode?: 'own_sip' | 'rental';
   onUserUpdated?: (user: UserSession) => void;
 }
 
@@ -31,12 +32,14 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
   onSaveAgent,
   sipSettings,
   onSaveSip,
+  numberRentalMode,
   onUserUpdated
 }) => {
+  const resolvedOwnSip = numberRentalMode ? numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode ?? true);
   const [localSip, setLocalSip] = useState<SipSettings>({
     ...sipSettings,
     assignedDid: sipSettings.assignedDid || '',
-    byoSipMode: sipSettings.byoSipMode ?? false,
+    byoSipMode: resolvedOwnSip,
     fallbackEnabled: sipSettings.fallbackEnabled ?? true,
     fallbackPhone: sipSettings.fallbackPhone || agent.phone || '',
     transferPhone: sipSettings.transferPhone || sipSettings.fallbackPhone || agent.phone || '',
@@ -49,8 +52,16 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
       'Для контроля качества обслуживания наш разговор записывается.'
   });
 
-  const [copiedUssd, setCopiedUssd] = useState<string | null>(null);
-  const [savedSuccess, setSavedSuccess] = useState(false);
+  useEffect(() => {
+    setLocalSip((prev) => ({
+      ...prev,
+      ...sipSettings,
+      byoSipMode: numberRentalMode ? numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode ?? prev.byoSipMode),
+    }));
+  }, [sipSettings, numberRentalMode]);
+
+  const [rentalRequestNotice, setRentalRequestNotice] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [showSipPassword, setShowSipPassword] = useState(false);
   const [isTestingSip, setIsTestingSip] = useState(false);
   const [sipTestResult, setSipTestResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -65,6 +76,11 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
     const freshUser = await ispUpdateNumberRentalMode(useOwnSip ? 'own_sip' : 'rental');
     if (freshUser && onUserUpdated) {
       onUserUpdated(freshUser);
+    }
+    if (!useOwnSip && !hasAssignedDid) {
+      setRentalRequestNotice('Заявка на выделение номера А1 ВАТС отправлена менеджеру. Мы подключим номер в рабочее время (09:00–21:00).');
+    } else {
+      setRentalRequestNotice(null);
     }
   };
 
@@ -86,16 +102,6 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
   const ussdNoAnswer = hasAssignedDid ? `**61*${assignedGatewayE164}**10#` : '';
   const ussdAlways = hasAssignedDid ? `**21*${assignedGatewayE164}#` : '';
 
-  const handleCopyUssd = (code: string) => {
-    try {
-      void navigator.clipboard.writeText(code);
-      setCopiedUssd(code);
-      setTimeout(() => setCopiedUssd(null), 2000);
-    } catch {
-      // ignore
-    }
-  };
-
   const handleTestTransfer = async () => {
     setIsTestingTransfer(true);
     setTransferTestResult(null);
@@ -109,6 +115,12 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
   const handleSave = (e?: React.FormEvent) => {
     e?.preventDefault();
+    setValidationError(null);
+    const transferDigits = (localSip.transferPhone || '').replace(/\D+/g, '');
+    if (localSip.transferPhone?.trim() && (transferDigits.length < 9 || transferDigits.length > 15)) {
+      setValidationError('Укажите корректный номер для перевода звонка (например, +375 29 123-45-67).');
+      return;
+    }
     onSaveSip(localSip);
     if (localSip.transferPhone && localSip.transferPhone !== agent.phone) {
       onSaveAgent({
@@ -117,16 +129,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
         updatedAt: new Date().toISOString()
       });
     }
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
   };
-
-  const sipProviders = [
-    { id: 'mts' as const, label: 'МТС Беларусь', server: 'sip.mts.by:5060' },
-    { id: 'a1' as const, label: 'А1 (Виртуальная АТС)', server: 'sip.a1.by:5060' },
-    { id: 'beltelecom' as const, label: 'Белтелеком (IMS/Максифон)', server: 'ims.beltelecom.by:5060' },
-    { id: 'custom' as const, label: 'Другой оператор', server: 'sip.provider.by:5060' }
-  ];
 
   return (
     <form id="active-workspace-form" onSubmit={handleSave} className="space-y-6 max-w-4xl mx-auto">
@@ -160,9 +163,14 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
         </button>
       </div>
 
-      {/* Save Success Alert */}
+      {/* Validation Error & Rental Request Notice */}
+      {validationError && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold">
+          {validationError}
+        </div>
+      )}
       <AnimatePresence>
-        {savedSuccess && (
+        {rentalRequestNotice && (
           <motion.div
             role="status"
             aria-live="polite"
@@ -172,7 +180,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
             className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-semibold"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Настройки телефонии сохранены! Номер готов к работе.</span>
+            <span>{rentalRequestNotice}</span>
           </motion.div>
         )}
       </AnimatePresence>

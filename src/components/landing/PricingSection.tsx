@@ -85,7 +85,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircleIcon size={16} className="text-emerald-500 shrink-0" />
-                    <span>Все 5 отраслевых сценариев РБ</span>
+                    <span>4 готовые отрасли РБ + свой бизнес</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircleIcon size={16} className="text-emerald-500 shrink-0" />
@@ -217,7 +217,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircleIcon size={16} className="text-emerald-500 shrink-0" />
-                    <span>Оплата безналичным расчётом или ЕРИП</span>
+                    <span>Оплата картой (БЕЛКАРТ, Visa, MC) или ЕРИП</span>
                   </li>
                 </ul>
               </div>

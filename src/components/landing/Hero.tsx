@@ -12,7 +12,7 @@ import { VoiceSimulator } from '../../lib/speechSynth';
 import { VoiceId } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MagneticButton, SlidingTabs, WordRoll, ReadAlong } from '@/components/motion';
 
@@ -76,7 +76,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
   {
     id: 'sto',
     pillLabel: 'Автосервис и СТО',
-    title: 'СТО «Авторитет-Сервис» ↗',
+    title: 'СТО «Минск-Моторс Экспресс» ↗',
     subtitle: 'Уверенный мужской голос мастера-приёмщика: расчёт ТО, проверка подъёмников и запись по марке авто.',
     voice: 'maxim',
     voiceBadge: 'Голос: Максим • Уверенный эксперт',
@@ -108,7 +108,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
   {
     id: 'clinic',
     pillLabel: 'Стоматология и Медцентр',
-    title: 'Клиника «ДентаЛюкс» ↗',
+    title: 'Клиника «Дент-Престиж» ↗',
     subtitle: 'Мгновенный приём обращений с острой болью за 0.5 сек, подбор врача и сверка с расписанием.',
     voice: 'anna',
     voiceBadge: 'Голос: Анна • Заботливый администратор',
@@ -140,7 +140,7 @@ const ORB_SCENARIOS: OrbScenario[] = [
   {
     id: 'beauty',
     pillLabel: 'Салон красоты и SPA',
-    title: 'Студия «Бьюти-Минск» ↗',
+    title: 'Салон «Лофт Бьюти» ↗',
     subtitle: 'Круглосуточная запись в YCLIENTS, подбор топ-мастера и предложение комплексных процедур.',
     voice: 'anna',
     voiceBadge: 'Голос: Анна • Премиальный сервис',
@@ -385,11 +385,12 @@ export const Hero: React.FC<HeroProps> = ({
             </p>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#777169] border-t border-black/[0.075] pt-4">
-              <span className="inline-flex items-center gap-1.5 font-medium text-black whitespace-nowrap">
+              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                от 0 BYN абонплата
+                15 мин бесплатно • без карты
               </span>
-              <span className="font-mono text-xs text-black font-medium whitespace-nowrap">520ms latency</span>
+              <span className="font-medium text-black whitespace-nowrap">от 0 BYN абонплата</span>
+              <span className="font-mono text-xs text-black font-medium whitespace-nowrap">~0.5 сек отклик</span>
               <span className="whitespace-nowrap">ЕРИП и bePaid</span>
               <a href="#benchmark" className="text-black hover:underline font-medium whitespace-nowrap">
                 Бенчмарк речи →
@@ -414,7 +415,7 @@ export const Hero: React.FC<HeroProps> = ({
                 Voxi Голос
               </CardTitle>
               <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-normal">
-                5 отраслевых сценариев Беларуси
+                4 отрасли РБ + ночной режим
               </Badge>
             </div>
 
@@ -445,12 +446,12 @@ export const Hero: React.FC<HeroProps> = ({
                 if (idx !== -1) selectScenarioByIndex(idx);
               }}
             >
-              <TabsList className="flex flex-wrap h-auto justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/70">
+              <TabsList className="flex flex-nowrap sm:flex-wrap h-auto justify-start sm:justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/70 overflow-x-auto max-w-full">
                 {ORB_SCENARIOS.map((sc) => (
                   <TabsTrigger
                     key={sc.id}
                     value={sc.id}
-                    className="rounded-lg px-3.5 py-1.5 text-xs font-medium text-slate-700 data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-sm"
+                    className="rounded-lg px-3.5 py-1.5 text-xs font-medium text-slate-700 whitespace-nowrap shrink-0 data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-sm"
                   >
                     {sc.pillLabel}
                   </TabsTrigger>
@@ -471,7 +472,7 @@ export const Hero: React.FC<HeroProps> = ({
 
                     // Responsive X multiplier for mobile/tablet screens
                     const xMultiplier =
-                      screenWidth < 480 ? 0.44 : screenWidth < 768 ? 0.65 : screenWidth < 1024 ? 0.85 : 1;
+                      screenWidth < 480 ? 0.44 : screenWidth < 768 ? 0.60 : screenWidth < 1024 ? 0.70 : 1;
 
                     // ElevenLabs Slot Transforms (X arc, Y depression, Scale depth, Opacity, Z-Index)
                     let tx = 0;
@@ -513,12 +514,25 @@ export const Hero: React.FC<HeroProps> = ({
 
                           {/* Sphere Body with Authentic ElevenLabs 3D Texture */}
                           <div
+                            role={!isCenter ? 'button' : undefined}
+                            tabIndex={!isCenter ? 0 : undefined}
+                            aria-label={!isCenter ? `Выбрать сценарий: ${sc.pillLabel}` : undefined}
                             className={`w-full h-full rounded-full overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.14)] ring-1 ring-inset ring-black/10 transition-transform ${
                               !isCenter
                                 ? 'cursor-pointer hover:scale-105 hover:ring-black/20 hover:shadow-[0_26px_60px_rgba(0,0,0,0.22)]'
                                 : ''
                             }`}
                             onClick={!isCenter ? () => selectScenarioByIndex(idx) : undefined}
+                            onKeyDown={
+                              !isCenter
+                                ? (e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      selectScenarioByIndex(idx);
+                                    }
+                                  }
+                                : undefined
+                            }
                           >
                             {/* High-Resolution Photorealistic 3D Texture */}
                             <img
@@ -597,11 +611,11 @@ export const Hero: React.FC<HeroProps> = ({
                 
                 {/* Left: Live Emotional Prompt Reader Card (shadcn Card) */}
                 <Card className="lg:col-span-6 rounded-xl border border-slate-200/90 bg-white p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-xs">
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <Badge variant="outline" className="font-mono text-[11px] font-normal border-slate-200 text-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <Badge variant="outline" className="font-mono text-[11px] font-normal border-slate-200 text-slate-800 whitespace-nowrap">
                       {currentScenario.emotionCue}
                     </Badge>
-                    <span className="text-slate-500 font-mono text-[11px]">
+                    <span className="text-slate-500 font-mono text-[11px] whitespace-nowrap">
                       {selectedVoice === 'maxim' ? 'Максим (48 kHz Neural)' : 'Анна (48 kHz Neural)'}
                     </span>
                   </div>

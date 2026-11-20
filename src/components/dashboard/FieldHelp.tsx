@@ -35,12 +35,14 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
         htmlFor={htmlFor}
         className="text-xs font-semibold text-slate-800 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0 leading-snug cursor-pointer"
       >
-        <span>{label}</span>
-        {required && (
-          <span className="text-rose-500 font-bold" title="Обязательное поле">
-            *
-          </span>
-        )}
+        <span>
+          {label}
+          {required && (
+            <span className="text-rose-500 font-bold ml-0.5" title="Обязательное поле">
+              *
+            </span>
+          )}
+        </span>
         {optionalText && (
           <span className="text-[11px] font-normal text-slate-400">
             ({optionalText})

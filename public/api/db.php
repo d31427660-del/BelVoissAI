@@ -289,7 +289,7 @@ if ($action === 'admin_data') {
     $stmtUsers = $pdo->query(
         'SELECT u.*, a.city AS agent_city, a.phone AS agent_phone, a.voice AS agent_voice, a.is_active AS agent_active,
                 a.vapi_assistant_id,
-                i.sip_provider, i.sip_caller_id, i.sip_server, i.sip_login, i.sip_json
+                i.sip_provider, i.sip_caller_id, i.sip_server, i.sip_login, i.sip_status, i.sip_json
          FROM users u
          LEFT JOIN assistants a ON a.user_id = u.id
          LEFT JOIN integrations i ON i.user_id = u.id
@@ -352,7 +352,9 @@ if ($action === 'admin_data') {
             'sipProvider' => in_array(($u['sip_provider'] ?? ''), ['mts', 'a1', 'beltelecom', 'life'], true)
                 ? (string)$u['sip_provider']
                 : 'a1',
-            'sipStatus' => 'connected',
+            'sipStatus' => in_array((string)($u['sip_status'] ?? ''), ['connected', 'pending', 'error', 'disconnected'], true)
+                ? (string)$u['sip_status']
+                : ($assignedDid !== '' ? 'connected' : 'disconnected'),
             'assignedDid' => $assignedDid,
             'sipServer' => (string)($u['sip_server'] ?: 'sip.a1.by:5060'),
             'sipLogin' => (string)($u['sip_login'] ?? ''),
@@ -363,14 +365,15 @@ if ($action === 'admin_data') {
         ];
     }
 
-    // 2. Реальные платежи и начисления минут
+    // 2. Реальные платежи (исключая бесплатные стартовые бонусы 0 BYN, но включая абонплату 15 BYN за номер)
     $stmtTx = $pdo->query(
-        'SELECT t.*, u.company_name, u.email
+        "SELECT t.*, u.company_name, u.email
          FROM minute_transactions t
          INNER JOIN users u ON u.id = t.user_id
-         WHERE t.minutes > 0
+         WHERE t.type IN ('topup', 'invoice_payment', 'early_payment', 'admin_refill')
+           AND t.amount_byn > 0
          ORDER BY t.created_at DESC
-         LIMIT 100'
+         LIMIT 100"
     );
     $txRows = $stmtTx ? $stmtTx->fetchAll() : [];
     $transactions = [];
@@ -709,7 +712,8 @@ if ($action === 'admin_mark_invoice_paid') {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        voxi_json(['ok' => false, 'error' => 'Ошибка проведения оплаты: ' . $e->getMessage()], 500);
+        error_log('admin_mark_invoice_paid error: ' . $e->getMessage());
+        voxi_json(['ok' => false, 'error' => 'Ошибка проведения оплаты. Попробуйте позже.'], 500);
     }
 
     voxi_json(['ok' => true]);
@@ -1061,8 +1065,14 @@ if ($action === 'save_integrations') {
     $tgChatId = mb_substr((string)($tg['chatId'] ?? ''), 0, 128);
     $tgEnabled = !empty($tg['isEnabled']) ? 1 : 0;
 
-    $whUrl = mb_substr((string)($wh['webhookUrl'] ?? ''), 0, 512);
+    $whUrl = trim(mb_substr((string)($wh['webhookUrl'] ?? ''), 0, 512));
     $whEnabled = !empty($wh['isEnabled']) ? 1 : 0;
+    if ($whUrl !== '') {
+        $ssrfErr = voxi_validate_webhook_safety($whUrl);
+        if ($ssrfErr !== null) {
+            voxi_json(['ok' => false, 'error' => $ssrfErr], 400);
+        }
+    }
 
     $stmt = $pdo->prepare(
         'INSERT INTO integrations (
@@ -1241,6 +1251,28 @@ if ($action === 'update_number_rental_mode') {
             error_log('update_number_rental_mode billing summary non-fatal error: ' . $be->getMessage());
         }
 
+        if ($rentalMode === 'rental' && function_exists('voxi_notify_admin_telegram')) {
+            try {
+                $stmtInt = $pdo->prepare('SELECT sip_json FROM integrations WHERE user_id = ? LIMIT 1');
+                $stmtInt->execute([$userId]);
+                $intRow = $stmtInt->fetch();
+                $sipData = is_array($intRow) && !empty($intRow['sip_json']) ? json_decode((string)$intRow['sip_json'], true) : [];
+                $assignedDid = is_array($sipData) ? trim((string)($sipData['assignedDid'] ?? '')) : '';
+                if ($assignedDid === '') {
+                    $clientEmail = (string)($freshUser['email'] ?? '');
+                    $clientCompany = (string)($freshUser['company_name'] ?? 'Компания РБ');
+                    @voxi_notify_admin_telegram(
+                        "📞 <b>Запрос на выделение номера А1 ВАТС</b>\n"
+                        . "Компания: <b>{$clientCompany}</b>\n"
+                        . "Email: <code>{$clientEmail}</code>\n"
+                        . "Режим: аренда номера (15 BYN/мес)"
+                    );
+                }
+            } catch (Throwable $ne) {
+                error_log('update_number_rental_mode telegram notify error: ' . $ne->getMessage());
+            }
+        }
+
         voxi_json([
             'ok' => true,
             'user' => $formattedFresh,
@@ -1249,7 +1281,7 @@ if ($action === 'update_number_rental_mode') {
         error_log('update_number_rental_mode fatal error: ' . $e->getMessage());
         voxi_json([
             'ok' => false,
-            'error' => 'Не удалось обновить режим номера: ' . $e->getMessage(),
+            'error' => 'Не удалось обновить режим номера. Попробуйте позже.',
         ], 500);
     }
 }

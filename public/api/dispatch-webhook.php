@@ -22,46 +22,6 @@ if (!$authUser) {
     voxi_json(['ok' => false, 'error' => 'Требуется авторизация в личном кабинете'], 401);
 }
 
-function voxi_is_private_or_internal_ip(string $ip): bool
-{
-    // Filter private and reserved ranges
-    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-        return true;
-    }
-    // Block AWS/GCP/Azure link-local metadata (169.254.169.254)
-    if (str_starts_with($ip, '169.254.') || str_starts_with($ip, '127.')) {
-        return true;
-    }
-    return false;
-}
-
-function voxi_validate_webhook_safety(string $url): ?string
-{
-    $parts = parse_url($url);
-    if (!$parts || empty($parts['host']) || empty($parts['scheme'])) {
-        return 'Некорректный адрес вебхука';
-    }
-    $scheme = strtolower($parts['scheme']);
-    if ($scheme !== 'https' && $scheme !== 'http') {
-        return 'Разрешены только https:// или http:// протоколы';
-    }
-    $host = strtolower($parts['host']);
-    if ($host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
-        return 'Запрещено обращаться к локальным адресам';
-    }
-
-    $ips = @gethostbynamel($host);
-    if (!is_array($ips) || empty($ips)) {
-        return 'Не удалось определить IP-адрес узла вебхука';
-    }
-    foreach ($ips as $ip) {
-        if (voxi_is_private_or_internal_ip($ip)) {
-            return 'Запрещено обращаться к закрытым IP-адресам внутренней сети хостинга';
-        }
-    }
-    return null;
-}
-
 $body = voxi_read_json_body();
 $action = trim((string)($body['action'] ?? ''));
 $webhookUrl = trim((string)($body['webhookUrl'] ?? ''));

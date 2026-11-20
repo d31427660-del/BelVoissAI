@@ -8,7 +8,6 @@ import {
 import { UserSession } from '../types';
 import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { RollLink } from '@/components/motion';
 
 interface NavbarProps {
@@ -65,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               e.preventDefault();
               setCurrentView('landing');
               setIsMobileMenuOpen(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex items-center gap-2.5 cursor-pointer group shrink-0"
           >
@@ -117,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </RollLink>
               <RollLink
                 href="#pricing"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors font-medium text-slate-900 whitespace-nowrap"
+                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Тарифы
               </RollLink>
@@ -196,13 +196,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </Button>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-1">
+              <div className="flex items-center gap-1">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => onOpenAuth('signin')}
-                  className="h-9 px-3.5 rounded-full text-slate-600 hover:text-slate-950 font-normal text-xs cursor-pointer"
+                  className="hidden sm:inline-flex h-9 px-3.5 rounded-full text-slate-600 hover:text-slate-950 font-normal text-xs cursor-pointer"
                 >
                   Войти
                 </Button>
@@ -210,9 +210,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   type="button"
                   size="sm"
                   onClick={() => onOpenAuth('signup')}
-                  className="h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-normal text-xs shadow-xs cursor-pointer"
+                  className="h-9 px-3.5 sm:px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-normal text-xs shadow-xs cursor-pointer"
                 >
-                  Регистрация
+                  <span className="sm:hidden">Начать</span>
+                  <span className="hidden sm:inline">Регистрация</span>
                 </Button>
               </div>
             )}
@@ -274,16 +275,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
               {!user && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onOpenAuth();
-                  }}
-                  className="w-full py-2.5 rounded-full liquid-glass-btn-primary text-white text-xs font-normal cursor-pointer"
-                >
-                  Войти в кабинет
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      onOpenAuth('signup');
+                    }}
+                    className="w-full py-2.5 px-3 rounded-full liquid-glass-btn-primary text-white text-xs font-medium cursor-pointer"
+                  >
+                    Регистрация (+15 мин)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      onOpenAuth('signin');
+                    }}
+                    className="w-full py-2.5 px-3 rounded-full liquid-glass-pill text-black text-xs font-normal cursor-pointer"
+                  >
+                    Войти
+                  </button>
+                </div>
               )}
             </div>
 
@@ -297,8 +310,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   {VOXI_CONTACTS.phoneDisplay}
                 </a>
-                <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Звонки 24/7
+                <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
+                  {VOXI_CONTACTS.supportHours}
                 </span>
               </div>
               <div className="flex items-center gap-2 pt-1">

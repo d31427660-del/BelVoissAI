@@ -20,7 +20,6 @@ if ($shopId === '' || $secretKey === '') {
 }
 
 $packages = [
-    'pack_100' => ['minutes' => 100, 'priceByn' => 45, 'name' => 'Пакет 100 минут'],
     'pack_300' => ['minutes' => 300, 'priceByn' => 120, 'name' => 'Пакет 300 минут'],
     'pack_1000' => ['minutes' => 1000, 'priceByn' => 350, 'name' => 'Пакет 1000 минут'],
 ];
@@ -96,7 +95,7 @@ if ($invoiceId !== '' || $payEarly) {
     $orderKind = 'topup';
     $minutes = (int)round($customMinutes);
     $rate = $minutes >= 1000 ? 0.35 : ($minutes >= 300 ? 0.40 : 0.45);
-    $amountByn = (int)round($minutes * $rate);
+    $amountByn = round($minutes * $rate, 2);
     $description = "Voxi.by — пополнение на {$minutes} минут";
 } else {
     voxi_json(['error' => 'Не указан счёт для оплаты'], 400);
@@ -104,6 +103,19 @@ if ($invoiceId !== '' || $payEarly) {
 
 $amountKopecks = (int)round($amountByn * 100);
 $isTest = (bool)($VOXI_CONFIG['bepaid_test_mode'] ?? true);
+
+// Проверяем настройки ЕРИП ДО вставки заказа в БД, чтобы не плодить сиротские pending-записи
+$eripServiceNo = trim((string)($VOXI_CONFIG['bepaid_erip_service_no'] ?? ''));
+if ($paymentMethod === 'erip' && !$isTest && ($eripServiceNo === '' || $eripServiceNo === '99999999')) {
+    voxi_json([
+        'configured' => false,
+        'error' => 'Оплата через ЕРИП временно недоступна (не задан боевой номер услуги ЕРИП). Пожалуйста, оплатите банковской картой.',
+    ], 503);
+}
+if ($eripServiceNo === '') {
+    $eripServiceNo = '99999999';
+}
+
 $rawHost = trim((string)($_SERVER['HTTP_HOST'] ?? 'voxi.by'));
 $hostWithoutPort = strtolower((string)explode(':', $rawHost)[0]);
 $allowedHosts = ['voxi.by', 'www.voxi.by', 'localhost', '127.0.0.1'];
@@ -118,16 +130,6 @@ $pdo->prepare(
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
 )->execute([$orderId, $userId, $targetInvoiceId, $orderKind, $minutes, $amountKopecks, 'BYN', 'pending', $isTest ? 1 : 0]);
 $trackingId = $orderId;
-$eripServiceNo = trim((string)($VOXI_CONFIG['bepaid_erip_service_no'] ?? ''));
-if ($paymentMethod === 'erip' && !$isTest && ($eripServiceNo === '' || $eripServiceNo === '99999999')) {
-    voxi_json([
-        'configured' => false,
-        'error' => 'Оплата через ЕРИП временно недоступна (не задан боевой номер услуги ЕРИП). Пожалуйста, оплатите банковской картой.',
-    ], 503);
-}
-if ($eripServiceNo === '') {
-    $eripServiceNo = '99999999';
-}
 $eripOrderId = substr(preg_replace('/\D+/', '', (string)hexdec(substr(str_replace('-', '', $orderId), 0, 12))) ?: (string)random_int(10000000, 99999999), 0, 12);
 
 $checkout = [
@@ -195,6 +197,11 @@ $data = is_string($rawResp) ? json_decode($rawResp, true) : null;
 $redirectUrl = is_array($data) ? ($data['checkout']['redirect_url'] ?? '') : '';
 
 if ($httpCode < 200 || $httpCode >= 300 || $redirectUrl === '') {
+    try {
+        $pdo->prepare("UPDATE payment_orders SET status = 'failed' WHERE id = ?")->execute([$orderId]);
+    } catch (Throwable) {
+        // non-fatal
+    }
     voxi_json([
         'configured' => true,
         'error' => is_array($data) && !empty($data['message'])

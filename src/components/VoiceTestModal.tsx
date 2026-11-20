@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
-import { motion } from 'framer-motion';
 import {
   EndCallRoundedIcon as PhoneOff,
   PhoneCallingRoundedIcon as Phone,
@@ -11,7 +10,6 @@ import {
   KeyboardIcon as Keyboard,
   CheckCircleIcon as Check,
   MapPointIcon as MapPin,
-  ShieldCheckIcon as ShieldCheck,
 } from '@solar-icons/react/bold-duotone';
 import { NICHE_TEMPLATES } from '../lib/mockData';
 import { BusinessNiche, VoiceId, CallLog } from '../types';
@@ -102,7 +100,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const [transcript, setTranscript] = useState<
     Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>
   >([]);
-  const [waveBars, setWaveBars] = useState<number[]>([22, 40, 68, 84, 56, 38, 65, 80, 50, 28]);
   const [transferBanner, setTransferBanner] = useState<string | null>(null);
 
   const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
@@ -119,7 +116,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
   const callDurationRef = useRef(0);
   const callLoggedRef = useRef(false);
   const onCallCompletedRef = useRef(onCallCompleted);
-  const handleHangupRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     onCallCompletedRef.current = onCallCompleted;
@@ -215,9 +211,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
           isBotSpeakingRef.current = false;
           speechRecognition.setBotSpeaking(false);
         }
-      },
-      (bars) => {
-        setWaveBars(bars.slice(0, 10));
       }
     );
   }, []);
@@ -247,7 +240,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
       speechRecognition.setBotSpeaking(true);
 
       const priorHistory = transcriptRef.current.map(({ speaker, text }) => ({ speaker, text }));
-      const timeStr = formatTime(callDuration);
+      const timeStr = formatTime(callDurationRef.current);
       setTranscript((prev) => [...prev, { speaker: 'user', text: clean, time: timeStr }]);
       setCustomText('');
 
@@ -284,13 +277,14 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
 
         if (isTransfer) {
           cleanReply = 'Перевожу вас на старшего администратора, секунду...';
-          setTransferBanner('Перевод звонка: соединение со старшим администратором (+375 29 700-11-22)...');
+          const targetPhone = tmpl.phone ? ` (${tmpl.phone})` : '';
+          setTransferBanner(`Перевод звонка: соединение со старшим администратором${targetPhone}...`);
         }
 
         setAiProvider(provider);
         isBotThinkingRef.current = false;
         setIsBotThinking(false);
-        const aiTimeStr = formatTime(callDuration + 1);
+        const aiTimeStr = formatTime(callDurationRef.current + 1);
         setTranscript((prev) => [...prev, { speaker: 'assistant', text: cleanReply, time: aiTimeStr }]);
 
         speakBotMessage(cleanReply, activeVoice);
@@ -307,7 +301,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
         }
       }
     },
-    [callDuration, speakBotMessage]
+    [getTemplateForNiche, speakBotMessage]
   );
 
   // Speech Recognition Hook
@@ -453,10 +447,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
     callStateRef.current = 'ended';
     setCallState('ended');
   }, [cleanupActiveCallAudio, flushCompletedCallLog, stopListening]);
-
-  useEffect(() => {
-    handleHangupRef.current = handleHangup;
-  }, [handleHangup]);
 
   // Native <dialog> lifecycle + Safari light-dismiss fallback (Modern Web Guidance)
   useEffect(() => {
@@ -984,7 +974,9 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-slate-500">Языковая модель:</span>
-                  <span className="font-semibold text-indigo-700">YandexGPT Lite</span>
+                  <span className="font-semibold text-indigo-700">
+                    {aiProvider === 'local-fallback' ? 'Локальный симулятор (офлайн)' : 'YandexGPT Lite'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-slate-500">Передача заявки в CRM / Telegram:</span>

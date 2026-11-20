@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CalculatorIcon, CheckCircleIcon, ArrowRightIcon } from '@solar-icons/react/bold-duotone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { MarkerText } from '@/components/motion';
 
 interface LostRevenueCalculatorProps {
@@ -20,8 +20,12 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
   // Conservative estimate: 40% of missed calls would have converted into orders
   const lostOrders = Math.round(missedCallsPerMonth * 0.4);
   const lostRevenueMonth = lostOrders * averageCheck;
-  const voxiCostMonth = 120; // Price for 300 minutes package
+  // Estimate ~1.5 min per handled missed call, priced by actual Voxi tiers (0.35 / 0.40 / 0.45 BYN/min)
+  const estimatedMinutesMonth = Math.max(1, Math.round(missedCallsPerMonth * 1.5));
+  const ratePerMin = estimatedMinutesMonth >= 1000 ? 0.35 : estimatedMinutesMonth >= 300 ? 0.40 : 0.45;
+  const voxiCostMonth = Math.max(5, Math.round(estimatedMinutesMonth * ratePerMin));
   const netProfitRetained = Math.max(0, lostRevenueMonth - voxiCostMonth);
+  const paybackCalls = averageCheck > 0 ? Math.max(1, Math.ceil(voxiCostMonth / averageCheck)) : 1;
 
   return (
     <section id="calculator" className="py-20 bg-transparent border-t border-black/[0.06] scroll-mt-20">
@@ -158,9 +162,9 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                     <span>Стоимость Voxi в месяц:</span>
                     <span className="font-mono font-semibold text-emerald-400">~{voxiCostMonth} BYN</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm font-semibold pt-1 border-t border-neutral-800/80">
+                  <div className="flex justify-between items-center text-sm font-semibold pt-1 border-t border-neutral-800/80 gap-2">
                     <span className="text-white">Возврат в кассу с Voxi:</span>
-                    <MarkerText colorClass="bg-emerald-500/25" className="font-mono text-emerald-400">
+                    <MarkerText colorClass="bg-emerald-500/25" className="font-mono text-emerald-400 whitespace-nowrap shrink-0">
                       +{netProfitRetained.toLocaleString('ru-RU')} BYN/мес
                     </MarkerText>
                   </div>
@@ -169,7 +173,13 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs text-zinc-300">
                     <CheckCircleIcon size={16} className="text-emerald-400 shrink-0" />
-                    <span>Окупаемость платформы — уже с первых 2-3 спасённых звонков</span>
+                    <span>
+                      {netProfitRetained > 0
+                        ? paybackCalls === 1
+                          ? `Окупаемость платформы — уже с первого спасённого заказа (~${estimatedMinutesMonth} мин/мес)`
+                          : `Окупаемость платформы — с первых ${paybackCalls} спасённых заказов (~${estimatedMinutesMonth} мин/мес)`
+                        : `На малом объёме (~${estimatedMinutesMonth} мин/мес) выгоднее поминутная оплата без абонплаты`}
+                    </span>
                   </div>
 
                   <Button

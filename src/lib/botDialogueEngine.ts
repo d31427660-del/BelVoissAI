@@ -657,7 +657,8 @@ export function createCallLogFromDialogue(params: {
     ? 'lead_captured'
     : 'consultation';
 
-  const finalCostByn = Math.max(0.15, Math.round((safeDuration / 60) * 0.45 * 100) / 100);
+  // Тестовые звонки в браузере бесплатны и не списываются с баланса (совпадает с db.php)
+  const finalCostByn = 0;
 
   return {
     id: `call-live-${Date.now()}`,

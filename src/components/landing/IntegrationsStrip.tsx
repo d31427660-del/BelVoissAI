@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import {
   PhoneCallingRoundedIcon,
-  ServerSquareCloudIcon,
-  DatabaseIcon,
   CalendarMarkIcon,
-  CpuBoltIcon,
   WalletMoneyIcon,
   ArrowRightIcon,
   CheckCircleIcon,
@@ -75,8 +72,8 @@ export const IntegrationsStrip: React.FC = () => {
         </div>
 
         {/* Category Switcher Tabs */}
-        <div className="flex justify-start sm:justify-center overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="inline-flex p-1 sm:p-1.5 rounded-2xl bg-slate-200/80 border border-slate-300/80 gap-1 shrink-0 max-w-full">
+        <div className="flex justify-center">
+          <div className="flex flex-wrap sm:inline-flex justify-center p-1 sm:p-1.5 rounded-2xl bg-slate-200/80 border border-slate-300/80 gap-1 w-full sm:w-auto">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -291,7 +288,7 @@ export const IntegrationsStrip: React.FC = () => {
                 <span className="font-semibold text-slate-950">Уведомления без задержек:</span>
                 <span>Каждый звонок также отправляет готовую карточку лида руководителю в Telegram за 1 секунду.</span>
               </div>
-              <span className="font-mono text-slate-800 font-medium shrink-0">@voxi_lead bot</span>
+              <span className="font-mono text-slate-800 font-medium shrink-0">@voximanagebot</span>
             </div>
           </div>
         )}

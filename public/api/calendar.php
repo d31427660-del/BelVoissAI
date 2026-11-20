@@ -9,6 +9,20 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     voxi_json(['error' => 'Method Not Allowed'], 405);
 }
 
+if (!voxi_is_db_configured($VOXI_CONFIG)) {
+    voxi_json(['ok' => false, 'error' => 'Сервис временно недоступен'], 503);
+}
+try {
+    $pdo = voxi_get_pdo($VOXI_CONFIG);
+    $authUser = voxi_find_authenticated_user($pdo);
+} catch (Throwable) {
+    voxi_json(['ok' => false, 'error' => 'Сервис временно недоступен'], 503);
+}
+if (!$authUser) {
+    voxi_json(['ok' => false, 'error' => 'Требуется авторизация в личном кабинете'], 401);
+}
+voxi_enforce_rate_limit('calendar', 20, 60);
+
 $body = voxi_read_json_body();
 $action = trim((string)($body['action'] ?? 'check_slots'));
 $platform = trim((string)($body['platform'] ?? 'yclients'));

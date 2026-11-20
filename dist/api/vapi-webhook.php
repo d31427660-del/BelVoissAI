@@ -235,7 +235,7 @@ try {
 
         // 2b. External CRM Webhook (Bitrix24 / amoCRM / JSON)
         $whUrl = trim((string)($whConfig['webhookUrl'] ?? ''));
-        if (!empty($whConfig['isEnabled']) && preg_match('/^https?:\/\//i', $whUrl)) {
+        if (!empty($whConfig['isEnabled']) && $whUrl !== '' && voxi_validate_webhook_safety($whUrl) === null) {
             $sendFormat = (string)($whConfig['sendFormat'] ?? 'json_standard');
             if ($sendFormat === 'bitrix24') {
                 $whPayload = [
@@ -279,6 +279,7 @@ try {
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
                 CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_TIMEOUT => 5,
                 CURLOPT_HTTPHEADER => $whHeaders,
                 CURLOPT_POSTFIELDS => json_encode($whPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),

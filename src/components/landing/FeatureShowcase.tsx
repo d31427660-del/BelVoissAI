@@ -160,7 +160,7 @@ export const FeatureShowcase: React.FC = () => {
                         </div>
                         <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                           <span className="text-slate-500 block text-[11px]">Уведомления руководителя</span>
-                          <span className="font-semibold text-slate-900">Telegram-бот @voxi_lead</span>
+                          <span className="font-semibold text-slate-900">Telegram-бот @voximanagebot</span>
                         </div>
                       </div>
                     </div>
@@ -184,7 +184,7 @@ export const FeatureShowcase: React.FC = () => {
                       <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/50 space-y-1">
                         <div className="flex items-center justify-between text-[10px] text-emerald-400 font-mono">
                           <span>ВОКСИ (АННА):</span>
-                          <span>Отклик: 0.49с</span>
+                          <span>Отклик: ~0.5с</span>
                         </div>
                         <p className="text-emerald-100">
                           «Да, конечно! Завтра в девятнадцать тридцать свободно окно у топ-мастера Дарьи. Записать вас?»

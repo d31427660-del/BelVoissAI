@@ -17,7 +17,6 @@ import {
   DEFAULT_SIP_SETTINGS,
   DEFAULT_TELEGRAM_SETTINGS,
   DEFAULT_WEBHOOK_SETTINGS,
-  NICHE_TEMPLATES,
 } from './lib/mockData';
 import { generateSystemPrompt } from './lib/vapiService';
 import { adaptGreetingForVoice, ensureMandatoryGreetingNotice, isMockCompanyOrTest } from './lib/botDialogueEngine';
@@ -31,7 +30,7 @@ import {
   ispSignOut,
   IspWorkspaceBundle,
 } from './lib/ispDbClient';
-import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession, BusinessNiche, VoiceId, MinutePackage } from './types';
+import { AgentConfig, CallLog, SipSettings, TelegramSettings, WebhookSettings, UserSession, BusinessNiche, VoiceId } from './types';
 
 // Code-split heavy workspace & modal chunks so landing LCP stays ultra-fast
 const DashboardLayout = lazy(() =>
@@ -42,9 +41,6 @@ const VoiceTestModal = lazy(() =>
 );
 const AuthModal = lazy(() =>
   import('./components/AuthModal').then((m) => ({ default: m.AuthModal }))
-);
-const TopUpModal = lazy(() =>
-  import('./components/dashboard/TopUpModal').then((m) => ({ default: m.TopUpModal }))
 );
 const AdminPanel = lazy(() =>
   import('./components/admin/AdminPanel').then((m) => ({ default: m.AdminPanel }))
@@ -68,7 +64,8 @@ function getInitialViewFromLocation(): 'landing' | 'dashboard' | 'admin' | 'not_
 
 function getInitialLegalDocFromLocation(): LegalDocType | null {
   if (typeof window === 'undefined') return null;
-  const p = window.location.pathname.toLowerCase();
+  const raw = window.location.pathname.toLowerCase();
+  const p = raw.length > 1 ? raw.replace(/\/+$/, '') : raw;
   if (p === '/privacy') return 'privacy';
   if (p === '/offer') return 'offer';
   if (p === '/sla') return 'sla';
@@ -96,8 +93,6 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
   const [isVoiceTestModalOpen, setIsVoiceTestModalOpen] = useState(false);
-  const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
-  const [selectedPackageForTopUp, setSelectedPackageForTopUp] = useState<MinutePackage | null>(null);
   const [pendingPackageId, setPendingPackageId] = useState<'pack_300' | 'pack_1000' | null>(null);
   const [pendingVoiceTestSelection, setPendingVoiceTestSelection] = useState<{
     niche: BusinessNiche;
@@ -224,20 +219,27 @@ export function App() {
     const paymentStatus = params.get('payment');
     if (!paymentStatus) return;
 
+    const pollTimers: number[] = [];
     if (paymentStatus === 'success') {
-      // Баланс начисляет ТОЛЬКО серверный вебхук bePaid; здесь лишь перечитываем актуальное состояние
-      setPaymentToast('Оплата принята. Баланс обновится в течение минуты после подтверждения платежа банком.');
-      ispGetMe().then((bundle) => {
-        if (bundle) {
-          setUser(bundle.user);
-          if (bundle.agent) {
-            setAgent((prev) => ({
-              ...prev,
-              isActive: bundle.user.billing?.billingStatus === 'suspended' ? false : bundle.agent!.isActive,
-            }));
+      // Баланс начисляет ТОЛЬКО серверный вебхук bePaid; перечитываем состояние сразу и с задержками (2с, 5с, 10с)
+      setPaymentToast('Оплата принята. Обновляем баланс после подтверждения банком…');
+      const refreshAfterPayment = () => {
+        ispGetMe().then((bundle) => {
+          if (bundle) {
+            setUser(bundle.user);
+            if (bundle.agent) {
+              setAgent((prev) => ({
+                ...prev,
+                isActive: bundle.user.billing?.billingStatus === 'suspended' ? false : bundle.agent!.isActive,
+              }));
+            }
+            setCurrentView('dashboard');
           }
-          setCurrentView('dashboard');
-        }
+        }).catch(() => {});
+      };
+      refreshAfterPayment();
+      [2500, 5500, 10000].forEach((delay) => {
+        pollTimers.push(window.setTimeout(refreshAfterPayment, delay));
       });
       if (user) setCurrentView('dashboard');
       import('canvas-confetti').then(({ default: confetti }) => {
@@ -251,8 +253,11 @@ export function App() {
 
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, '', cleanUrl);
-    const timer = setTimeout(() => setPaymentToast(null), 6500);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => setPaymentToast(null), 7000);
+    return () => {
+      clearTimeout(timer);
+      pollTimers.forEach((id) => clearTimeout(id));
+    };
   }, [user, isRestoringSession]);
 
   // Sync URL path & document title for SPA navigation & browser Back button
@@ -392,23 +397,6 @@ export function App() {
     }
   };
 
-  const handleSelectPackage = (pkg: MinutePackage) => {
-    setSelectedPackageForTopUp(pkg);
-    if (!user) {
-      setIsAuthModalOpen(true);
-    } else {
-      setIsTopUpModalOpen(true);
-    }
-  };
-
-  const handleSuccessTopUp = (minutesToAdd: number) => {
-    if (!user) return;
-    setUser({
-      ...user,
-      balanceMinutes: user.balanceMinutes + minutesToAdd
-    });
-  };
-
   const handleLogout = async () => {
     await ispSignOut();
     setUser(null);
@@ -420,10 +408,8 @@ export function App() {
     setTelegramSettings({ ...DEFAULT_TELEGRAM_SETTINGS });
     setWebhookSettings({ ...DEFAULT_WEBHOOK_SETTINGS });
     setPaymentToast(null);
-    setSelectedPackageForTopUp(null);
     setPendingPackageId(null);
     setPendingVoiceTestSelection(null);
-    setIsTopUpModalOpen(false);
     setCurrentView('landing');
   };
 
@@ -627,34 +613,33 @@ export function App() {
                 user={user}
                 onUserUpdated={setUser}
                 agent={agent}
-                onSaveAgent={(updatedAgent) => {
+                onSaveAgent={async (updatedAgent) => {
+                  await ispSaveAgent(updatedAgent);
                   setAgent(updatedAgent);
                   if (updatedAgent.companyName && updatedAgent.companyName !== user.companyName) {
                     setUser(prev => prev ? { ...prev, companyName: updatedAgent.companyName } : prev);
                   }
-                  ispSaveAgent(updatedAgent).catch(() => {});
                 }}
                 sipSettings={sipSettings}
-                onSaveSip={(nextSip) => {
+                onSaveSip={async (nextSip) => {
+                  await ispSaveIntegrations({ sipSettings: nextSip });
                   setSipSettings(nextSip);
-                  ispSaveIntegrations({ sipSettings: nextSip }).catch(() => {});
                 }}
                 telegramSettings={telegramSettings}
-                onSaveTelegram={(nextTg) => {
+                onSaveTelegram={async (nextTg) => {
+                  await ispSaveIntegrations({ telegramSettings: nextTg });
                   setTelegramSettings(nextTg);
-                  ispSaveIntegrations({ telegramSettings: nextTg }).catch(() => {});
                 }}
                 webhookSettings={webhookSettings}
-                onSaveWebhook={(nextWh) => {
+                onSaveWebhook={async (nextWh) => {
+                  await ispSaveIntegrations({ webhookSettings: nextWh });
                   setWebhookSettings(nextWh);
-                  ispSaveIntegrations({ webhookSettings: nextWh }).catch(() => {});
                 }}
                 vapiApiKey={vapiApiKey}
                 onSaveVapiApiKey={() => {}}
                 callLogs={callLogs}
                 onCallCompleted={handleRecordCompletedCall}
                 onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-                onOpenTopUp={() => setIsTopUpModalOpen(true)}
                 initialSelectedPackage={pendingPackageId}
                 onInitialPackageConsumed={() => setPendingPackageId(null)}
                 onExitToLanding={() => {
@@ -700,6 +685,13 @@ export function App() {
             initialMode={authModalInitialMode}
             initialResetEmail={resetLinkData?.email}
             initialResetToken={resetLinkData?.token}
+            pendingPackageLabel={
+              pendingPackageId === 'pack_300'
+                ? 'Пакет 300 мин (120 BYN)'
+                : pendingPackageId === 'pack_1000'
+                ? 'Пакет 1000 мин (350 BYN)'
+                : null
+            }
             onClose={() => {
               setIsAuthModalOpen(false);
               if (resetLinkData) {
@@ -725,10 +717,6 @@ export function App() {
               if (workspace?.sipSettings) setSipSettings(workspace.sipSettings);
               if (workspace?.telegramSettings) setTelegramSettings(workspace.telegramSettings);
               if (workspace?.webhookSettings) setWebhookSettings(workspace.webhookSettings);
-
-              if (selectedPackageForTopUp) {
-                setIsTopUpModalOpen(true);
-              }
 
               if (pendingVoiceTestSelection) {
                 // Выбор ниши/голоса из тестового звонка применяется к ассистенту нового/текущего аккаунта
@@ -794,21 +782,6 @@ export function App() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }
             }}
-          />
-        </Suspense>
-      )}
-
-      {user && isTopUpModalOpen && (
-        <Suspense fallback={null}>
-          <TopUpModal
-            isOpen={isTopUpModalOpen}
-            onClose={() => {
-              setIsTopUpModalOpen(false);
-              setSelectedPackageForTopUp(null);
-            }}
-            user={user}
-            initialPackage={selectedPackageForTopUp}
-            onSuccessTopUp={handleSuccessTopUp}
           />
         </Suspense>
       )}

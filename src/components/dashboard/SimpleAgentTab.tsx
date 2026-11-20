@@ -77,7 +77,6 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     return agent.systemPrompt.trim() !== generateSystemPrompt(agent).trim();
   });
   const [playingVoiceId, setPlayingVoiceId] = useState<VoiceId | null>(null);
-  const [savedSuccess, setSavedSuccess] = useState(false);
   const [isTesterOpen, setIsTesterOpen] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [promptGenStatus, setPromptGenStatus] = useState<string | null>(null);
@@ -233,6 +232,8 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     });
   };
 
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   const handleGenerateAiPrompt = async () => {
     setIsGeneratingPrompt(true);
     setPromptGenStatus(null);
@@ -253,13 +254,24 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
         ...prev,
         systemPrompt: localPrompt
       }));
-      setPromptGenStatus('Правила пересобраны по вашему прайс-листу и графику.');
+      setPromptGenStatus('Сервер ИИ временно недоступен — правила пересобраны локально по вашему прайс-листу и графику.');
     }
-    setTimeout(() => setPromptGenStatus(null), 4000);
+    setTimeout(() => setPromptGenStatus(null), 5000);
   };
 
   const handleSave = (e?: React.FormEvent) => {
     e?.preventDefault();
+    setValidationError(null);
+
+    if (!formData.companyName.trim()) {
+      setValidationError('Укажите название вашей компании или ИП.');
+      return;
+    }
+    if (!formData.businessActivity?.trim()) {
+      setValidationError('Заполните обязательное поле «Сфера бизнеса и деятельность компании».');
+      return;
+    }
+
     const serializedPricing = serializePricing(services);
     const nextSystemPrompt =
       isCustomPrompt && formData.systemPrompt?.trim()
@@ -275,8 +287,6 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
 
     setFormData(finalized);
     onSaveAgent(finalized);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   const schedulePresets = [
@@ -331,22 +341,15 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
         </div>
       </div>
 
-      {/* Save Success Alert */}
-      <AnimatePresence>
-        {savedSuccess && (
-          <motion.div
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-semibold"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Настройки бота успешно сохранены! Изменения уже вступили в силу.</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Validation Error Alert */}
+      {validationError && (
+        <div
+          role="alert"
+          className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold"
+        >
+          {validationError}
+        </div>
+      )}
 
       {/* SECTION 1: О вашей компании */}
       <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-5">
@@ -756,7 +759,12 @@ export const SimpleAgentTab: React.FC<SimpleAgentTabProps> = ({
     {/* MODAL / SLIDE-OVER: Проверка бота голосом */}
     <AnimatePresence>
       {isTesterOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Проверка бота: ${formData.companyName}`}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

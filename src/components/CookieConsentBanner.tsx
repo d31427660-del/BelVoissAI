@@ -87,35 +87,34 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
     <aside
       role="region"
       aria-label="Уведомление об использовании файлов cookie"
-      className="fixed bottom-3 left-3 right-3 sm:left-6 sm:right-auto sm:max-w-xl z-50 rounded-[16px] liquid-glass-card shadow-2xl p-4 sm:p-5 text-black"
+      className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 sm:max-w-md z-50 max-h-[80vh] overflow-y-auto rounded-[16px] liquid-glass-card shadow-2xl p-3.5 sm:p-4 text-black"
     >
-      <div className="space-y-3">
-        <div className="flex items-start gap-3">
+      <div className="space-y-2.5">
+        <div className="flex items-start gap-2.5">
           <div
-            className="w-8 h-8 rounded-[10px] bg-black text-white flex items-center justify-center shrink-0 mt-0.5"
+            className="w-7 h-7 rounded-[9px] bg-black text-white flex items-center justify-center shrink-0 mt-0.5"
             aria-hidden="true"
           >
-            <ShieldCheckIcon size={18} />
+            <ShieldCheckIcon size={15} />
           </div>
           <div className="space-y-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xs sm:text-sm font-medium text-black">
-                Обработка файлов cookie (Закон РБ № 99-З)
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h2 className="text-xs font-semibold text-black">
+                Файлы cookie (Закон РБ № 99-З)
               </h2>
-              <span className="px-2 py-0.5 rounded-full liquid-glass-pill text-[#777169] text-[10px] font-normal">
+              <span className="px-1.5 py-0.5 rounded-full liquid-glass-pill text-[#777169] text-[10px] font-normal">
                 НЦЗПД РБ
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-[#59544F] leading-relaxed">
-              Мы используем обязательные технические файлы cookie для безопасной работы сайта и авторизации, а также — с вашего согласия — функциональные и аналитические cookie для сохранения настроек голосового бота. Подробнее в{' '}
+            <p className="text-[11px] text-[#59544F] leading-snug">
+              Используем технические cookie для работы сайта и авторизации, а с вашего согласия — функциональные и аналитические.{' '}
               <button
                 type="button"
                 onClick={onOpenPrivacyPolicy}
-                className="text-black hover:underline font-medium cursor-pointer"
+                className="text-black underline underline-offset-2 font-medium cursor-pointer inline"
               >
-                Политике обработки персональных данных и cookie
+                Политика конфиденциальности
               </button>
-              .
             </p>
           </div>
         </div>

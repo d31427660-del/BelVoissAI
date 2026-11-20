@@ -45,7 +45,7 @@ export const VoiceComparison: React.FC = () => {
       VoiceSimulator.stop();
       setPlayingSide('ai');
       VoiceSimulator.speak(
-        'Здравствуйте! Автоцентр Драйв-Минск, меня зовут Анна. У нас как раз есть свободный подъемник на сегодня в 18:30. Записать вас?',
+        'Здравствуйте! СТО «Минск-Моторс Экспресс», меня зовут Анна. У нас как раз есть свободный подъемник на сегодня в 18:30. Записать вас?',
         'anna',
         () => setPlayingSide('ai'),
         () => setPlayingSide(null)

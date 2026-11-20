@@ -43,13 +43,17 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   const [localTg, setLocalTg] = useState<TelegramSettings>(telegramSettings);
   const [isTestingTg, setIsTestingTg] = useState(false);
   const [tgTestResult, setTgTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [tgSaveSuccess, setTgSaveSuccess] = useState(false);
 
   // CRM & Webhook integration states
-  const [partnerToken, setPartnerToken] = useState(agent.yclientsConfig?.partnerToken || '');
+  const [partnerToken, setPartnerToken] = useState(
+    agent.yclientsConfig?.platform === 'yclients' ? agent.yclientsConfig?.partnerToken || '' : ''
+  );
   const [googleCalendarId, setGoogleCalendarId] = useState(
     agent.yclientsConfig?.googleCalendarId ||
       (agent.yclientsConfig?.platform === 'google_calendar' ? agent.yclientsConfig?.companyId || '' : '')
+  );
+  const [googleOAuthToken, setGoogleOAuthToken] = useState(
+    agent.yclientsConfig?.platform === 'google_calendar' ? agent.yclientsConfig?.partnerToken || '' : ''
   );
   const [webhookUrl, setWebhookUrl] = useState(webhookSettings?.webhookUrl || '');
   const [webhookEnabled, setWebhookEnabled] = useState(webhookSettings?.isEnabled ?? false);
@@ -58,6 +62,25 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   const [smsFollowUpEnabled, setSmsFollowUpEnabled] = useState<boolean>(
     agent.callerNotification?.isEnabled ?? true
   );
+
+  useEffect(() => {
+    setLocalTg(telegramSettings);
+  }, [telegramSettings]);
+
+  useEffect(() => {
+    setWebhookUrl(webhookSettings?.webhookUrl || '');
+    setWebhookEnabled(webhookSettings?.isEnabled ?? false);
+  }, [webhookSettings]);
+
+  useEffect(() => {
+    setSmsFollowUpEnabled(agent.callerNotification?.isEnabled ?? true);
+    if (agent.yclientsConfig?.platform === 'google_calendar') {
+      setGoogleCalendarId(agent.yclientsConfig.googleCalendarId || agent.yclientsConfig.companyId || '');
+      setGoogleOAuthToken(agent.yclientsConfig.partnerToken || '');
+    } else if (agent.yclientsConfig?.platform === 'yclients') {
+      setPartnerToken(agent.yclientsConfig.partnerToken || '');
+    }
+  }, [agent]);
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,9 +101,13 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
   const handleCopyPhone = (id: string, phone: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(phone);
-    setCopiedPhoneId(id);
-    setTimeout(() => setCopiedPhoneId(null), 2000);
+    try {
+      void navigator.clipboard?.writeText(phone)?.catch(() => {});
+      setCopiedPhoneId(id);
+      setTimeout(() => setCopiedPhoneId(null), 2000);
+    } catch {
+      // ignore clipboard errors
+    }
   };
 
   const handlePlayAudio = async (call: CallLog, e: React.MouseEvent) => {
@@ -118,6 +145,10 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
     e?.preventDefault();
     onSaveTelegram(localTg);
 
+    const hasGoogle = Boolean(googleCalendarId.trim() && googleOAuthToken.trim());
+    const hasYclients = Boolean(partnerToken.trim());
+    const nextPlatform = hasGoogle && !hasYclients ? 'google_calendar' : hasYclients ? 'yclients' : (googleCalendarId.trim() ? 'google_calendar' : 'none');
+
     // Sync SMS follow-up, YCLIENTS, and Google Calendar settings in agent config
     onSaveAgent({
       ...agent,
@@ -133,11 +164,11 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         notifyOnlyOnLead: true
       },
       yclientsConfig: {
-        isEnabled: Boolean(partnerToken.trim() || googleCalendarId.trim()),
-        partnerToken: partnerToken.trim(),
-        companyId: agent.yclientsConfig?.companyId || '',
+        isEnabled: Boolean(hasYclients || hasGoogle || googleCalendarId.trim()),
+        partnerToken: nextPlatform === 'google_calendar' ? googleOAuthToken.trim() : partnerToken.trim(),
+        companyId: nextPlatform === 'google_calendar' ? googleCalendarId.trim() : (agent.yclientsConfig?.companyId || ''),
         googleCalendarId: googleCalendarId.trim(),
-        platform: partnerToken.trim() ? 'yclients' : (googleCalendarId.trim() ? 'google_calendar' : 'none'),
+        platform: nextPlatform,
         autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? false,
         notifyClientSms: agent.yclientsConfig?.notifyClientSms ?? false,
         liveSlotCheckingEnabled: agent.yclientsConfig?.liveSlotCheckingEnabled ?? true
@@ -154,9 +185,6 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         sendFormat: webhookSettings?.sendFormat || 'json_standard'
       });
     }
-
-    setTgSaveSuccess(true);
-    setTimeout(() => setTgSaveSuccess(false), 3000);
   };
 
   const handleTestTelegram = async () => {
@@ -225,23 +253,6 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           <span>Сохранить настройки</span>
         </button>
       </div>
-
-      {/* Save Success Alert */}
-      <AnimatePresence>
-        {tgSaveSuccess && (
-          <motion.div
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-semibold"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Настройки заявок и интеграций успешно сохранены!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* CARD 1: Уведомления о новых заявках в Telegram */}
       <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
@@ -631,9 +642,16 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
               </p>
               <input
                 type="text"
-                placeholder="Вставьте Calendar ID / OAuth Token"
+                placeholder="Calendar ID (например, primary или email)"
                 value={googleCalendarId}
                 onChange={(e) => setGoogleCalendarId(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
+              />
+              <input
+                type="password"
+                placeholder="OAuth2 Access Token"
+                value={googleOAuthToken}
+                onChange={(e) => setGoogleOAuthToken(e.target.value)}
                 className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
               />
             </div>

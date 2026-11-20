@@ -22,8 +22,6 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const steps = [
     {
       num: '1',
@@ -43,7 +41,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
       num: '3',
       title: 'Проверьте бота голосом прямо в браузере',
       time: '1 минута',
-      desc: 'Нажмите «Проверить диалог (тест)» на вкладке «Настройка бота» или «Позвонить боту (тест)» на главной странице. Спросите про цены, адрес или запись на вечер.',
+      desc: 'Нажмите «Проверить диалог» на вкладке «Настройка бота» или «Тестовый звонок» в верхней панели кабинета. Спросите про цены, адрес или запись на вечер.',
       tip: 'Если бот ответил не так, как принято у вас — просто уточните правило в прайс-листе и нажмите «Сохранить».'
     },
     {
@@ -57,6 +55,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <AnimatePresence>
+      {isOpen && (
       <div
         role="dialog"
         aria-modal="true"
@@ -167,6 +166,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };

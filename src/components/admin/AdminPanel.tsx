@@ -233,29 +233,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
     showToast(`Акт выполненных работ ${tx.invoiceNumber} сформирован`);
   };
 
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoggingIn) return;
     const trimmed = pinInput.trim();
     if (!trimmed) {
       setPinError('Введите мастер PIN-код администратора');
       return;
     }
 
-    // Строгая серверная проверка через /api/db?action=admin_login
-    const serverAuth = await ispAdminLogin(trimmed);
+    setIsLoggingIn(true);
+    try {
+      // Строгая серверная проверка через /api/db?action=admin_login
+      const serverAuth = await ispAdminLogin(trimmed);
 
-    if (serverAuth.ok && serverAuth.adminToken) {
-      setAdminToken(serverAuth.adminToken);
-      setIsAuthenticated(true);
-      sessionStorage.setItem('voxi_admin_auth', 'true');
-      sessionStorage.setItem('voxi_admin_token', serverAuth.adminToken);
-      setPinError(null);
-    } else {
-      setPinError(
-        serverAuth.serverResponded
-          ? 'Неверный мастер PIN-код или ADMIN_MASTER_PIN не настроен в .env на сервере'
-          : 'Сервер авторизации (/api/db) недоступен'
-      );
+      if (serverAuth.ok && serverAuth.adminToken) {
+        setAdminToken(serverAuth.adminToken);
+        setIsAuthenticated(true);
+        sessionStorage.setItem('voxi_admin_auth', 'true');
+        sessionStorage.setItem('voxi_admin_token', serverAuth.adminToken);
+        setPinError(null);
+      } else {
+        setPinError(
+          serverAuth.serverResponded
+            ? 'Неверный мастер PIN-код или ADMIN_MASTER_PIN не настроен в .env на сервере'
+            : 'Сервер авторизации (/api/db) недоступен'
+        );
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -409,9 +417,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-normal text-sm transition-all shadow-sm cursor-pointer"
+              disabled={isLoggingIn}
+              className="w-full py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-normal text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Войти в панель администратора
+              {isLoggingIn ? 'Проверка PIN-кода…' : 'Войти в панель администратора'}
             </button>
           </form>
 
@@ -642,7 +651,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                     {totalMinutesSpent.toFixed(1)} мин
                   </div>
                   <div className="text-[11px] text-slate-400 mt-1">
-                    Средний тариф: 0.40 BYN/мин
+                    Средний тариф:{' '}
+                    {(
+                      clients.length > 0
+                        ? clients.reduce((s, c) => s + (c.ratePerMinute || 0.45), 0) / clients.length
+                        : 0.45
+                    ).toFixed(2)}{' '}
+                    BYN/мин
                   </div>
                 </div>
 
@@ -655,20 +670,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                     {totalActiveClients} из {clients.length}
                   </div>
                   <div className="text-[11px] text-indigo-400 font-medium mt-1">
-                    Минск, Брест (100% SLA)
+                    {Array.from(new Set(clients.map((c) => c.city).filter(Boolean))).slice(0, 3).join(', ') || 'Нет подключённых городов'}
                   </div>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl relative overflow-hidden">
                   <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                    <span>Экономия через AMD</span>
+                    <span>Обработано звонков</span>
                     <ShieldCheckIcon size={18} className="text-amber-400" />
                   </div>
                   <div className="text-2xl font-bold text-white tracking-tight">
-                    42.50 BYN
+                    {telephonyLogs.length}
                   </div>
                   <div className="text-[11px] text-amber-400 font-medium mt-1">
-                    85 автоответчиков отсечено
+                    {telephonyLogs.filter((l) => l.status === 'amd_filtered').length} автоответчиков отсечено
                   </div>
                 </div>
               </div>
@@ -677,8 +692,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
               <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-bold text-white">Статус инфраструктуры Беларуси</h2>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/30">
-                    Все системы в норме (99.9% SLA)
+                  <span
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-medium border ${
+                      isDbConnected
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                    }`}
+                  >
+                    {isDbConnected ? 'БД подключена (онлайн)' : 'Нет связи с БД /api/db'}
                   </span>
                 </div>
 
@@ -686,33 +707,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                     <div>
                       <div className="font-semibold text-slate-200">bePaid РБ (ЕРИП / Карты)</div>
-                      <div className="text-[11px] text-slate-400">Шлюз платежей онлайн</div>
+                      <div className="text-[11px] text-slate-400">
+                        {isDbConnected ? 'Шлюз платежей активен' : 'Статус неизвестен'}
+                      </div>
                     </div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className={`w-2.5 h-2.5 rounded-full ${isDbConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                     <div>
                       <div className="font-semibold text-slate-200">МТС SIP (sip.mts.by)</div>
-                      <div className="text-[11px] text-slate-400">Задержка 24 мс</div>
+                      <div className="text-[11px] text-slate-400">BYO-SIP шлюз</div>
                     </div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className={`w-2.5 h-2.5 rounded-full ${isDbConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                     <div>
                       <div className="font-semibold text-slate-200">А1 SIP (sip.a1.by)</div>
-                      <div className="text-[11px] text-slate-400">Задержка 26 мс</div>
+                      <div className="text-[11px] text-slate-400">ВАТС / аренда DID</div>
                     </div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className={`w-2.5 h-2.5 rounded-full ${isDbConnected ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                     <div>
                       <div className="font-semibold text-slate-200">ISPmanager MySQL (hoster.by)</div>
-                      <div className="text-[11px] text-slate-400">Пул соединений активен</div>
+                      <div className="text-[11px] text-slate-400">
+                        {isDbConnected ? 'Подключение активно' : 'Нет подключения'}
+                      </div>
                     </div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className={`w-2.5 h-2.5 rounded-full ${isDbConnected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                   </div>
                 </div>
               </div>
@@ -784,9 +809,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-950/80 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider text-[10px]">
                       <tr>
-                        <th className="px-4 py-3">Организация и УНП</th>
+                        <th className="px-4 py-3">Организация</th>
                         <th className="px-4 py-3">Контакты</th>
-                        <th className="px-4 py-3">Остаток минут</th>
+                        <th className="px-4 py-3">Долг / Баланс</th>
                         <th className="px-4 py-3">Тариф</th>
                         <th className="px-4 py-3">SIP Оператор</th>
                         <th className="px-4 py-3">Статус</th>
@@ -794,12 +819,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onExitToLanding }) => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/80">
-                      {filteredClients.map((client) => (
+                      {filteredClients.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                            Клиенты по заданному фильтру не найдены.
+                          </td>
+                        </tr>
+                      ) : filteredClients.map((client) => (
                         <tr key={client.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="px-4 py-3.5">
                             <div className="font-semibold text-white">{client.companyName}</div>
                             <div className="text-[11px] text-slate-400">
-                              УНП: <span className="font-mono text-slate-300">{client.unp}</span> • {client.city}
+                              {client.unp ? (
+                                <>
+                                  УНП: <span className="font-mono text-slate-300">{client.unp}</span> •{' '}
+                                </>
+                              ) : null}
+                              {client.city}
                             </div>
                           </td>
                           <td className="px-4 py-3.5">

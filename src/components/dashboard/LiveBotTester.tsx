@@ -41,6 +41,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [waveBars, setWaveBars] = useState<number[]>([18, 32, 48, 64, 38, 24, 52, 74, 42, 26]);
+  const isMicMutedRef = useRef(false);
+
+  useEffect(() => {
+    isMicMutedRef.current = isMicMuted;
+  }, [isMicMuted]);
 
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<Array<{ speaker: 'assistant' | 'user'; text: string; time: string }>>([]);
@@ -177,7 +182,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
       speechRecognition.setBotSpeaking(true);
 
       const priorHistory = messagesRef.current.map(({ speaker, text }) => ({ speaker, text }));
-      const userTime = formatCallTime(callDuration);
+      const userTime = formatCallTime(callDurationRef.current);
       setMessages((prev) => [...prev, { speaker: 'user', text: query, time: userTime }]);
       setInputText('');
 
@@ -207,7 +212,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
         setAiProvider(provider);
         isBotThinkingRef.current = false;
         setIsBotThinking(false);
-        const aiTime = formatCallTime(callDuration + 1);
+        const aiTime = formatCallTime(callDurationRef.current + 1);
 
         setMessages((prev) => [...prev, { speaker: 'assistant', text: cleanReply, time: aiTime }]);
         speakBotMessage(cleanReply, liveAgent.voice);
@@ -224,7 +229,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
         }
       }
     },
-    [callDuration, formatCallTime, inputText, speakBotMessage]
+    [formatCallTime, inputText, speakBotMessage]
   );
 
   // Speech Recognition Hook
@@ -232,7 +237,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
     lang: 'ru-RU',
     silenceDelayMs: 2200,
     onFinalTranscript: (transcript) => {
-      if (callStatusRef.current === 'connected' && !isBotSpeakingRef.current && !isMicMuted) {
+      if (callStatusRef.current === 'connected' && !isBotSpeakingRef.current && !isMicMutedRef.current) {
         handleSendMessage(transcript);
       }
     },
@@ -385,7 +390,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
               <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
                 <span>Тест голоса и диалога</span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">
-                  {aiProvider === 'yandexgpt-lite' ? 'YandexGPT Lite' : 'SpeechKit'}
+                  {aiProvider === 'yandexgpt-lite'
+                    ? 'YandexGPT Lite'
+                    : aiProvider === 'local-fallback'
+                    ? 'Локальный режим'
+                    : 'SpeechKit'}
                 </span>
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
@@ -452,7 +461,10 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                   {agent.companyName || 'Ваша организация'}
                 </h5>
                 <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Голос: <strong className="text-slate-700">{voiceLabel}</strong> • {agent.address.split('(')[0].trim()}
+                  Голос: <strong className="text-slate-700">{voiceLabel}</strong>
+                  {(agent.address || '').split('(')[0].trim()
+                    ? ` • ${(agent.address || '').split('(')[0].trim()}`
+                    : ''}
                 </p>
                 <p className="text-[11px] text-slate-500 max-w-xs mx-auto pt-1">
                   Проверьте, как ИИ-администратор отвечает по вашим текущим настройкам и прайсу.

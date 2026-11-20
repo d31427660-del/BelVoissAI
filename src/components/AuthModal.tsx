@@ -29,7 +29,10 @@ interface AuthModalProps {
   initialMode?: 'signin' | 'signup';
   initialResetEmail?: string;
   initialResetToken?: string;
+  pendingPackageLabel?: string | null;
 }
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function localizeAuthError(msg: string): string {
   const lower = msg.toLowerCase();
@@ -49,7 +52,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onOpenLegalDoc,
   initialMode,
   initialResetEmail,
-  initialResetToken
+  initialResetToken,
+  pendingPackageLabel,
 }) => {
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset' | 'confirm_reset'>(
     initialResetToken ? 'confirm_reset' : (initialMode || 'signin')
@@ -104,48 +108,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setErrorMessage('');
     setInfoMessage('');
 
-    if (!email.trim()) {
-      setErrorMessage('Пожалуйста, укажите корпоративный email');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !EMAIL_REGEX.test(trimmedEmail)) {
+      setErrorMessage('Пожалуйста, укажите корректный email (например, name@company.by)');
       return;
     }
 
-    const ispStatus = await getIspDbStatus();
-
-    if (mode === 'reset') {
-      setLoading(true);
-      try {
-        if (!ispStatus.available || !ispStatus.configured || !ispStatus.connected) {
-          throw new Error('Сервис временно недоступен. Попробуйте позже или напишите в поддержку.');
-        }
-        const msg = await ispResetPassword(email.trim());
-        setInfoMessage(msg);
-      } catch (err: unknown) {
-        setErrorMessage(localizeAuthError(err instanceof Error ? err.message : 'Не удалось отправить письмо'));
-      } finally {
-        setLoading(false);
-      }
+    if (mode === 'signup' && !companyName.trim()) {
+      setErrorMessage('Пожалуйста, укажите название компании или ИП');
       return;
     }
 
-    if (!password || password.length < 6) {
+    if (mode !== 'reset' && (!password || password.length < 6)) {
       setErrorMessage('Пароль должен содержать не менее 6 символов');
-      return;
-    }
-
-    if (mode === 'confirm_reset' && initialResetToken) {
-      setLoading(true);
-      try {
-        const bundle = await ispConfirmResetPassword(email.trim(), initialResetToken, password);
-        onLoginSuccess(bundle.user, bundle);
-        onClose();
-      } catch (err: unknown) {
-        setErrorMessage(localizeAuthError(err instanceof Error ? err.message : 'Ошибка смены пароля'));
-      } finally {
-        setLoading(false);
-      }
       return;
     }
 
@@ -155,16 +134,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setLoading(true);
-
-    // Авторизация через MySQL на хостинге (/api/db). Песочного/демо-режима нет.
     try {
+      const ispStatus = await getIspDbStatus();
       if (!ispStatus.available || !ispStatus.configured || !ispStatus.connected) {
         throw new Error('Сервис временно недоступен. Попробуйте позже или напишите в поддержку.');
       }
+
+      if (mode === 'reset') {
+        const msg = await ispResetPassword(trimmedEmail);
+        setInfoMessage(msg);
+        return;
+      }
+
+      if (mode === 'confirm_reset' && initialResetToken) {
+        const bundle = await ispConfirmResetPassword(trimmedEmail, initialResetToken, password);
+        onLoginSuccess(bundle.user, bundle);
+        onClose();
+        return;
+      }
+
       const bundle =
         mode === 'signup'
-          ? await ispSignUp(email.trim(), password, companyName.trim() || 'Моя компания РБ')
-          : await ispSignIn(email.trim(), password);
+          ? await ispSignUp(trimmedEmail, password, companyName.trim())
+          : await ispSignIn(trimmedEmail, password);
       onLoginSuccess(bundle.user, bundle);
       onClose();
     } catch (err: unknown) {
@@ -224,7 +216,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        {pendingPackageLabel && (mode === 'signin' || mode === 'signup') && (
+          <div className="p-3 rounded-[12px] bg-slate-100 border border-slate-200 text-slate-800 text-xs flex items-center justify-between gap-2">
+            <span>После входа откроется оплата:</span>
+            <strong className="font-semibold text-slate-950 shrink-0">{pendingPackageLabel}</strong>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
           {mode === 'signup' && (
             <div>
               <label htmlFor="auth-company" className="block text-xs font-normal text-black mb-1.5">
@@ -261,9 +260,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 spellCheck={false}
                 required
                 value={email}
+                readOnly={mode === 'confirm_reset' && Boolean(initialResetEmail)}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.by"
-                className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors"
+                className="w-full pl-11 pr-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-black text-xs sm:text-sm focus:outline-none focus:border-black transition-colors read-only:bg-slate-50 read-only:text-slate-500"
               />
             </div>
           </div>
@@ -350,7 +350,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <LoadingSuccessButton
             type="submit"
             status={loading ? 'loading' : infoMessage ? 'success' : 'idle'}
-            loadingLabel="Выполняем вход…"
+            loadingLabel={
+              mode === 'signup'
+                ? 'Создаём аккаунт…'
+                : mode === 'reset'
+                ? 'Отправляем ссылку…'
+                : mode === 'confirm_reset'
+                ? 'Сохраняем пароль…'
+                : 'Выполняем вход…'
+            }
             successLabel="Готово"
             idleLabel={
               <>
@@ -374,7 +382,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <span>
             {mode === 'signup'
               ? 'Уже есть аккаунт?'
-              : mode === 'reset'
+              : mode === 'reset' || mode === 'confirm_reset'
               ? 'Вспомнили пароль?'
               : 'Впервые в Voxi?'}
           </span>

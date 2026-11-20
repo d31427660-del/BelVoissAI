@@ -4,28 +4,29 @@ declare(strict_types=1);
 /**
  * Cron-скрипт ежемесячного биллинга Voxi.by:
  * Рекомендуемое расписание в ISPmanager:
- *   5 0 * * * curl -fsS "https://voxi.by/api/cron-billing?secret=ВАШ_ADMIN_MASTER_PIN" >/dev/null
+ *   5 0 * * * curl -fsS -H "X-Cron-Secret: ВАШ_CRON_SECRET" "https://voxi.by/api/cron-billing" >/dev/null
  * (1-го числа в 00:05 закрывает прошлый месяц и выставляет счета со сроком 7 дней;
  *  в остальные дни проверяет просрочку > 7 дней и ставит неплательщиков на паузу).
  */
 
 require_once __DIR__ . '/bootstrap.php';
 
-$providedSecret = trim((string)($_GET['secret'] ?? ($_SERVER['HTTP_X_CRON_SECRET'] ?? '')));
-$expectedPin = trim((string)($VOXI_CONFIG['admin_master_pin'] ?? ''));
+$isCli = (PHP_SAPI === 'cli');
+$providedHeader = trim((string)($_SERVER['HTTP_X_CRON_SECRET'] ?? ''));
+$expectedCron = trim((string)voxi_env(['CRON_SECRET'], ''));
 $expectedVapi = trim((string)($VOXI_CONFIG['vapi_webhook_secret'] ?? ''));
 
-$authorized = false;
-if ($providedSecret !== '') {
-    if ($expectedPin !== '' && hash_equals($expectedPin, $providedSecret)) {
+$authorized = $isCli;
+if (!$authorized && $providedHeader !== '') {
+    if ($expectedCron !== '' && hash_equals($expectedCron, $providedHeader)) {
         $authorized = true;
-    } elseif ($expectedVapi !== '' && hash_equals($expectedVapi, $providedSecret)) {
+    } elseif ($expectedVapi !== '' && hash_equals($expectedVapi, $providedHeader)) {
         $authorized = true;
     }
 }
 
 if (!$authorized) {
-    voxi_json(['ok' => false, 'error' => 'Unauthorized cron secret'], 401);
+    voxi_json(['ok' => false, 'error' => 'Unauthorized cron secret (use X-Cron-Secret header or CLI)'], 401);
 }
 
 if (!voxi_is_db_configured($VOXI_CONFIG)) {

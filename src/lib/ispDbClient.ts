@@ -216,10 +216,20 @@ export async function ispConfirmResetPassword(
 }
 
 export async function ispSaveAgent(agent: AgentConfig): Promise<void> {
-  await callIspDb('save_agent', {
+  const { status, isJson, data } = await callIspDb('save_agent', {
     method: 'POST',
     body: { agent },
   });
+  if (!isJson || !data?.ok) {
+    if (status === 401) {
+      setSessionHint(false);
+      throw new Error('Сессия истекла. Пожалуйста, войдите в кабинет повторно.');
+    }
+    throw new Error(
+      (typeof data?.error === 'string' && data.error) ||
+        `Не удалось сохранить настройки ассистента (HTTP ${status || 'сети'})`
+    );
+  }
 }
 
 export async function ispSaveIntegrations(payload: {
@@ -227,10 +237,20 @@ export async function ispSaveIntegrations(payload: {
   telegramSettings?: TelegramSettings;
   webhookSettings?: WebhookSettings;
 }): Promise<void> {
-  await callIspDb('save_integrations', {
+  const { status, isJson, data } = await callIspDb('save_integrations', {
     method: 'POST',
     body: payload as Record<string, unknown>,
   });
+  if (!isJson || !data?.ok) {
+    if (status === 401) {
+      setSessionHint(false);
+      throw new Error('Сессия истекла. Пожалуйста, войдите в кабинет повторно.');
+    }
+    throw new Error(
+      (typeof data?.error === 'string' && data.error) ||
+        `Не удалось сохранить настройки интеграций (HTTP ${status || 'сети'})`
+    );
+  }
 }
 
 export async function ispRecordCall(callLog: CallLog): Promise<UserSession | null> {

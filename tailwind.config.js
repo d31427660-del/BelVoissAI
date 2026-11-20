@@ -97,10 +97,15 @@ export default {
       animation: {
         'sound-wave': 'soundWave 1.2s infinite ease-in-out alternate',
         'pulse-subtle': 'pulseSubtle 2.5s infinite ease-in-out',
+        fadeIn: 'fadeIn 0.2s ease-out',
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
         soundWave: {
           '0%': { height: '20%' },
           '100%': { height: '100%' },

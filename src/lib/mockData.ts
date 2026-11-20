@@ -2,16 +2,6 @@ import { AgentConfig, BusinessNiche, SipSettings, TelegramSettings, WebhookSetti
 
 export const MINUTE_PACKAGES: MinutePackage[] = [
   {
-    id: 'pack_100',
-    name: 'Пакет 100 минут',
-    minutes: 100,
-    priceByn: 45,
-    ratePerMinute: 0.45,
-    badge: 'Для пробы и вечеров',
-    isPopular: false,
-    description: 'Идеально для перехвата звонков после 19:00, в обед и выходные дни (~65 принятых заявок).'
-  },
-  {
     id: 'pack_300',
     name: 'Пакет 300 минут',
     minutes: 300,

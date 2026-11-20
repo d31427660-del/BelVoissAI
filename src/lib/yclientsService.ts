@@ -179,15 +179,34 @@ export class YclientsService {
             message: String(data.message || `Запись создана (${data.bookingCode})`),
           };
         }
+        return {
+          success: false,
+          recordId: 0,
+          bookingCode: '',
+          staffName,
+          date,
+          time,
+          service: serviceName,
+          message: String(data?.error || 'Не удалось создать запись в календаре. Передайте заявку менеджеру в Telegram.'),
+        };
       } catch {
-        // Fallback below
+        return {
+          success: false,
+          recordId: 0,
+          bookingCode: '',
+          staffName,
+          date,
+          time,
+          service: serviceName,
+          message: 'Сервер календаря временно недоступен. Заявка сохранена для ручной записи.',
+        };
       }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     const recordId = Math.floor(100000 + Math.random() * 900000);
-    const bookingCode = `YC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const bookingCode = `DEMO-${Math.floor(1000 + Math.random() * 9000)}`;
 
     return {
       success: true,
@@ -197,7 +216,7 @@ export class YclientsService {
       date,
       time,
       service: serviceName,
-      message: `Запись успешно создана в календаре (Код: ${bookingCode}). Клиенту ${clientName} отправлено SMS с подтверждением.`
+      message: `Демо-запись создана (${bookingCode}). Подключите YCLIENTS или Google Calendar для реальной синхронизации.`
     };
   }
 

@@ -20,25 +20,25 @@ import { LeadsTab } from './LeadsTab';
 import { PhoneTab } from './PhoneTab';
 import { BillingTab } from './BillingTab';
 import { GuideModal } from './GuideModal';
+import { LiveBotTester } from './LiveBotTester';
 import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon } from '../../lib/contacts';
 
 interface DashboardLayoutProps {
   user: UserSession;
   onUserUpdated?: (user: UserSession) => void;
   agent: AgentConfig;
-  onSaveAgent: (agent: AgentConfig) => void;
+  onSaveAgent: (agent: AgentConfig) => Promise<void> | void;
   sipSettings: SipSettings;
-  onSaveSip: (settings: SipSettings) => void;
+  onSaveSip: (settings: SipSettings) => Promise<void> | void;
   telegramSettings: TelegramSettings;
-  onSaveTelegram: (settings: TelegramSettings) => void;
+  onSaveTelegram: (settings: TelegramSettings) => Promise<void> | void;
   webhookSettings: WebhookSettings;
-  onSaveWebhook: (settings: WebhookSettings) => void;
+  onSaveWebhook: (settings: WebhookSettings) => Promise<void> | void;
   vapiApiKey: string;
   onSaveVapiApiKey: (key: string) => void;
   callLogs: CallLog[];
   onCallCompleted?: (log: CallLog) => void;
   onOpenVoiceTest: () => void;
-  onOpenTopUp: () => void;
   initialSelectedPackage?: 'pack_300' | 'pack_1000' | null;
   onInitialPackageConsumed?: () => void;
   onExitToLanding?: () => void;
@@ -69,7 +69,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [saveToast, setSaveToast] = useState(false);
+  const [isLiveTesterOpen, setIsLiveTesterOpen] = useState(false);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (initialSelectedPackage) {
@@ -77,10 +79,56 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   }, [initialSelectedPackage]);
 
-  const handleSaveAgentWithToast = (updatedAgent: AgentConfig) => {
-    onSaveAgent(updatedAgent);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 2600);
+  const showSaveResult = (ok: boolean, errorMsg?: string) => {
+    if (ok) {
+      setSaveError(null);
+      setSaveToast('Изменения успешно сохранены!');
+      window.setTimeout(() => setSaveToast(null), 2600);
+    } else {
+      setSaveToast(null);
+      setSaveError(errorMsg || 'Не удалось сохранить изменения на сервере. Проверьте подключение.');
+      window.setTimeout(() => setSaveError(null), 5000);
+    }
+  };
+
+  const handleSaveAgentWithToast = async (updatedAgent: AgentConfig) => {
+    try {
+      await onSaveAgent(updatedAgent);
+      showSaveResult(true);
+    } catch (err: unknown) {
+      showSaveResult(false, err instanceof Error ? err.message : undefined);
+      throw err;
+    }
+  };
+
+  const handleSaveSipWithToast = async (nextSip: SipSettings) => {
+    try {
+      await onSaveSip(nextSip);
+      showSaveResult(true);
+    } catch (err: unknown) {
+      showSaveResult(false, err instanceof Error ? err.message : undefined);
+      throw err;
+    }
+  };
+
+  const handleSaveTelegramWithToast = async (nextTg: TelegramSettings) => {
+    try {
+      await onSaveTelegram(nextTg);
+      showSaveResult(true);
+    } catch (err: unknown) {
+      showSaveResult(false, err instanceof Error ? err.message : undefined);
+      throw err;
+    }
+  };
+
+  const handleSaveWebhookWithToast = async (nextWh: WebhookSettings) => {
+    try {
+      await onSaveWebhook(nextWh);
+      showSaveResult(true);
+    } catch (err: unknown) {
+      showSaveResult(false, err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   };
 
   const handleGlobalSave = () => {
@@ -88,7 +136,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     if (activeForm) {
       activeForm.requestSubmit();
     } else {
-      handleSaveAgentWithToast(agent);
+      void handleSaveAgentWithToast(agent).catch(() => {});
     }
   };
 
@@ -101,7 +149,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }, 80);
   };
 
-  const leadsCount = callLogs.filter((c) => c.status === 'lead_captured').length || callLogs.length;
+  const leadsCount = callLogs.filter((c) => c.status === 'lead_captured').length;
   const billing = user.billing;
   const freeMins = billing ? billing.freeMinutesRemaining : (user.balanceMinutes || 0);
   const unpaidDebtByn = billing ? billing.unpaidDebtByn : 0;
@@ -149,7 +197,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     {
       id: 'billing' as const,
       label: 'Тариф и оплата',
-      subtitle: 'Калькулятор, Карта и ЕРИП',
+      subtitle: 'Карта, ЕРИП и баланс',
       icon: <Wallet className="w-4 h-4 shrink-0" />,
       iconBg: 'bg-amber-50 text-amber-600 border-amber-200/70',
       badge: `${(user.ratePerMinute || 0.45).toFixed(2)} BYN`
@@ -484,26 +532,31 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             ) : (
               <button
                 type="button"
-                onClick={onOpenVoiceTest}
-                title="Проверить диалог с ботом голосом или текстом"
-                className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                onClick={() => setIsLiveTesterOpen(true)}
+                title="Проверить диалог с вашим ботом голосом или текстом"
+                className="px-3 sm:px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs whitespace-nowrap"
               >
-                <Radio className="w-3.5 h-3.5 text-white" />
-                <span>Тестовый звонок</span>
+                <Radio className="w-3.5 h-3.5 text-white shrink-0" />
+                <span className="hidden sm:inline">Тестовый звонок</span>
+                <span className="sm:hidden">Тест</span>
               </button>
             )}
           </div>
         </header>
 
-        {/* Light Save Confirmation Toast */}
-        {saveToast && (
+        {/* Bottom-right Save / Error Toast (never overlaps topbar or Telephony hero badges on mobile) */}
+        {(saveToast || saveError) && (
           <div
-            role="status"
+            role={saveError ? 'alert' : 'status'}
             aria-live="polite"
-            className="fixed top-16 right-6 z-50 p-3.5 rounded-xl bg-emerald-50 text-emerald-900 text-xs font-semibold flex items-center gap-2 shadow-lg border border-emerald-200"
+            className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-sm z-50 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg border ${
+              saveError
+                ? 'bg-rose-50 text-rose-900 border-rose-200'
+                : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+            }`}
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Изменения успешно сохранены!</span>
+            <CheckCircle2 className={`w-4 h-4 shrink-0 ${saveError ? 'text-rose-600' : 'text-emerald-600'}`} />
+            <span>{saveError || saveToast}</span>
           </div>
         )}
 
@@ -522,8 +575,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 else if (t === 'billing') setActiveTab('billing');
                 else setActiveTab('overview');
               }}
-              onOpenVoiceTest={onOpenVoiceTest}
-              onToggleActive={() => onSaveAgent({ ...agent, isActive: !agent.isActive })}
+              onOpenVoiceTest={() => setIsLiveTesterOpen(true)}
+              onToggleActive={() => void handleSaveAgentWithToast({ ...agent, isActive: !agent.isActive }).catch(() => {})}
               onOpenTopUp={navigateToBillingPayment}
             />
           )}
@@ -542,9 +595,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               agent={agent}
               onSaveAgent={handleSaveAgentWithToast}
               telegramSettings={telegramSettings}
-              onSaveTelegram={onSaveTelegram}
+              onSaveTelegram={handleSaveTelegramWithToast}
               webhookSettings={webhookSettings}
-              onSaveWebhook={onSaveWebhook}
+              onSaveWebhook={handleSaveWebhookWithToast}
             />
           )}
 
@@ -553,7 +606,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               agent={agent}
               onSaveAgent={handleSaveAgentWithToast}
               sipSettings={sipSettings}
-              onSaveSip={onSaveSip}
+              onSaveSip={handleSaveSipWithToast}
+              numberRentalMode={user.billing?.numberRentalMode}
               onUserUpdated={onUserUpdated}
             />
           )}
@@ -562,7 +616,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <BillingTab
               user={user}
               sipSettings={sipSettings}
-              onSaveSip={onSaveSip}
+              onSaveSip={handleSaveSipWithToast}
               onUserUpdated={onUserUpdated}
               onNavigateTab={(t) => setActiveTab(t)}
               initialSelectedPackage={initialSelectedPackage}
@@ -571,6 +625,39 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           )}
         </div>
       </div>
+
+      {/* Live Bot Tester Modal (tests the user's own configured bot) */}
+      {isLiveTesterOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Тестовый звонок вашему боту"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+        >
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl border border-black/[0.1]">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/[0.08]">
+              <div className="flex items-center gap-2 min-w-0">
+                <Radio className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-xs font-semibold text-black truncate">
+                  Тест вашего бота: {agent.companyName || user.companyName}
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="Закрыть тестовый звонок"
+                onClick={() => setIsLiveTesterOpen(false)}
+                className="p-1 rounded-full text-[#777169] hover:text-black cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <LiveBotTester
+              agent={agent}
+              onCallCompleted={onCallCompleted}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Guide Modal */}
       <GuideModal

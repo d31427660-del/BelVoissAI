@@ -27,7 +27,16 @@ export const ReadAlong: React.FC<ReadAlongProps> = ({
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!isActive || prefersReducedMotion) {
+    try {
+      const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+      if (sel && sel.rangeCount > 0) {
+        sel.removeAllRanges();
+      }
+    } catch {
+      // ignore selection cleanup errors
+    }
+
+    if (!isActive || prefersReducedMotion || words.length === 0) {
       setActiveIndex(-1);
       return;
     }
@@ -38,7 +47,7 @@ export const ReadAlong: React.FC<ReadAlongProps> = ({
       setActiveIndex((prev) => {
         if (prev >= words.length - 1) {
           window.clearInterval(interval);
-          return prev;
+          return words.length - 1;
         }
         return prev + 1;
       });

@@ -165,16 +165,70 @@ function voxi_uuid(): string
 
 function voxi_client_ip(): string
 {
-    $forwarded = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($forwarded !== '') {
-        $parts = explode(',', $forwarded);
-        $candidate = trim((string)$parts[0]);
-        if (filter_var($candidate, FILTER_VALIDATE_IP)) {
-            return $candidate;
+    $remote = trim((string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
+    $remoteIp = filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '0.0.0.0';
+
+    // Доверяем X-Forwarded-For ТОЛЬКО если запрос пришёл от явно настроенного обратного прокси
+    $trustedRaw = voxi_env(['TRUSTED_PROXY_IPS'], '');
+    if ($trustedRaw !== '') {
+        $trusted = array_map('trim', explode(',', $trustedRaw));
+        if (in_array($remoteIp, $trusted, true)) {
+            $forwarded = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+            if ($forwarded !== '') {
+                $parts = explode(',', $forwarded);
+                $candidate = trim((string)$parts[0]);
+                if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                    return $candidate;
+                }
+            }
         }
     }
-    $remote = trim((string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'));
-    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '0.0.0.0';
+
+    return $remoteIp;
+}
+
+function voxi_is_private_or_internal_ip(string $ip): bool
+{
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return true;
+    }
+    if (str_starts_with($ip, '169.254.') || str_starts_with($ip, '127.') || $ip === '::1') {
+        return true;
+    }
+    return false;
+}
+
+function voxi_validate_webhook_safety(string $url): ?string
+{
+    $parts = parse_url($url);
+    if (!$parts || empty($parts['host']) || empty($parts['scheme'])) {
+        return 'Некорректный адрес вебхука';
+    }
+    $scheme = strtolower($parts['scheme']);
+    if ($scheme !== 'https' && $scheme !== 'http') {
+        return 'Разрешены только https:// или http:// протоколы';
+    }
+    $host = strtolower($parts['host']);
+    if ($host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
+        return 'Запрещено обращаться к локальным адресам';
+    }
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        if (voxi_is_private_or_internal_ip($host)) {
+            return 'Запрещено обращаться к закрытым IP-адресам внутренней сети хостинга';
+        }
+        return null;
+    }
+
+    $ips = @gethostbynamel($host);
+    if (!is_array($ips) || empty($ips)) {
+        return 'Не удалось определить IP-адрес узла вебхука';
+    }
+    foreach ($ips as $ip) {
+        if (voxi_is_private_or_internal_ip($ip)) {
+            return 'Запрещено обращаться к закрытым IP-адресам внутренней сети хостинга';
+        }
+    }
+    return null;
 }
 
 function voxi_enforce_rate_limit(string $bucket, int $maxAttempts = 10, int $windowSec = 60): void
@@ -268,8 +322,8 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
           `rate_per_minute` DECIMAL(6, 2) NOT NULL DEFAULT 0.45,
           `spent_minutes` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
           `spent_total_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-          `number_rental_mode` VARCHAR(16) NOT NULL DEFAULT 'rental',
-          `monthly_subscription_byn` DECIMAL(10, 2) NOT NULL DEFAULT 15.00,
+          `number_rental_mode` VARCHAR(16) NOT NULL DEFAULT 'own_sip',
+          `monthly_subscription_byn` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
           `credit_limit_byn` DECIMAL(10, 2) NOT NULL DEFAULT 100.00,
           `billing_status` VARCHAR(16) NOT NULL DEFAULT 'active',
           `consent_99z_accepted_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -445,8 +499,8 @@ function voxi_ensure_schema(PDO $pdo, string $dbName): void
     }
 
     // Безопасная миграция существующих таблиц
-    voxi_ensure_column($pdo, 'users', 'number_rental_mode', "VARCHAR(16) NOT NULL DEFAULT 'rental'");
-    voxi_ensure_column($pdo, 'users', 'monthly_subscription_byn', 'DECIMAL(10, 2) NOT NULL DEFAULT 15.00');
+    voxi_ensure_column($pdo, 'users', 'number_rental_mode', "VARCHAR(16) NOT NULL DEFAULT 'own_sip'");
+    voxi_ensure_column($pdo, 'users', 'monthly_subscription_byn', 'DECIMAL(10, 2) NOT NULL DEFAULT 0.00');
     voxi_ensure_column($pdo, 'users', 'credit_limit_byn', 'DECIMAL(10, 2) NOT NULL DEFAULT 100.00');
     voxi_ensure_column($pdo, 'users', 'billing_status', "VARCHAR(16) NOT NULL DEFAULT 'active'");
     voxi_ensure_column($pdo, 'payment_orders', 'invoice_id', 'CHAR(36) DEFAULT NULL');
@@ -532,7 +586,7 @@ function voxi_set_session_cookie(string $token, int $ttlSeconds = 2592000): void
         'path' => '/',
         'secure' => $isHttps,
         'httponly' => true,
-        'samesite' => 'Strict',
+        'samesite' => 'Lax',
     ]);
 }
 
@@ -546,7 +600,7 @@ function voxi_clear_session_cookie(): void
         'path' => '/',
         'secure' => $isHttps,
         'httponly' => true,
-        'samesite' => 'Strict',
+        'samesite' => 'Lax',
     ]);
 }
 
