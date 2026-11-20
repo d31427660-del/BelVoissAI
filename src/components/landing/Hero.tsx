@@ -319,15 +319,21 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="lg:col-span-7 space-y-6">
             <MorphIsland />
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.08] font-light">
+            <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.1] font-light">
               Ни одного пропущенного звонка{' '}
-              <WordRoll
-                words={['для стоматологий', 'для СТО', 'для салонов красоты', 'для автошкол']}
-                className="font-normal text-black underline decoration-black/15 decoration-2 underline-offset-4"
-              />
-              .{' '}
-              <span className="font-normal text-black">
-                ИИ-администратор отвечает 24/7.
+              <span className="block">
+                <WordRoll
+                  words={[
+                    'для стоматологий.',
+                    'для СТО и сервисов.',
+                    'для салонов красоты.',
+                    'для автошкол.',
+                  ]}
+                  className="font-normal text-black underline decoration-black/15 decoration-2 underline-offset-4"
+                />
+              </span>
+              <span className="block font-normal text-black">
+                ИИ-администратор 24/7.
               </span>
             </h1>
 

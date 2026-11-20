@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { MOTION_SPRINGS } from './springs';
 
 interface WordRollProps {
   words: string[];
@@ -12,9 +11,9 @@ interface WordRollProps {
 
 /**
  * DesignBookmark Motion — "Word roll"
- * Rotates words vertically with smooth spring roll & width transition,
- * keeping layout stable. Respects `prefers-reduced-motion` (static first word)
- * and pauses automatically on hover/focus (WCAG 2.2.2).
+ * Rotates phrases vertically inside a clipped, fixed-line-height container
+ * with zero vertical layout shift and no descender clipping.
+ * Respects `prefers-reduced-motion` (static first phrase) and pauses on hover.
  */
 export const WordRoll: React.FC<WordRollProps> = ({
   words,
@@ -44,17 +43,17 @@ export const WordRoll: React.FC<WordRollProps> = ({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       className={cn(
-        'inline-flex relative overflow-hidden align-bottom',
+        'inline-flex relative overflow-hidden align-bottom py-[0.08em] -my-[0.08em]',
         className
       )}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={current}
-          initial={{ y: '100%', opacity: 0 }}
+          initial={{ y: '105%', opacity: 0 }}
           animate={{ y: '0%', opacity: 1 }}
-          exit={{ y: '-100%', opacity: 0 }}
-          transition={MOTION_SPRINGS.roll}
+          exit={{ y: '-105%', opacity: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="inline-block whitespace-nowrap will-change-transform"
         >
           {current}
