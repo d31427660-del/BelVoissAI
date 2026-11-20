@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   WalletMoneyIcon,
-  CheckCircleIcon,
   Card2Icon as CreditCardIcon,
   ShieldCheckIcon,
   ArrowRightIcon
@@ -96,6 +95,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
       onInitialPackageConsumed?.();
     }
   }, [initialSelectedPackage, onInitialPackageConsumed]);
+
   const [customMinutes, setCustomMinutes] = useState<string>('100');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'erip'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -116,8 +116,8 @@ export const BillingTab: React.FC<BillingTabProps> = ({
     onSaveSip(updatedSip);
     setRentalSavedNotice(
       useOwnSip
-        ? 'Режим «Свой SIP» — 0 BYN/мес за номер'
-        : 'Режим «Номер А1 ВАТС» — 15 BYN/мес'
+        ? 'Свой SIP · 0 BYN/мес'
+        : 'Номер А1 · 15 BYN/мес'
     );
     setTimeout(() => setRentalSavedNotice(null), 3500);
 
@@ -129,24 +129,20 @@ export const BillingTab: React.FC<BillingTabProps> = ({
 
   // Compute active payment summary
   let activeMinutes = 0;
-  let activeRate = ratePerMin;
   let activeAmountByn = 0;
   let activeTitle = '';
 
   if (selectedTarget === 'postpaid') {
     activeMinutes = defaultTargetInvoice ? defaultTargetInvoice.billableMinutes : billableMinsThisMonth;
-    activeRate = defaultTargetInvoice ? defaultTargetInvoice.ratePerMinute : ratePerMin;
     activeAmountByn = defaultTargetInvoice ? defaultTargetInvoice.remainingDueByn : unpaidDebtByn;
     activeTitle = `Погашение счёта за месяц (${billing?.currentPeriodYm || 'текущий период'})`;
   } else if (selectedTarget === 'custom') {
     activeMinutes = clampedCustomMins;
-    activeRate = customRate;
     activeAmountByn = customAmountByn;
     activeTitle = `Пополнение баланса на ${clampedCustomMins} минут`;
   } else {
     const pkg = DISCOUNT_PACKAGES.find((p) => p.id === selectedTarget) || DISCOUNT_PACKAGES[0];
     activeMinutes = pkg.minutes;
-    activeRate = pkg.ratePerMinute;
     activeAmountByn = pkg.priceByn;
     activeTitle = `${pkg.name} (${pkg.ratePerMinute.toFixed(2)} BYN/мин, выгода −${pkg.savingsPercent}%)`;
   }
@@ -207,51 +203,54 @@ export const BillingTab: React.FC<BillingTabProps> = ({
     }
   };
 
-  const sliderProgressPercent = ((callsPerDay - 2) / (50 - 2)) * 100;
-
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
+      {/* Editorial mono eyebrow rule */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          <span className="w-1.5 h-1.5 rounded-full bg-black" />
+          <span>Тариф и оплата · BYN</span>
+        </div>
+        <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" />
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          BEPAID · КАРТА · ЕРИП
+        </span>
+      </div>
+
       {isSuspended && (
         <div
           role="alert"
-          className="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+          className="p-5 sm:p-6 rounded-[24px] bg-[#FFF5F3] border border-[#FE432A]/40 text-[#7F1D1D] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div className="space-y-1">
-            <div className="text-sm font-bold text-rose-900">
+            <div className="font-display text-[15px] font-bold text-black">
               Кредитный лимит ({creditLimitByn} BYN) превышен — приём звонков временно приостановлен
             </div>
-            <p className="text-xs text-rose-800 leading-relaxed">
-              Накопленная задолженность составила <strong>{unpaidDebtByn.toFixed(2)} BYN</strong>. Оплатите текущий счёт онлайн картой или через ЕРИП — бот автоматически включится обратно.
+            <p className="text-[13px] text-[#7F1D1D] leading-relaxed">
+              Накопленная задолженность составила <strong className="font-mono">{unpaidDebtByn.toFixed(2)} BYN</strong>. Оплатите текущий счёт онлайн картой или через ЕРИП — бот автоматически включится обратно.
             </p>
           </div>
           <a
             href="#payment-section"
             onClick={() => setSelectedTarget('postpaid')}
-            className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 text-center transition-colors"
+            className="h-10 px-5 rounded-full bg-[#FE432A] hover:bg-[#DC2626] text-white text-[12px] font-semibold inline-flex items-center justify-center shrink-0 transition-colors"
           >
-            Погасить долг ({unpaidDebtByn.toFixed(2)} BYN) →
+            Погасить долг ({unpaidDebtByn.toFixed(2)} BYN) ↗
           </a>
         </div>
       )}
 
-      {/* 1. КОМПАКТНЫЙ ТЁМНЫЙ ГЕРОЙ-БЛОК БАЛАНСА */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-[#141417] text-white shadow-xl border border-white/10 relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-25"
-          style={{
-            background: 'radial-gradient(circle, rgba(245, 158, 11, 0.55) 0%, rgba(16, 185, 129, 0.2) 55%, transparent 75%)'
-          }}
-        />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-medium text-amber-300 mb-2">
-              <WalletMoneyIcon className="w-4 h-4 text-amber-400" />
-              <span>Честная постоплата 1–7 числа или пакеты минут со скидкой до 22%</span>
+      {/* 1. Dotted Obsidian Balance Hero */}
+      <div className="voxi-dot-surface p-6 sm:p-8 rounded-[28px] text-white border border-black space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#D8E738]">
+              <WalletMoneyIcon className="w-3.5 h-3.5" />
+              <span>Постоплата 1–7 числа · пакеты со скидкой до −22%</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            <h1 className="font-display text-2xl sm:text-[32px] font-bold tracking-[-0.035em] leading-[1.1] text-white">
               Ваш баланс и тарифный план
-            </h2>
+            </h1>
           </div>
 
           <a
@@ -259,7 +258,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
             onClick={() => {
               if (unpaidDebtByn >= 0.5) setSelectedTarget('postpaid');
             }}
-            className="px-5 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold inline-flex items-center gap-2 transition-colors shadow-sm self-start md:self-center shrink-0"
+            className="h-11 px-5 rounded-full bg-[#D8E738] hover:bg-[#CFDF2E] text-black text-[13px] font-semibold inline-flex items-center gap-2 transition-colors self-start lg:self-center shrink-0"
           >
             <CreditCardIcon className="w-4 h-4" />
             <span>
@@ -270,28 +269,33 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           </a>
         </div>
 
-        {/* 3 главных показателя без лишней воды */}
-        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-5">
-          <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Доступно минут на балансе</span>
+        {/* 3 Key Balance Tiles */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-5 rounded-[20px] bg-white/[0.06] border border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/60">
+                Баланс минут
+              </span>
               <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                className={`font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                   freeMinsRemaining > 0
-                    ? 'text-emerald-400 bg-emerald-500/15'
-                    : 'text-amber-300 bg-amber-500/15'
+                    ? 'text-black bg-[#6BFF91]'
+                    : 'text-black bg-[#D8E738]'
                 }`}
               >
-                {freeMinsRemaining > 0 ? 'Расходуются первыми' : 'Бонус исчерпан'}
+                {freeMinsRemaining > 0 ? 'Первыми' : 'Бонус 0'}
               </span>
             </div>
-            <div className="text-2xl font-bold font-mono text-white">
-              {freeMinsRemaining.toFixed(1)} <span className="text-xs font-normal text-zinc-400">из {freeMinsTotal.toFixed(0)} мин</span>
+            <div className="font-display text-3xl font-bold text-white tracking-[-0.035em] tabular-nums">
+              {freeMinsRemaining.toFixed(1)}{' '}
+              <span className="font-mono text-[12px] font-normal text-white/55">
+                из {freeMinsTotal.toFixed(0)} мин
+              </span>
             </div>
-            <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div className="w-full h-1.5 rounded-full bg-white/15 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  freeMinsRemaining > 0 ? 'bg-emerald-400' : 'bg-amber-400'
+                  freeMinsRemaining > 0 ? 'bg-[#6BFF91]' : 'bg-[#D8E738]'
                 }`}
                 style={{ width: `${freeMinsPercent}%` }}
               />
@@ -299,52 +303,63 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           </div>
 
           <div
-            className={`p-4 rounded-2xl border space-y-1.5 ${
+            className={`p-5 rounded-[20px] border space-y-2.5 ${
               isSuspended
-                ? 'bg-rose-500/15 border-rose-400/40'
+                ? 'bg-[#FE432A]/15 border-[#FE432A]/40'
                 : 'bg-white/[0.06] border-white/10'
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-zinc-300">
-              <span>К оплате по факту месяца</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/60">
+                К оплате за месяц
+              </span>
               <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                className={`font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                   isSuspended
-                    ? 'text-rose-200 bg-rose-500/30'
-                    : 'text-amber-300 bg-amber-500/15'
+                    ? 'text-white bg-[#FE432A]'
+                    : 'text-white/85 bg-white/15'
                 }`}
               >
-                {isSuspended ? 'Лимит превышен!' : `Лимит ${creditLimitByn} BYN`}
+                {isSuspended ? 'Лимит превышен' : `Лимит ${creditLimitByn} BYN`}
               </span>
             </div>
-            <div className={`text-2xl font-bold font-mono ${isSuspended ? 'text-rose-300' : 'text-white'}`}>
-              {unpaidDebtByn.toFixed(2)} <span className="text-xs font-normal text-zinc-400">BYN</span>
+            <div
+              className={`font-display text-3xl font-bold tracking-[-0.035em] tabular-nums ${
+                isSuspended ? 'text-[#FCA5A5]' : 'text-white'
+              }`}
+            >
+              {unpaidDebtByn.toFixed(2)}{' '}
+              <span className="font-mono text-[13px] font-normal text-white/55">BYN</span>
             </div>
-            <p className="text-[11px] text-zinc-400">
-              Разговоры: <strong className="text-zinc-200">{billableMinsThisMonth.toFixed(1)} мин</strong> ({minutesCostThisMonth.toFixed(2)} BYN)
-              {monthlySubByn > 0 ? ` + Линия А1: ${monthlySubByn.toFixed(2)} BYN` : ''}
+            <p className="text-[11.5px] text-white/65 leading-snug">
+              Разговоры: <strong className="text-white font-mono">{billableMinsThisMonth.toFixed(1)} мин</strong> ({minutesCostThisMonth.toFixed(2)} BYN)
+              {monthlySubByn > 0 ? ` + А1: ${monthlySubByn.toFixed(2)} BYN` : ''}
               {paidEarlyThisMonth > 0 ? ` − Оплачено: ${paidEarlyThisMonth.toFixed(2)} BYN` : ''}
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Телефонная линия</span>
-              <span className="text-[11px] font-semibold text-sky-300 bg-sky-500/15 px-2 py-0.5 rounded-full">
-                {isOwnSip ? 'Свой SIP' : 'Номер А1 ВАТС'}
+          <div className="p-5 rounded-[20px] bg-white/[0.06] border border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/60">
+                Телефонная линия
+              </span>
+              <span className="font-mono text-[10px] font-bold text-black bg-white px-2.5 py-0.5 rounded-full">
+                {isOwnSip ? 'Свой SIP' : 'А1 ВАТС'}
               </span>
             </div>
-            <div className="text-2xl font-bold font-mono text-white">
-              {monthlySubByn}.00 <span className="text-xs font-normal text-zinc-400">BYN / мес</span>
+            <div className="font-display text-3xl font-bold text-white tracking-[-0.035em] tabular-nums">
+              {monthlySubByn}.00{' '}
+              <span className="font-mono text-[13px] font-normal text-white/55">BYN / мес</span>
             </div>
-            <p className="text-[11px] text-zinc-400">
-              Базовая ставка сверх бонуса: <strong className="text-zinc-200">{ratePerMin.toFixed(2)} BYN/мин</strong>
+            <p className="text-[11.5px] text-white/65">
+              Базовая ставка сверх бонуса:{' '}
+              <strong className="text-[#6BFF91] font-mono">{ratePerMin.toFixed(2)} BYN/мин</strong>
             </p>
           </div>
         </div>
       </div>
 
-      {/* DesignBookmark Motion: Storage meter (Визуальный расход минут пакета) */}
+      {/* Minutes Consumption Meter */}
       <StorageMeter
         title="Расход минут по сценариям и периодам"
         usedMinutes={Math.round(freeMinsUsed + billableMinsThisMonth)}
@@ -355,72 +370,79 @@ export const BillingTab: React.FC<BillingTabProps> = ({
             label: 'Бонусные минуты (использовано)',
             minutes: Math.round(freeMinsUsed),
             colorClass: 'bg-emerald-500',
-            detail: `Из ${Math.round(freeMinsTotal)} доступных минут израсходовано ${Math.round(freeMinsUsed)} мин. Остаток: ${Math.round(freeMinsRemaining)} мин (не сгорает).`,
+            detail: `Из ${Math.round(freeMinsTotal)} доступных минут израсходовано ${Math.round(freeMinsUsed)} мин. Остаток: ${Math.round(freeMinsRemaining)} мин (не сгорает).`
           },
           {
             id: 'billable',
             label: 'Оплачиваемые звонки в текущем месяце',
             minutes: Math.round(billableMinsThisMonth),
-            colorClass: 'bg-slate-900',
-            detail: `Тарифицируется только фактическое время диалога по ставке ${ratePerMin.toFixed(2)} BYN/мин. Гудки и ожидание — 0 BYN.`,
-          },
+            colorClass: 'bg-black',
+            detail: `Тарифицируется только фактическое время диалога по ставке ${ratePerMin.toFixed(2)} BYN/мин. Гудки и ожидание — 0 BYN.`
+          }
         ]}
       />
 
-      {/* 2. ПРАВИЛА ТАРИФА + ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР ВЫГОДЫ */}
+      {/* 2. Pricing Rules + Interactive Calculator */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Левая колонка: Прозрачные правила тарифа и выбор линии */}
-        <div className="lg:col-span-6 p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-4">
+        {/* Left: 3 Rules */}
+        <section className="lg:col-span-6 p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] flex flex-col justify-between gap-5">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+                  Прозрачная модель
+                </span>
+                <h2 className="font-display text-lg font-bold text-black tracking-[-0.025em] mt-0.5">
                   Как считается цена (3 правила)
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Никакой абонплаты за платформу, Telegram или сценарии
-                </p>
+                </h2>
               </div>
               {rentalSavedNotice && (
-                <span role="status" className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                <span
+                  role="status"
+                  className="font-mono text-[10.5px] font-bold text-black bg-[#6BFF91] px-2.5 py-1 rounded-full"
+                >
                   ✓ {rentalSavedNotice}
                 </span>
               )}
             </div>
 
-            <div className="space-y-2.5 text-xs">
-              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
+            <div className="space-y-3 text-[13px]">
+              <div className="p-4 rounded-[18px] bg-[#F5F5F5] border border-black/[0.06] flex items-center justify-between gap-3">
                 <div>
-                  <span className="font-bold text-slate-900 block">1. Первые 15 минут диалогов</span>
-                  <span className="text-slate-600 text-[11px]">Даются бесплатно при регистрации без привязки карты</span>
+                  <span className="font-bold text-black block">01. Первые 15 минут диалогов</span>
+                  <span className="text-[#525252] text-[12px]">Даются бесплатно при регистрации без карты</span>
                 </div>
-                <span className="text-sm font-extrabold font-mono text-emerald-700 shrink-0">0 BYN</span>
+                <span className="font-mono text-[14px] font-bold bg-[#6BFF91] text-black px-2.5 py-1 rounded-full shrink-0">
+                  0 BYN
+                </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200/80 flex items-center justify-between gap-3">
+              <div className="p-4 rounded-[18px] bg-[#F5F5F5] border border-black/[0.06] flex items-center justify-between gap-3">
                 <div>
-                  <span className="font-bold text-slate-900 block">2. Разговоры ИИ сверх бонуса</span>
-                  <span className="text-slate-600 text-[11px]">Постоплата в конце месяца (или 0.35–0.40 BYN в пакетах)</span>
+                  <span className="font-bold text-black block">02. Разговоры ИИ сверх бонуса</span>
+                  <span className="text-[#525252] text-[12px]">Постоплата в конце месяца (0.35–0.40 BYN в пакетах)</span>
                 </div>
-                <span className="text-sm font-extrabold font-mono text-blue-700 shrink-0">0.45 BYN/мин</span>
+                <span className="font-mono text-[13.5px] font-bold text-black shrink-0">
+                  0.45 BYN/мин
+                </span>
               </div>
 
-              {/* Переключатель телефонной линии */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/90 space-y-2">
+              {/* Line mode switcher */}
+              <div className="p-4 rounded-[18px] bg-[#F5F5F5] border border-black/[0.06] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900">3. Телефонная линия компании:</span>
-                  <span className="font-mono font-extrabold text-slate-900">
+                  <span className="font-bold text-black">03. Телефонная линия</span>
+                  <span className="font-mono font-bold text-black">
                     {isOwnSip ? '0 BYN/мес' : '15 BYN/мес'}
                   </span>
                 </div>
 
-                <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <legend className="visually-hidden">Режим телефонного номера</legend>
                   <label
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    className={`flex items-center gap-2.5 p-3 rounded-[14px] border text-[12.5px] cursor-pointer transition-colors ${
                       isOwnSip
-                        ? 'bg-white border-emerald-500 text-slate-900 font-semibold shadow-2xs'
-                        : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
+                        ? 'bg-[#0A0A0A] border-black text-white font-semibold'
+                        : 'bg-white border-black/[0.08] text-black hover:border-black/30'
                     }`}
                   >
                     <input
@@ -428,19 +450,25 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                       name="billing-sip-mode"
                       checked={isOwnSip}
                       onChange={() => handleToggleRentalMode(true)}
-                      className="accent-emerald-600"
+                      className="accent-black"
                     />
                     <div>
                       <span className="block leading-tight">Свой SIP-номер</span>
-                      <span className="text-[10px] font-mono text-emerald-700 font-bold">0 BYN / мес</span>
+                      <span
+                        className={`text-[10.5px] font-mono font-bold ${
+                          isOwnSip ? 'text-[#6BFF91]' : 'text-[#525252]'
+                        }`}
+                      >
+                        0 BYN / мес
+                      </span>
                     </div>
                   </label>
 
                   <label
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    className={`flex items-center gap-2.5 p-3 rounded-[14px] border text-[12.5px] cursor-pointer transition-colors ${
                       !isOwnSip
-                        ? 'bg-white border-amber-500 text-slate-900 font-semibold shadow-2xs'
-                        : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
+                        ? 'bg-[#0A0A0A] border-black text-white font-semibold'
+                        : 'bg-white border-black/[0.08] text-black hover:border-black/30'
                     }`}
                   >
                     <input
@@ -448,11 +476,17 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                       name="billing-sip-mode"
                       checked={!isOwnSip}
                       onChange={() => handleToggleRentalMode(false)}
-                      className="accent-amber-600"
+                      className="accent-black"
                     />
                     <div>
                       <span className="block leading-tight">Номер А1 от Voxi</span>
-                      <span className="text-[10px] font-mono text-amber-800 font-bold">15 BYN / мес</span>
+                      <span
+                        className={`text-[10.5px] font-mono font-bold ${
+                          !isOwnSip ? 'text-[#D8E738]' : 'text-[#525252]'
+                        }`}
+                      >
+                        15 BYN / мес
+                      </span>
                     </div>
                   </label>
                 </fieldset>
@@ -464,37 +498,37 @@ export const BillingTab: React.FC<BillingTabProps> = ({
             <button
               type="button"
               onClick={() => onNavigateTab('phone')}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 cursor-pointer self-start"
+              className="text-[12.5px] font-semibold text-black hover:opacity-75 inline-flex items-center gap-1.5 cursor-pointer self-start"
             >
               <span>Перейти к настройкам телефонного номера</span>
-              <ArrowRightIcon className="w-3.5 h-3.5" />
+              <ArrowRightIcon className="w-4 h-4" />
             </button>
           )}
-        </div>
+        </section>
 
-        {/* Правая колонка: Живой калькулятор выгоды */}
-        <div className="lg:col-span-6 p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-4">
+        {/* Right: Interactive Calculator */}
+        <section className="lg:col-span-6 p-6 sm:p-7 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06] flex flex-col justify-between gap-5">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Калькулятор: сколько вы заплатите за месяц?
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Подвигайте ползунок, чтобы сравнить постоплату и оптовые пакеты
-                </p>
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+                  Калькулятор BYN
+                </span>
+                <h2 className="font-display text-lg font-bold text-black tracking-[-0.025em] mt-0.5">
+                  Сколько вы заплатите за месяц?
+                </h2>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono text-xs font-bold whitespace-nowrap shrink-0">
+              <span className="px-3 py-1 rounded-full bg-[#0A0A0A] text-[#D8E738] font-mono text-[11.5px] font-bold whitespace-nowrap shrink-0 tabular-nums">
                 ~{estimatedMonthlyMinutes} мин/мес
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <label htmlFor="calls-per-day-slider" className="font-semibold text-slate-800">
-                  Звонков в вашу компанию в день:
+            <div className="p-4 sm:p-5 rounded-[18px] bg-white border border-black/[0.06] space-y-2.5">
+              <div className="flex items-center justify-between text-[13px]">
+                <label htmlFor="calls-per-day-slider" className="font-semibold text-black">
+                  Звонков в день
                 </label>
-                <span className="text-sm font-extrabold font-mono text-indigo-700">
+                <span className="font-mono text-[15px] font-bold text-black tabular-nums">
                   {callsPerDay} зв. / день
                 </span>
               </div>
@@ -506,82 +540,98 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                 max={50}
                 step={1}
                 value={callsPerDay}
-                style={{ '--slider-progress': `${sliderProgressPercent}%` } as React.CSSProperties}
+                aria-valuetext={`${callsPerDay} звонков в день`}
+                style={
+                  {
+                    '--attr-min': 2,
+                    '--attr-max': 50,
+                    '--control-value': callsPerDay
+                  } as React.CSSProperties
+                }
                 onChange={(e) => setCallsPerDay(Number(e.target.value))}
-                className="voxi-range-slider w-full cursor-pointer accent-indigo-600"
+                className="voxi-editorial-slider"
               />
 
-              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                <span>2 зв./день (малый бизнес)</span>
-                <span>15 зв./день (СТО / клиника)</span>
-                <span>50 зв./день (сеть)</span>
+              <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.06em] text-[#737373]">
+                <span>2 зв./день</span>
+                <span>15 зв./день (СТО)</span>
+                <span>50 зв./день</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                <span className="text-[11px] text-slate-500 block">По факту в конце месяца:</span>
-                <div className="text-lg font-extrabold font-mono text-slate-900 mt-0.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-4 rounded-[18px] bg-white border border-black/[0.06]">
+                <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[#737373] block">
+                  По факту в конце месяца
+                </span>
+                <div className="font-display text-2xl font-bold text-black tracking-[-0.03em] tabular-nums mt-1">
                   ~{basePostpaidCostByn} BYN
                 </div>
-                <span className="text-[10px] text-slate-500">по 0.45 BYN/мин {isOwnSip ? '' : '(+15 BYN номер)'}</span>
+                <span className="text-[11.5px] text-[#525252]">
+                  по 0.45 BYN/мин {isOwnSip ? '' : '(+15 BYN номер)'}
+                </span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
-                <span className="text-[11px] text-emerald-800 font-semibold block">С пакетом минут:</span>
-                <div className="text-lg font-extrabold font-mono text-emerald-700 mt-0.5">
+              <div className="p-4 rounded-[18px] bg-[#1C3B36] text-white">
+                <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-white/65 block">
+                  С пакетом минут
+                </span>
+                <div className="font-display text-2xl font-bold text-[#6BFF91] tracking-[-0.03em] tabular-nums mt-1">
                   ~{optimizedCostByn} BYN
                 </div>
-                <span className="text-[10px] text-emerald-700 font-medium">
+                <span className="text-[11.5px] text-white/80">
                   {monthlySavingsByn > 0
-                    ? `Вы экономите ${monthlySavingsByn} BYN/мес`
+                    ? `Экономия ${monthlySavingsByn} BYN/мес`
                     : 'На малом объёме выгоднее постоплата'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 flex items-center justify-between gap-2 text-xs text-indigo-950">
-            <span>
+          <div className="p-4 rounded-[16px] bg-white border border-black/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[12.5px] text-black">
+            <span className="text-[#404040]">
               {estimatedMonthlyMinutes >= 300
-                ? `На объёме ~${estimatedMonthlyMinutes} мин/мес выгоднее взять пакет со скидкой (${recommendedRate.toFixed(2)} BYN/мин).`
-                : `При ${callsPerDay} звонках в день можно ничего не покупать вперёд — просто пользуйтесь постоплатой!`}
+                ? `На объёме ~${estimatedMonthlyMinutes} мин/мес выгоднее пакет по ${recommendedRate.toFixed(2)} BYN/мин.`
+                : `При ${callsPerDay} звонках в день можно ничего не покупать вперёд — пользуйтесь постоплатой.`}
             </span>
             {estimatedMonthlyMinutes >= 300 && (
               <a
                 href="#payment-section"
                 onClick={() => setSelectedTarget(estimatedMonthlyMinutes >= 1000 ? 'pack_1000' : 'pack_300')}
-                className="font-bold text-indigo-700 hover:text-indigo-900 underline shrink-0"
+                className="font-semibold text-black underline underline-offset-4 shrink-0"
               >
                 Выбрать пакет ↓
               </a>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* 3. ЕДИНЫЙ БЛОК ОНЛАЙН-ОПЛАТЫ (БЕЗ ПОВТОРОВ И ЛИШНИХ ПОЛЕЙ) */}
-      <div
+      {/* 3. Unified Payment Section */}
+      <section
         id="payment-section"
-        className="p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-5 scroll-mt-20"
+        className="p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] space-y-5 scroll-mt-20"
       >
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-slate-900">
-            Пополнение минут со скидкой и оплата месяца (Карта / ЕРИП)
-          </h3>
-          <p className="text-xs text-slate-600 mt-0.5">
-            Купленные в пакете минуты начисляются мгновенно и расходуются первыми — пока они есть, ежемесячный счёт остаётся 0 BYN
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+            Оплата онлайн · bePaid
+          </span>
+          <h2 className="font-display text-lg sm:text-xl font-bold text-black tracking-[-0.025em] mt-0.5">
+            Пополнение минут со скидкой и оплата месяца
+          </h2>
+          <p className="text-[12.5px] text-[#525252] mt-1">
+            Купленные в пакете минуты начисляются мгновенно и расходуются первыми — пока они есть, ежемесячный счёт остаётся 0 BYN.
           </p>
         </div>
 
         {errorMsg && (
-          <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-medium">
+          <div role="alert" className="p-4 rounded-[16px] bg-[#FFF5F3] border border-[#FE432A]/40 text-[#991B1B] text-[13px] font-medium">
             {errorMsg}
           </div>
         )}
 
-        {/* Шаг 1: 4 понятные карточки выбора что оплачиваем */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* 4 Selection Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {DISCOUNT_PACKAGES.map((pkg) => {
             const isSelected = selectedTarget === pkg.id;
             return (
@@ -592,60 +642,60 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                   setSelectedTarget(pkg.id);
                   setErrorMsg(null);
                 }}
-                className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                className={`p-5 rounded-[20px] border text-left transition-colors flex flex-col justify-between gap-3 cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                    : 'bg-slate-50/80 hover:bg-white text-slate-900 border-slate-200'
+                    ? 'bg-[#0A0A0A] text-white border-black'
+                    : 'bg-[#F5F5F5] hover:bg-[#EBEBEB] text-black border-black/[0.06]'
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-xs font-bold">{pkg.name}</span>
+                  <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <span className="text-[13px] font-bold">{pkg.name}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        isSelected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
+                      className={`font-mono text-[10.5px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
+                        isSelected ? 'bg-[#6BFF91] text-black' : 'bg-[#D8E738] text-black'
                       }`}
                     >
                       −{pkg.savingsPercent}%
                     </span>
                   </div>
-                  <div className="text-xl font-extrabold font-mono mt-1">
+                  <div className="font-display text-2xl font-bold tracking-[-0.03em] tabular-nums">
                     {pkg.priceByn} BYN
                   </div>
-                  <div className={`text-[11px] mt-0.5 font-mono ${isSelected ? 'text-zinc-300' : 'text-slate-500'}`}>
-                    по {pkg.ratePerMinute.toFixed(2)} BYN/мин (экономия {pkg.savingsByn} BYN)
+                  <div className={`text-[11.5px] mt-1 font-mono ${isSelected ? 'text-white/65' : 'text-[#525252]'}`}>
+                    {pkg.ratePerMinute.toFixed(2)} BYN/мин · −{pkg.savingsByn} BYN
                   </div>
                 </div>
               </button>
             );
           })}
 
-          {/* Карточка 3: Свой объём минут */}
+          {/* Card 3: Custom Minutes */}
           <div
             onClick={() => {
               setSelectedTarget('custom');
               setErrorMsg(null);
             }}
-            className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-5 rounded-[20px] border text-left transition-colors flex flex-col justify-between gap-2 cursor-pointer ${
               selectedTarget === 'custom'
-                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                : 'bg-slate-50/80 hover:bg-white text-slate-900 border-slate-200'
+                ? 'bg-[#0A0A0A] text-white border-black'
+                : 'bg-[#F5F5F5] hover:bg-[#EBEBEB] text-black border-black/[0.06]'
             }`}
           >
             <div>
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <label htmlFor="billing-custom-mins" className="text-xs font-bold cursor-pointer">
-                  Своё кол-во минут
+              <div className="flex items-center justify-between gap-1.5 mb-2">
+                <label htmlFor="billing-custom-mins" className="text-[13px] font-bold cursor-pointer">
+                  Свой объём
                 </label>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
-                    selectedTarget === 'custom' ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-100 text-amber-900'
+                  className={`font-mono text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap ${
+                    selectedTarget === 'custom' ? 'bg-white/15 text-[#D8E738]' : 'bg-white text-[#525252] border border-black/[0.08]'
                   }`}
                 >
                   от 50 мин
                 </span>
               </div>
-              <div className="mt-1.5 flex items-center gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <input
                   id="billing-custom-mins"
                   type="text"
@@ -667,73 +717,75 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                       setCustomMinutes('10000');
                     }
                   }}
-                  className={`w-24 px-2.5 py-1 rounded-lg text-sm font-mono font-bold border focus:outline-none ${
+                  className={`w-20 min-w-0 shrink-0 px-2.5 py-1.5 rounded-[10px] text-[13px] font-mono font-bold border focus:outline-none ${
                     !isCustomValid && customMinutes !== ''
-                      ? 'border-rose-400 bg-rose-500/15 text-rose-200'
+                      ? 'border-[#FE432A] bg-[#FE432A]/15 text-[#FE432A]'
                       : selectedTarget === 'custom'
                       ? 'bg-white/10 text-white border-white/25'
-                      : 'bg-white text-slate-900 border-slate-300'
+                      : 'bg-white text-black border-black/[0.12]'
                   }`}
                   placeholder="100"
                 />
-                <span className="text-xs font-mono font-bold whitespace-nowrap">
-                  = {isCustomValid ? `${customAmountByn.toFixed(2)} BYN` : 'мин. 50 мин'}
+                <span className="text-[12px] font-mono font-bold whitespace-nowrap tabular-nums">
+                  = {isCustomValid ? `${customAmountByn.toFixed(2)} BYN` : 'мин. 50'}
                 </span>
               </div>
               {!isCustomValid && customMinutes !== '' && (
-                <p className={`text-[10px] mt-1 font-medium ${selectedTarget === 'custom' ? 'text-rose-300' : 'text-rose-600'}`}>
-                  Введите от 50 до 10 000 минут
+                <p className="text-[11px] mt-1.5 font-medium text-[#FE432A]">
+                  От 50 до 10 000 минут
                 </p>
               )}
             </div>
           </div>
 
-          {/* Карточка 4: Оплата счёта за месяц */}
+          {/* Card 4: Postpaid Invoice */}
           <button
             type="button"
             onClick={() => {
               setSelectedTarget('postpaid');
               setErrorMsg(null);
             }}
-            className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-5 rounded-[20px] border text-left transition-colors flex flex-col justify-between gap-3 cursor-pointer ${
               selectedTarget === 'postpaid'
-                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                : 'bg-slate-50/80 hover:bg-white text-slate-900 border-slate-200'
+                ? 'bg-[#0A0A0A] text-white border-black'
+                : 'bg-[#F5F5F5] hover:bg-[#EBEBEB] text-black border-black/[0.06]'
             }`}
           >
             <div>
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-xs font-bold">Счёт за месяц</span>
+              <div className="flex items-center justify-between gap-1.5 mb-2">
+                <span className="text-[13px] font-bold">Счёт за месяц</span>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                    selectedTarget === 'postpaid' ? 'bg-white/15 text-zinc-200' : 'bg-slate-200 text-slate-700'
+                  className={`font-mono text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                    selectedTarget === 'postpaid' ? 'bg-white/15 text-white' : 'bg-white text-[#525252] border border-black/[0.08]'
                   }`}
                 >
                   По факту
                 </span>
               </div>
-              <div className="text-xl font-extrabold font-mono mt-1">
+              <div className="font-display text-2xl font-bold tracking-[-0.03em] tabular-nums">
                 {unpaidDebtByn.toFixed(2)} BYN
               </div>
-              <div className={`text-[11px] mt-0.5 ${selectedTarget === 'postpaid' ? 'text-zinc-300' : 'text-slate-500'}`}>
+              <div className={`text-[11.5px] mt-1 ${selectedTarget === 'postpaid' ? 'text-white/65' : 'text-[#525252]'}`}>
                 {unpaidDebtByn >= 0.5 ? 'Досрочное погашение' : 'Сейчас к оплате 0 BYN'}
               </div>
             </div>
           </button>
         </div>
 
-        {/* Шаг 2: Выбор Карта или ЕРИП + Кнопка оплаты в одну строку */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Step 2: Payment Method & Checkout Strip */}
+        <div className="p-5 sm:p-6 rounded-[22px] bg-[#0A0A0A] text-white flex flex-col xl:flex-row xl:items-center justify-between gap-5">
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs text-zinc-400 mr-1">Способ оплаты:</span>
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/55 mr-1">
+              Способ:
+            </span>
             <button
               type="button"
               aria-pressed={paymentMethod === 'card'}
               onClick={() => setPaymentMethod('card')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2 transition-all cursor-pointer border ${
+              className={`h-10 px-4 rounded-full text-[12.5px] font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer border ${
                 paymentMethod === 'card'
-                  ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                  : 'bg-white/10 text-white border-white/15 hover:bg-white/15'
+                  ? 'bg-[#6BFF91] text-black border-[#6BFF91]'
+                  : 'bg-white/[0.08] text-white border-white/15 hover:bg-white/[0.15]'
               }`}
             >
               <CreditCardIcon size={16} />
@@ -744,21 +796,21 @@ export const BillingTab: React.FC<BillingTabProps> = ({
               type="button"
               aria-pressed={paymentMethod === 'erip'}
               onClick={() => setPaymentMethod('erip')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2 transition-all cursor-pointer border ${
+              className={`h-10 px-4 rounded-full text-[12.5px] font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer border ${
                 paymentMethod === 'erip'
-                  ? 'bg-amber-400 text-slate-950 border-amber-300'
-                  : 'bg-white/10 text-white border-white/15 hover:bg-white/15'
+                  ? 'bg-[#D8E738] text-black border-[#D8E738]'
+                  : 'bg-white/[0.08] text-white border-white/15 hover:bg-white/[0.15]'
               }`}
             >
-              <span className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-extrabold">ЕРИП</span>
+              <span className="font-mono px-1.5 py-0.5 rounded bg-black/15 text-[10px] font-bold">ЕРИП</span>
               <span>Система «Расчёт» (QR-код)</span>
             </button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="text-left sm:text-right">
-              <div className="text-[11px] text-zinc-400">{activeTitle}</div>
-              <div className="text-lg font-extrabold font-mono text-white">
+              <div className="text-[11.5px] text-white/60">{activeTitle}</div>
+              <div className="font-display text-xl font-bold text-white tabular-nums">
                 {activeAmountByn.toFixed(2)} BYN
               </div>
             </div>
@@ -767,7 +819,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
               type="button"
               onClick={handleActionSubmit}
               disabled={isProcessing || activeAmountByn < 0.5 || (selectedTarget === 'custom' && !isCustomValid)}
-              className="px-6 h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed shrink-0"
+              className="h-11 px-6 rounded-full bg-[#D8E738] hover:bg-[#CFDF2E] text-black text-[13px] font-semibold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             >
               <WalletMoneyIcon size={18} />
               <span>
@@ -783,64 +835,84 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] text-slate-500">
-          <ShieldCheckIcon size={16} className="text-emerald-600 shrink-0" aria-hidden="true" />
+        <div className="flex items-center gap-2.5 text-[12px] text-[#525252]">
+          <ShieldCheckIcon size={16} className="text-black shrink-0" aria-hidden="true" />
           <span>
-            Безопасные платежи в BYN через <strong>bePaid</strong> (PCI DSS Level 1). Электронный чек сразу приходит на ваш email ({user.email || 'корпоративная почта'}).
+            Безопасные платежи в BYN через <strong className="text-black">bePaid</strong> (PCI DSS Level 1). Электронный чек сразу приходит на ваш email ({user.email || 'корпоративная почта'}).
           </span>
         </div>
-      </div>
+      </section>
 
-      {/* 4. ИСТОРИЯ СЧЕТОВ ПО МЕСЯЦАМ */}
+      {/* 4. Responsive Semantic Invoice Table */}
       {invoices.length > 0 && (
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+        <section className="p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] space-y-4">
           <div>
-            <h3 className="text-base font-bold text-slate-900">История счетов по месяцам</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Все выставленные и текущие расчётные периоды по вашей компании
-            </p>
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+              Расчётные периоды
+            </span>
+            <h2
+              id="invoices-table-title"
+              className="font-display text-lg font-bold text-black tracking-[-0.025em] mt-0.5"
+            >
+              История счетов по месяцам
+            </h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+
+          <div
+            tabIndex={0}
+            role="region"
+            aria-labelledby="invoices-table-title"
+            className="voxi-table-region"
+          >
+            <table className="voxi-responsive-table text-left text-[13px]">
+              <caption className="visually-hidden">
+                История выставленных и текущих счетов компании в белорусских рублях
+              </caption>
               <thead>
-                <tr className="border-b border-slate-200 text-[11px] text-slate-500 font-semibold">
-                  <th className="py-2 pr-3">Период / Счёт</th>
-                  <th className="py-2 px-3">Минуты</th>
-                  <th className="py-2 px-3">Итого</th>
-                  <th className="py-2 px-3">К оплате</th>
-                  <th className="py-2 pl-3 text-right">Статус</th>
+                <tr className="border-b border-black/[0.1] font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+                  <th scope="col" className="py-3 pr-4 font-semibold">Период / Счёт</th>
+                  <th scope="col" className="py-3 px-4 font-semibold">Минуты</th>
+                  <th scope="col" className="py-3 px-4 font-semibold">Итого</th>
+                  <th scope="col" className="py-3 px-4 font-semibold">К оплате</th>
+                  <th scope="col" className="py-3 pl-4 text-right font-semibold">Статус</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td className="py-2.5 pr-3 font-medium text-slate-900 whitespace-nowrap">
-                      {inv.periodYm} <span className="text-slate-400 font-mono text-[11px]">({inv.invoiceNumber})</span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-slate-700 whitespace-nowrap">
+                  <tr
+                    key={inv.id}
+                    className="border-b border-black/[0.06] last:border-b-0 hover:bg-[#F5F5F5]/70 transition-colors"
+                  >
+                    <th scope="row" className="py-3.5 pr-4 font-semibold text-black whitespace-nowrap">
+                      {inv.periodYm}{' '}
+                      <span className="text-[#737373] font-mono text-[11px] font-normal">
+                        ({inv.invoiceNumber})
+                      </span>
+                    </th>
+                    <td data-label="Минуты" className="py-3.5 px-4 font-mono text-[#404040] whitespace-nowrap tabular-nums">
                       {inv.billableMinutes.toFixed(1)} мин
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-slate-900 whitespace-nowrap">
+                    <td data-label="Итого" className="py-3.5 px-4 font-mono text-black whitespace-nowrap tabular-nums">
                       {inv.totalAmountByn.toFixed(2)} BYN
                     </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-950 whitespace-nowrap">
+                    <td data-label="К оплате" className="py-3.5 px-4 font-mono font-bold text-black whitespace-nowrap tabular-nums">
                       {inv.remainingDueByn.toFixed(2)} BYN
                     </td>
-                    <td className="py-2.5 pl-3 text-right whitespace-nowrap">
+                    <td data-label="Статус" className="py-3.5 pl-4 text-right whitespace-nowrap">
                       {inv.status === 'paid' ? (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
+                        <span className="font-mono text-[10.5px] font-bold px-2.5 py-1 rounded-full bg-[#6BFF91] text-black">
                           Оплачен
                         </span>
                       ) : inv.status === 'overdue' ? (
-                        <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-semibold">
+                        <span className="font-mono text-[10.5px] font-bold px-2.5 py-1 rounded-full bg-[#FE432A] text-white">
                           Просрочен
                         </span>
                       ) : inv.status === 'issued' ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold">
+                        <span className="font-mono text-[10.5px] font-bold px-2.5 py-1 rounded-full bg-[#D8E738] text-black">
                           Выставлен
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                        <span className="font-mono text-[10.5px] font-semibold px-2.5 py-1 rounded-full bg-[#F5F5F5] text-black border border-black/[0.08]">
                           Текущий
                         </span>
                       )}
@@ -850,7 +922,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

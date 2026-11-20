@@ -2,7 +2,7 @@ import React, { useId } from 'react';
 import {
   QuestionCircleIcon as HelpCircle,
   CloseCircleIcon as CloseIcon,
-  LightbulbBoltIcon as Lightbulb
+  LightbulbBoltIcon as Lightbulb,
 } from '@solar-icons/react/bold-duotone';
 
 interface FieldLabelProps {
@@ -24,7 +24,7 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
   helpTitle,
   helpText,
   helpExample,
-  helpTriggerLabel = 'Подсказка'
+  helpTriggerLabel = 'Подсказка',
 }) => {
   const rawId = useId();
   const popoverId = `field-help-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -33,20 +33,18 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
     <div className="flex items-start justify-between gap-2 mb-1.5">
       <label
         htmlFor={htmlFor}
-        className="text-xs font-semibold text-slate-800 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0 leading-snug cursor-pointer"
+        className="text-[13px] font-semibold text-black flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0 leading-snug cursor-pointer"
       >
         <span>
           {label}
           {required && (
-            <span className="text-rose-500 font-bold ml-0.5" title="Обязательное поле">
+            <span className="text-[#FE432A] font-bold ml-0.5" title="Обязательное поле">
               *
             </span>
           )}
         </span>
         {optionalText && (
-          <span className="text-[11px] font-normal text-slate-400">
-            ({optionalText})
-          </span>
+          <span className="text-[11px] font-normal text-[#737373]">({optionalText})</span>
         )}
       </label>
 
@@ -55,9 +53,9 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
           <button
             type="button"
             {...({ popoverTarget: popoverId } as any)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200/80 hover:border-blue-200 text-[11px] font-medium transition-colors shrink-0"
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-[#525252] border border-black/[0.08] text-[11px] font-medium transition-colors shrink-0 cursor-pointer"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <HelpCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{helpTriggerLabel}</span>
           </button>
 
@@ -66,13 +64,13 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
             {...({ popover: 'auto' } as any)}
             className="voxi-help-popover"
           >
-            <div className="p-4 sm:p-5 space-y-3 text-left">
-              <div className="flex items-start justify-between gap-3 pb-2.5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+            <div className="p-5 space-y-3.5 text-left">
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-black/[0.08]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-[8px] bg-black text-[#D8E738] flex items-center justify-center shrink-0">
                     <Lightbulb className="w-4 h-4" />
                   </div>
-                  <h4 className="text-xs font-bold text-slate-900">
+                  <h4 className="font-display text-[14px] font-bold text-black">
                     {helpTitle || label}
                   </h4>
                 </div>
@@ -81,19 +79,19 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
                   type="button"
                   {...({ popoverTarget: popoverId, popoverTargetAction: 'hide' } as any)}
                   aria-label="Закрыть подсказку"
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="p-1 rounded-full text-[#737373] hover:text-black hover:bg-[#F5F5F5] transition-colors cursor-pointer"
                 >
                   <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-[13px] text-[#404040] leading-relaxed whitespace-pre-line">
                 {helpText}
               </p>
 
               {helpExample && (
-                <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-xs text-slate-800 space-y-1">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                <div className="p-3.5 rounded-[14px] bg-[#F5F5F5] border border-black/[0.06] text-[12.5px] text-black space-y-1">
+                  <span className="block font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[#737373]">
                     Пример:
                   </span>
                   <div className="font-medium whitespace-pre-line leading-relaxed">
@@ -106,7 +104,7 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
                 <button
                   type="button"
                   {...({ popoverTarget: popoverId, popoverTargetAction: 'hide' } as any)}
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
+                  className="px-4 py-1.5 rounded-full bg-black hover:bg-[#222222] text-white text-xs font-medium transition-colors cursor-pointer"
                 >
                   Понятно
                 </button>
@@ -125,7 +123,7 @@ interface FieldHintProps {
 }
 
 export const FieldHint: React.FC<FieldHintProps> = ({ id, children }) => (
-  <p id={id} className="mt-1.5 text-[11px] text-slate-500 leading-relaxed">
+  <p id={id} className="mt-1.5 text-[11.5px] text-[#666666] leading-relaxed">
     {children}
   </p>
 );
@@ -156,4 +154,3 @@ export const AutoGrowTextarea: React.FC<AutoGrowTextareaProps> = ({
     />
   </div>
 );
-

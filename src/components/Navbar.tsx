@@ -1,14 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Widget5Icon,
-  Logout2Icon,
-  HamburgerMenuIcon,
-  CloseCircleIcon
-} from '@solar-icons/react/bold-duotone';
+import React from 'react';
+import { ArrowRightUpIcon, Widget5Icon, Logout2Icon } from '@solar-icons/react/bold-duotone';
 import { UserSession } from '../types';
-import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
-import { Button } from '@/components/ui/button';
-import { RollLink } from '@/components/motion';
 
 interface NavbarProps {
   currentView: 'landing' | 'dashboard';
@@ -19,334 +11,117 @@ interface NavbarProps {
   onOpenVoiceTest: () => void;
 }
 
+const NAV_LINKS = [
+  { href: '#how-it-works', label: 'Как работает' },
+  { href: '#scenarios', label: 'Ниши' },
+  { href: '#pricing', label: 'Тарифы' },
+  { href: '#faq', label: 'FAQ' },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   setCurrentView,
   user,
   onOpenAuth,
   onLogout,
-  onOpenVoiceTest,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const next = window.scrollY > 36;
-          setIsScrolled((prev) => (prev !== next ? next : prev));
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   return (
-    <>
-      {/* Main Sticky Header (ElevenLabs Full-Width Minimalist Bar with subtle Liquid Glass) */}
-      <header
-        className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-          isScrolled
-            ? 'bg-[#FAF7F2]/85 backdrop-blur-xl border-b border-black/[0.04] shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.03),0_8px_24px_-4px_rgba(0,0,0,0.02)]'
-            : 'bg-[#FAF7F2]/60 backdrop-blur-md border-b border-black/[0.04]'
-        }`}
-      >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          {/* Brand Lockup: ElevenLabs Editorial Dual Audio Bars ("II") + Logotype */}
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              setCurrentView('landing');
-              setIsMobileMenuOpen(false);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-black/[0.06]">
+      <div className="relative w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 h-[68px] sm:h-[76px] lg:h-[84px] flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Compact Editorial Brand Lockup */}
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            setCurrentView('landing');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="inline-flex items-center gap-2 sm:gap-2.5 group shrink-0"
+        >
+          <svg
+            viewBox="0 0 32 32"
+            aria-hidden="true"
+            className="w-[28px] h-[28px] sm:w-[30px] sm:h-[30px] shrink-0 transition-transform duration-200 group-hover:scale-105"
           >
-            <div
-              className="w-7 h-7 rounded-lg bg-black p-[1px] transition-transform group-hover:scale-105"
-              aria-hidden="true"
-            >
-              <div className="w-full h-full rounded-[7px] bg-white flex items-center justify-center gap-[2.5px]">
-                <span className="w-[2.5px] h-3 rounded-full bg-black" />
-                <span className="w-[2.5px] h-3 rounded-full bg-black" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-[17px] font-semibold tracking-[-0.03em] text-black">
-                Voxi
-              </span>
-              <span className="text-xs font-medium text-[#777169] font-mono">.by</span>
-            </div>
-          </a>
+            <rect width="32" height="32" rx="8" fill="#0A0A0A" />
+            <rect x="6.5" y="14" width="2.4" height="5.2" rx="1.2" fill="#FFFFFF" />
+            <rect x="10.5" y="10.5" width="2.4" height="9.8" rx="1.2" fill="#FFFFFF" />
+            <path
+              d="M14.8 15.2L18.4 20.9L25.4 10.2"
+              stroke="#6BFF91"
+              strokeWidth="2.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </svg>
+          <span className="font-display text-[19px] sm:text-[21px] font-bold tracking-[-0.045em] text-black leading-none">
+            voxi<span className="text-[#737373]">.by</span>
+          </span>
+        </a>
 
-          {/* Center Navigation Links */}
-          {currentView === 'landing' ? (
-            <nav
-              aria-label="Основная"
-              className="hidden lg:flex items-center gap-0.5 text-[13px] font-normal text-[#59544F]"
-            >
-              <RollLink
-                href="#showcase"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
+        {/* Center: Clean Section Navigation (optically centered on desktop) */}
+        {currentView === 'landing' && (
+          <nav
+            aria-label="Навигация по разделам"
+            className="hidden md:flex items-center gap-1 lg:gap-2 lg:absolute lg:left-1/2 lg:-translate-x-1/2"
+          >
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="px-3.5 py-2 rounded-full text-[13.5px] font-medium text-[#525252] hover:text-black hover:bg-[#F5F5F5] transition-colors whitespace-nowrap"
               >
-                Платформа
-              </RollLink>
-              <RollLink
-                href="#benchmark"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
-              >
-                Бенчмарк речи
-              </RollLink>
-              <RollLink
-                href="#features"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
-              >
-                Возможности
-              </RollLink>
-              <RollLink
-                href="#how-it-works"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
-              >
-                Как это работает
-              </RollLink>
-              <RollLink
-                href="#pricing"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
-              >
-                Тарифы
-              </RollLink>
-              <RollLink
-                href="#integrations"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
-              >
-                Телефония РБ
-              </RollLink>
-              <RollLink
-                href="#faq"
-                className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
-              >
-                Вопросы
-              </RollLink>
-            </nav>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-[#777169] bg-[#F5F3F1] px-4 py-1.5 rounded-full min-w-0">
-              <span className="hidden sm:inline shrink-0">Кабинет</span>
-              <span className="text-black/20 hidden sm:inline">/</span>
-              <span className="text-black font-medium flex items-center gap-1.5 truncate max-w-[180px] sm:max-w-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="truncate">{user?.companyName || 'Моя компания'}</span>
-              </span>
-            </div>
-          )}
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        )}
 
-          {/* Right Action Buttons (shadcn UI Button hierarchy) */}
-          <div className="flex items-center gap-2">
-            {currentView === 'landing' && onOpenVoiceTest && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onOpenVoiceTest}
-                className="hidden lg:inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-slate-300 bg-white/80 hover:bg-slate-100 text-slate-900 text-xs font-normal shadow-xs cursor-pointer"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Поговорить с Voxi</span>
-              </Button>
-            )}
-
-            {user ? (
-              <div className="flex items-center gap-2">
-                {currentView === 'landing' ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setCurrentView('dashboard')}
-                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-normal text-xs shadow-xs cursor-pointer"
-                  >
-                    <Widget5Icon size={15} />
-                    <span>Кабинет</span>
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentView('landing')}
-                    className="h-9 px-4 rounded-full border-slate-300 bg-white/80 hover:bg-slate-100 text-slate-900 text-xs font-normal shadow-xs cursor-pointer"
-                  >
-                    На главную
-                  </Button>
-                )}
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={onLogout}
-                  aria-label="Выйти из аккаунта"
-                  className="w-8 h-8 rounded-full text-slate-500 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                >
-                  <Logout2Icon size={16} />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onOpenAuth('signin')}
-                  className="hidden sm:inline-flex h-9 px-3.5 rounded-full text-slate-600 hover:text-slate-950 font-normal text-xs cursor-pointer"
-                >
-                  Войти
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => onOpenAuth('signup')}
-                  className="h-9 px-3.5 sm:px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-normal text-xs shadow-xs cursor-pointer"
-                >
-                  <span className="sm:hidden">Начать</span>
-                  <span className="hidden sm:inline">Регистрация</span>
-                </Button>
-              </div>
-            )}
-
-            {/* Mobile Menu Toggle */}
-            {currentView === 'landing' && (
+        {/* Right: Sign In + Primary CTA */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {user ? (
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Меню"
-                aria-expanded={isMobileMenuOpen}
-                className="lg:hidden w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#1d1d1f]"
+                onClick={() => setCurrentView(currentView === 'landing' ? 'dashboard' : 'landing')}
+                className="inline-flex items-center gap-2 h-9 sm:h-10 px-3.5 sm:px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] sm:text-[13px] font-semibold transition-colors cursor-pointer"
               >
-                {isMobileMenuOpen ? <CloseCircleIcon size={18} /> : <HamburgerMenuIcon size={18} />}
+                <Widget5Icon size={16} className="text-[#6BFF91]" />
+                <span>{currentView === 'landing' ? 'Личный кабинет' : 'На главную'}</span>
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                aria-label="Выйти из аккаунта"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-[#FFF5F3] border border-black/[0.12] hover:border-[#FE432A]/40 hover:text-[#FE432A] text-black flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <Logout2Icon size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signin')}
+                className="h-9 sm:h-10 px-3 sm:px-5 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.12] text-[12.5px] sm:text-[13px] font-semibold text-black transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Войти
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signup')}
+                className="h-9 sm:h-10 px-3 sm:px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] sm:text-[13px] font-semibold inline-flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <span>Попробовать</span>
+                <span className="font-mono text-[10.5px] sm:text-[11px] font-bold text-[#6BFF91]">+15 мин</span>
+                <ArrowRightUpIcon size={15} className="hidden sm:inline text-white/75" aria-hidden="true" />
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* Mobile Drawer */}
-        {currentView === 'landing' && isMobileMenuOpen && (
-          <div className="lg:hidden mx-3 mt-2 rounded-[16px] liquid-glass-card shadow-2xl px-5 py-5 space-y-4">
-            <nav aria-label="Мобильная" className="flex flex-col space-y-1 text-sm font-normal text-black">
-              <a href="#showcase" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Платформа Voxi
-              </a>
-              <a href="#benchmark" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Бенчмарк речи
-              </a>
-              <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Возможности
-              </a>
-              <a href="#how-it-works" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Как это работает
-              </a>
-              <a href="#integrations" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Телефония МТС и А1
-              </a>
-              <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Тарифы
-              </a>
-              <a href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-black/[0.04]">
-                Вопросы и ответы
-              </a>
-            </nav>
-
-            <div className="pt-2 flex flex-col gap-2">
-              {onOpenVoiceTest && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onOpenVoiceTest();
-                  }}
-                  className="w-full py-2.5 rounded-full liquid-glass-pill text-black text-xs font-normal flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Поговорить с Voxi</span>
-                </button>
-              )}
-              {!user && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onOpenAuth('signup');
-                    }}
-                    className="w-full py-2.5 px-3 rounded-full liquid-glass-btn-primary text-white text-xs font-medium cursor-pointer"
-                  >
-                    Регистрация (+15 мин)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onOpenAuth('signin');
-                    }}
-                    className="w-full py-2.5 px-3 rounded-full liquid-glass-pill text-black text-xs font-normal cursor-pointer"
-                  >
-                    Войти
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Contacts in Mobile Drawer */}
-            <div className="pt-3 border-t border-black/[0.06] space-y-2 text-xs">
-              <div className="text-[11px] text-[#777169]">Связаться с менеджером:</div>
-              <div className="flex items-center justify-between">
-                <a
-                  href={VOXI_CONTACTS.phoneTel}
-                  className="font-medium text-black hover:underline"
-                >
-                  {VOXI_CONTACTS.phoneDisplay}
-                </a>
-                <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
-                  {VOXI_CONTACTS.supportHours}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <a
-                  href={VOXI_CONTACTS.telegramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-1.5 px-2.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-black text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <TelegramIcon size={12} className="text-[#0088cc]" />
-                  <span>Telegram</span>
-                </a>
-                <a
-                  href={VOXI_CONTACTS.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-1.5 px-2.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-black text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <WhatsAppIcon size={12} className="text-[#25D366]" />
-                  <span>WhatsApp</span>
-                </a>
-                <a
-                  href={VOXI_CONTACTS.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                  className="p-1.5 rounded-lg bg-black/[0.04] hover:bg-black/[0.08] text-[#E4405F] flex items-center justify-center transition-colors"
-                >
-                  <InstagramIcon size={14} />
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
-    </>
+      </div>
+    </header>
   );
 };

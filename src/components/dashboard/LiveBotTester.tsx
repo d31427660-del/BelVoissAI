@@ -378,18 +378,18 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
   };
 
   return (
-    <div className="rounded-3xl bg-white text-slate-900 border border-slate-200/90 shadow-sm overflow-hidden">
-      {/* Clean Light Header */}
-      <div className="px-5 py-4 bg-slate-50/90 border-b border-slate-200/80 space-y-3">
+    <div className="rounded-[20px] bg-white text-black border border-black/[0.08] overflow-hidden">
+      {/* Clean Editorial Header */}
+      <div className="px-5 py-4 bg-[#F5F5F5] border-b border-black/[0.08] space-y-3">
         <div className="flex items-start justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-[12px] bg-[#0A0A0A] flex items-center justify-center text-[#6BFF91] shrink-0">
               <Phone className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+              <h4 className="font-display text-[13.5px] font-bold text-black flex items-center gap-2 flex-wrap">
                 <span>Тест голоса и диалога</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">
+                <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-black border border-black/[0.08] whitespace-nowrap">
                   {aiProvider === 'yandexgpt-lite'
                     ? 'YandexGPT Lite'
                     : aiProvider === 'local-fallback'
@@ -397,7 +397,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                     : 'SpeechKit'}
                 </span>
               </h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11.5px] text-[#737373] mt-0.5">
                 Говорите в микрофон или тестируйте вопросы по вашему прайсу
               </p>
             </div>
@@ -410,29 +410,29 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
               type="button"
               onClick={toggleMicMute}
               title={isMicMuted ? 'Включить микрофон' : 'Отключить микрофон'}
-              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-full border text-[11.5px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 isMicMuted
-                  ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  ? 'bg-[#D8E738] text-black border-black/15'
+                  : 'bg-white text-black border-black/[0.1] hover:bg-black hover:text-white'
               }`}
             >
               {isMicMuted ? (
-                <MicOff className="w-3.5 h-3.5 text-amber-600" />
+                <MicOff className="w-3.5 h-3.5" />
               ) : (
-                <Mic className="w-3.5 h-3.5 text-emerald-600" />
+                <Mic className="w-3.5 h-3.5 text-[#15803D]" />
               )}
-              <span className="text-[11px]">{isMicMuted ? 'Микрофон выкл' : 'Микрофон вкл'}</span>
+              <span>{isMicMuted ? 'Микрофон выкл' : 'Микрофон вкл'}</span>
             </button>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-emerald-700 font-bold px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 whitespace-nowrap">
+              <span className="text-[11.5px] font-mono text-black font-bold px-2.5 py-1 rounded-full bg-[#6BFF91] whitespace-nowrap tabular-nums">
                 {formatCallTime(callDuration)}
               </span>
 
               <button
                 type="button"
                 onClick={handleEndCall}
-                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors whitespace-nowrap shadow-2xs"
+                className="px-3.5 py-1.5 rounded-full bg-[#FE432A] hover:bg-[#DC2626] text-white font-semibold text-[11.5px] flex items-center gap-1.5 transition-colors whitespace-nowrap cursor-pointer"
               >
                 <PhoneOff className="w-3.5 h-3.5" />
                 <span>Завершить</span>
@@ -453,29 +453,29 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
               exit={{ opacity: 0, scale: 0.98 }}
               className="py-5 text-center space-y-4"
             >
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 mx-auto flex items-center justify-center text-emerald-600">
+              <div className="w-14 h-14 rounded-[18px] bg-[#0A0A0A] mx-auto flex items-center justify-center text-[#6BFF91]">
                 <Phone className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h5 className="text-sm font-bold text-slate-900">
+                <h5 className="font-display text-[16px] font-bold text-black">
                   {agent.companyName || 'Ваша организация'}
                 </h5>
-                <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Голос: <strong className="text-slate-700">{voiceLabel}</strong>
+                <p className="text-[12.5px] text-[#525252] max-w-xs mx-auto">
+                  Голос: <strong className="text-black">{voiceLabel}</strong>
                   {(agent.address || '').split('(')[0].trim()
-                    ? ` • ${(agent.address || '').split('(')[0].trim()}`
+                    ? ` · ${(agent.address || '').split('(')[0].trim()}`
                     : ''}
                 </p>
-                <p className="text-[11px] text-slate-500 max-w-xs mx-auto pt-1">
+                <p className="text-[12px] text-[#737373] max-w-xs mx-auto pt-1">
                   Проверьте, как ИИ-администратор отвечает по вашим текущим настройкам и прайсу.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleStartCall}
-                className="w-full py-3 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                className="w-full h-11 px-5 rounded-full bg-black hover:bg-[#171717] text-white font-semibold text-[13px] transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Phone className="w-4 h-4" />
+                <Phone className="w-4 h-4 text-[#6BFF91]" />
                 <span>Начать тестовый звонок</span>
               </button>
             </motion.div>
@@ -487,12 +487,12 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
               exit={{ opacity: 0 }}
               className="py-8 text-center space-y-3"
             >
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 mx-auto flex items-center justify-center">
+              <div className="w-12 h-12 rounded-[16px] bg-[#0A0A0A] text-[#6BFF91] mx-auto flex items-center justify-center">
                 <Phone className="w-5 h-5 animate-pulse" />
               </div>
               <div className="space-y-1">
-                <div className="text-sm font-bold text-slate-900">Идут гудки вызова...</div>
-                <div className="text-xs text-blue-600 font-medium">{agent.companyName}</div>
+                <div className="font-display text-[15px] font-bold text-black">Идут гудки вызова...</div>
+                <div className="text-[12px] text-[#737373] font-medium">{agent.companyName}</div>
               </div>
             </motion.div>
           ) : (
@@ -503,26 +503,16 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
               exit={{ opacity: 0, y: 6 }}
               className="space-y-3.5"
             >
-              {/* Active Call Status Card (Light Theme) */}
-              <div
-                className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-2 ${
-                  isBotThinking
-                    ? 'bg-indigo-50/70 border-indigo-200'
-                    : isBotSpeaking
-                    ? 'bg-blue-50/70 border-blue-200'
-                    : isMicMuted
-                    ? 'bg-slate-50 border-slate-200'
-                    : 'bg-emerald-50/70 border-emerald-200'
-                }`}
-              >
+              {/* Active Call Status Card */}
+              <div className="p-3.5 rounded-[16px] bg-[#0A0A0A] text-white flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                       isBotSpeaking || isBotThinking
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-[#6BFF91] text-black'
                         : isMicMuted
-                        ? 'bg-slate-200 text-slate-500'
-                        : 'bg-emerald-600 text-white'
+                        ? 'bg-white/15 text-white/60'
+                        : 'bg-white text-black'
                     }`}
                   >
                     {isBotSpeaking ? (
@@ -534,23 +524,23 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 leading-snug break-words">
+                    <div className="text-[12.5px] font-bold text-white leading-snug break-words">
                       {agent.companyName} ({voiceLabel})
                     </div>
                     <div className="text-[11px] mt-0.5">
                       {isBotThinking ? (
                         <GooThinking
                           label="Формирует ответ…"
-                          className="py-1 px-2.5 text-[11px] bg-white/90"
-                          dotClassName="bg-indigo-600"
+                          className="py-0.5 px-2 text-[11px] bg-white/10 text-white"
+                          dotClassName="bg-[#6BFF91]"
                         />
                       ) : isBotSpeaking ? (
-                        <span className="text-blue-700 font-semibold">{voiceLabel} отвечает в динамик...</span>
+                        <span className="text-[#6BFF91] font-semibold">{voiceLabel} отвечает в динамик...</span>
                       ) : isMicMuted ? (
-                        <span className="text-slate-500">Микрофон отключен</span>
+                        <span className="text-white/55">Микрофон отключен</span>
                       ) : (
-                        <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="text-[#D8E738] font-semibold flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#6BFF91] animate-ping" />
                           Слушаю вас... Говорите!
                         </span>
                       )}
@@ -574,10 +564,10 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                         transition={{ duration: 0.08 }}
                         className={`w-1 rounded-full ${
                           isBotSpeaking
-                            ? 'bg-blue-500'
+                            ? 'bg-[#6BFF91]'
                             : !isMicMuted && audioLevel > 5
-                            ? 'bg-emerald-500'
-                            : 'bg-slate-300'
+                            ? 'bg-[#D8E738]'
+                            : 'bg-white/25'
                         }`}
                       />
                     );
@@ -587,23 +577,23 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
 
               {/* Mic Error Notice */}
               {micError && (
-                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                <div className="p-3 rounded-[12px] bg-[#F5F5F5] border border-black/[0.08] text-[#525252] text-[11.5px]">
                   {micError}
                 </div>
               )}
 
               {/* Live Speech Transcription Preview */}
               {interimTranscript && !isBotSpeaking && !isMicMuted && (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between gap-2">
+                <div className="p-3 rounded-[14px] bg-[#F5F5F5] border border-black/[0.1] text-black text-[12px] flex items-center justify-between gap-2">
                   <div className="flex items-start gap-1.5 min-w-0">
-                    <span className="w-2 h-2 mt-1 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                    <span className="font-semibold text-[11px] text-emerald-800 shrink-0">Вы:</span>
+                    <span className="w-2 h-2 mt-1 rounded-full bg-[#16A34A] animate-ping shrink-0" />
+                    <span className="font-semibold text-[11px] shrink-0">Вы:</span>
                     <span className="italic break-words leading-snug">«{interimTranscript}»</span>
                   </div>
                   <button
                     type="button"
                     onClick={submitNow}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] shrink-0 transition-colors"
+                    className="px-2.5 py-1 rounded-full bg-black hover:bg-[#171717] text-white font-semibold text-[11px] shrink-0 transition-colors cursor-pointer"
                   >
                     Отправить ⏎
                   </button>
@@ -617,17 +607,17 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                     key={q.label}
                     type="button"
                     onClick={() => handleSendMessage(q.query)}
-                    className="px-2.5 py-1 rounded-full bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-200 text-[11px] font-medium transition-colors"
+                    className="px-3 py-1 rounded-full bg-[#F5F5F5] hover:bg-black text-black hover:text-white border border-black/[0.06] text-[11px] font-medium transition-colors cursor-pointer"
                   >
                     {q.label}
                   </button>
                 ))}
               </div>
 
-              {/* Light Transcript Scroll Area */}
+              {/* Transcript Scroll Area */}
               <div
                 ref={transcriptRef}
-                className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/90 h-56 overflow-y-auto space-y-2.5 voxi-scroll text-xs"
+                className="p-3.5 rounded-[16px] bg-[#F5F5F5] border border-black/[0.06] h-56 overflow-y-auto space-y-2.5 voxi-scroll text-[12px]"
               >
                 {messages.map((m, idx) => (
                   <div
@@ -637,25 +627,25 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                     }`}
                   >
                     {m.speaker === 'assistant' && (
-                      <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 text-[9px] font-bold mt-0.5">
+                      <div className="w-6 h-6 rounded-full bg-black text-[#6BFF91] flex items-center justify-center shrink-0 font-mono text-[9px] font-bold mt-0.5">
                         ИИ
                       </div>
                     )}
                     <div
-                      className={`p-3 rounded-2xl max-w-[85%] ${
+                      className={`p-3 rounded-[16px] max-w-[85%] ${
                         m.speaker === 'assistant'
-                          ? 'bg-white border border-slate-200/90 text-slate-800 shadow-2xs'
-                          : 'bg-blue-600 text-white shadow-2xs'
+                          ? 'bg-white border border-black/[0.06] text-black'
+                          : 'bg-[#0A0A0A] text-white'
                       }`}
                     >
                       <div
-                        className={`flex items-center justify-between gap-3 mb-1 text-[10px] ${
-                          m.speaker === 'assistant' ? 'text-slate-500' : 'text-blue-100'
+                        className={`flex items-center justify-between gap-3 mb-1 font-mono text-[9.5px] ${
+                          m.speaker === 'assistant' ? 'text-[#737373]' : 'text-white/55'
                         }`}
                       >
                         <span className="font-semibold truncate">
                           {m.speaker === 'assistant'
-                            ? `${voiceLabel} • ${agent.companyName}`
+                            ? `${voiceLabel} · ${agent.companyName}`
                             : 'Вы'}
                         </span>
                         <span className="shrink-0">{m.time}</span>
@@ -669,7 +659,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                       </p>
                     </div>
                     {m.speaker === 'user' && (
-                      <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-6 h-6 rounded-full bg-white border border-black/[0.08] text-black flex items-center justify-center shrink-0 mt-0.5">
                         <User className="w-3.5 h-3.5" />
                       </div>
                     )}
@@ -677,7 +667,7 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                 ))}
               </div>
 
-              {/* Clean Light Input Bar */}
+              {/* Input Bar */}
               <form onSubmit={handleSubmitForm} className="flex items-center gap-2">
                 <VoiceInputButton
                   isListening={callStatus === 'connected'}
@@ -703,13 +693,13 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                       ? 'Микрофон выключен — напишите вопрос...'
                       : 'Говорите или напишите вопрос...'
                   }
-                  className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-blue-600"
+                  className="flex-1 min-w-0 px-3.5 py-2.5 rounded-full bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-black placeholder-[#A3A3A3] text-[12px] focus:outline-none transition-colors"
                 />
                 <button
                   type="submit"
                   disabled={!inputText.trim()}
                   aria-label="Отправить сообщение"
-                  className="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-all disabled:opacity-40 shrink-0 flex items-center justify-center"
+                  className="w-10 h-10 rounded-full bg-black hover:bg-[#171717] text-[#6BFF91] transition-colors disabled:opacity-35 shrink-0 flex items-center justify-center cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                 </button>

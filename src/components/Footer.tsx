@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Microphone3Icon, CloseCircleIcon, ShieldCheckIcon } from '@solar-icons/react/bold-duotone';
+import { CloseCircleIcon, ShieldCheckIcon } from '@solar-icons/react/bold-duotone';
 import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
 
 export type LegalDocType = 'privacy' | 'offer' | 'sla';
@@ -9,6 +9,7 @@ interface FooterProps {
   externalDocModal?: LegalDocType | null;
   onCloseExternalDocModal?: () => void;
   onOpenCookieSettings?: () => void;
+  onOpenAuth?: () => void;
 }
 
 export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[] }> = {
@@ -19,8 +20,8 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
       '2. Состав и цели обработки: при регистрации и использовании платформы Voxi.by обрабатываются адрес электронной почты, наименование организации/ИП, контактный телефон, а также передаваемые Заказчиком в рамках поручения на обработку данные телефонных вызовов (аудиозаписи, номера абонентов и текстовые расшифровки) исключительно в целях предоставления функционала голосового ИИ-администратора, формирования заявок в CRM Заказчика и исполнения договора.',
       '3. Защита и хранение данных: изоляция данных между аккаунтами обеспечивается логической изоляцией на уровне учётной записи (tenant isolation) и шифрованием при передаче (TLS 1.3). Доступ третьих лиц к учетным данным и журналам вызовов исключён, за исключением привлечённых уполномоченных лиц (облачная инфраструктура, речевые сервисы и платёжный агрегатор ООО «ИКомЧардж» / bePaid) в объёме, строго необходимом для оказания услуги.',
       '4. Права субъектов персональных данных: субъект вправе в любое время отозвать согласие, запросить информацию об обработке своих данных, потребовать их изменения или безвозвратного удаления, направив обращение на info@voxi.by либо через функцию удаления в личном кабинете. Запрос исполняется в срок до 15 календарных дней (удаление записей звонков — в течение 24 часов).',
-      '5. Обработка файлов cookie: сайт использует технические (обязательные) файлы cookie и локальное хранилище браузера для обеспечения авторизации, информационной безопасности и сохранения пользовательского выбора (срок хранения — до 12 месяцев). Функциональные и аналитические файлы cookie обрабатываются исключительно при наличии согласия пользователя и могут быть отключены в любой момент через кнопку «Настройки файлов cookie» в нижней части страницы.'
-    ]
+      '5. Обработка файлов cookie: сайт использует технические (обязательные) файлы cookie и локальное хранилище браузера для обеспечения авторизации, информационной безопасности и сохранения пользовательского выбора (срок хранения — до 12 месяцев). Функциональные и аналитические файлы cookie обрабатываются исключительно при наличии согласия пользователя и могут быть отключены в любой момент через кнопку «Настройки файлов cookie» в нижней части страницы.',
+    ],
   },
   offer: {
     title: 'Публичный договор (оферта) возмездного оказания услуг',
@@ -28,8 +29,8 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
       '1. Исполнитель — Индивидуальный предприниматель Беляков Кирилл Олегович, зарегистрированный Минским горисполкомом в Едином государственном регистре юридических лиц и индивидуальных предпринимателей за № 193991846 (адрес: Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58), публикует настоящий Публичный договор (ст. 396, 405 ГК РБ) об оказании услуг доступа к программной платформе голосовых ИИ-администраторов Voxi.by (ОКЭД 62010).',
       '2. Акцепт оферты осуществляется путём регистрации в сервисе и/или использования программной платформы Voxi.by. При регистрации новому Заказчику однократно предоставляется приветственный нетарифицируемый объём 15 минут голосовых диалогов бота без обязательной привязки банковской карты.',
       '3. Порядок расчётов: стоимость услуг определяется в белорусских рублях (BYN) без НДС (Исполнитель применяет режим налогообложения без уплаты НДС согласно НК РБ). Расчётный период составляет календарный месяц. Оплата услуг производится по системе постоплаты: счёт выставляется 1-го числа месяца, следующего за отчётным, в 00:05. Заказчику предоставляется 7 календарных дней на оплату счёта без блокировки или приостановления работы бота. Досрочное погашение текущего начисления и покупка пакетов минут со скидкой доступны в любой момент в личном кабинете. При выборе выделенного номера А1 ВАТС абонентская плата составляет 15 BYN/мес; голосовой трафик тарифицируется поминутно (0.45 BYN/мин сверх 15 подарочных минут). Оплата осуществляется онлайн через платёжную систему bePaid (ООО «ИКомЧардж»): банковскими картами Visa, Mastercard, БЕЛКАРТ и через АИС «Расчёт» (ЕРИП).',
-      '4. Закрывающие документы: по итогам отчётного месяца (либо по факту исполнения обязательств) для резидентов РБ оформляется первичный учётный документ — акт оказанных услуг, составляемый единолично в соответствии с постановлением Министерства финансов Республики Беларусь от 12.02.2018 № 13.'
-    ]
+      '4. Закрывающие документы: по итогам отчётного месяца (либо по факту исполнения обязательств) для резидентов РБ оформляется первичный учётный документ — акт оказанных услуг, составляемый единолично в соответствии с постановлением Министерства финансов Республики Беларусь от 12.02.2018 № 13.',
+    ],
   },
   sla: {
     title: 'Соглашение об уровне качества обслуживания (SLA 99.9%)',
@@ -37,16 +38,15 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
       '1. Целевой показатель доступности облачной платформы Voxi.by и SIP-шлюза (МТС, А1, Белтелеком IMS, UniTalk) составляет не менее 99.9% времени в расчётном месяце (за исключением плановых работ в ночное окно 03:00–05:00 по минскому времени).',
       '2. Расчётное время голосового отклика ассистента с момента завершения реплики абонента (End-of-Speech Latency) при штатном соединении составляет 450–650 мс.',
       '3. Отказоустойчивость (SIP Failover): при превышении таймаута ответа облачного узла входящий вызов автоматически переадресуется на резервный телефонный номер администратора Заказчика.',
-      '4. Техническая поддержка пользователей осуществляется по электронной почте info@voxi.by, по телефону +375 (29) 138-71-50 и в Telegram (@voxi_manager) ежедневно с 09:00 до 21:00 (среднее время первичной реакции — до 15 минут).'
-    ]
-  }
+      '4. Техническая поддержка пользователей осуществляется по электронной почте info@voxi.by, по телефону +375 (29) 138-71-50 и в Telegram (@voxi_manager) ежедневно с 09:00 до 21:00 (среднее время первичной реакции — до 15 минут).',
+    ],
+  },
 };
 
 export const Footer: React.FC<FooterProps> = ({
-  onNavigateSection,
   externalDocModal,
   onCloseExternalDocModal,
-  onOpenCookieSettings
+  onOpenCookieSettings,
 }) => {
   const [internalDocModal, setInternalDocModal] = useState<LegalDocType | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -73,9 +73,12 @@ export const Footer: React.FC<FooterProps> = ({
 
   const closeDocModal = () => {
     setInternalDocModal(null);
-    if (typeof window !== 'undefined' && ['/privacy', '/offer', '/sla'].includes(window.location.pathname.toLowerCase())) {
+    if (
+      typeof window !== 'undefined' &&
+      ['/privacy', '/offer', '/sla'].includes(window.location.pathname.toLowerCase())
+    ) {
       window.history.pushState({ view: 'landing' }, '', '/');
-      document.title = 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
+      document.title = 'Voxi.by — ИИ-администратор для бизнеса в Беларуси 24/7';
     }
     onCloseExternalDocModal?.();
   };
@@ -92,13 +95,6 @@ export const Footer: React.FC<FooterProps> = ({
     }
   }, [activeDocModal]);
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
-    if (onNavigateSection) {
-      e.preventDefault();
-      onNavigateSection(sectionId);
-    }
-  };
-
   const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -114,196 +110,80 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer className="bg-[#F5F2EC]/80 text-[#6e6e73] text-xs border-t border-black/[0.05]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-14 pb-24 sm:py-14">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
-          
-          <div className="md:col-span-2 space-y-3.5 pr-4">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-7 h-7 rounded-xl bg-[#0a0a0c] p-[1px] shadow-xs"
-                aria-hidden="true"
-              >
-                <div className="w-full h-full rounded-[10px] bg-[#ffffff] flex items-center justify-center gap-[2.5px]">
-                  <span className="w-[3px] h-3 rounded-full bg-[#0a0a0c]" />
-                  <span className="w-[3px] h-3 rounded-full bg-[#0a0a0c]" />
-                </div>
-              </div>
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-base font-extrabold tracking-tight text-[#0a0a0c]">
-                  Voxi
-                </span>
-                <span className="text-xs font-semibold font-mono text-[#71717a]">.by</span>
-              </div>
-            </div>
-            <p className="text-[#71717a] text-xs leading-relaxed max-w-sm">
-              Платформа голосовых ИИ-администраторов и нейросетевого синтеза речи для малого и среднего бизнеса в Республике Беларусь.
-            </p>
-            <div className="text-[11px] text-[#0a0a0c] font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-              <span>Шлюзы МТС и А1 работают штатно • Отклик 0.5 сек</span>
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <a
-                href={VOXI_CONTACTS.telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Написать в Telegram"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.08] text-[#1d1d1f] hover:border-[#0088cc] hover:text-[#0088cc] text-[11px] font-medium transition-colors"
-              >
-                <TelegramIcon size={13} />
-                <span>Telegram</span>
-              </a>
-              <a
-                href={VOXI_CONTACTS.whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Написать в WhatsApp"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.08] text-[#1d1d1f] hover:border-[#25D366] hover:text-[#25D366] text-[11px] font-medium transition-colors"
-              >
-                <WhatsAppIcon size={13} />
-                <span>WhatsApp</span>
-              </a>
-              <a
-                href={VOXI_CONTACTS.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Открыть Instagram"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.08] text-[#1d1d1f] hover:border-[#E4405F] hover:text-[#E4405F] text-[11px] font-medium transition-colors"
-              >
-                <InstagramIcon size={13} />
-                <span>Instagram</span>
-              </a>
-            </div>
+    <footer className="bg-white text-[#666666] text-xs pb-10">
+      <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12">
+        <div className="border-t border-black/[0.08] pt-6 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-[11px] text-[#737373]">
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+            <span className="whitespace-nowrap">
+              © 2026 Voxi.by · ИП Беляков К. О. (УНП {VOXI_CONTACTS.unp})
+            </span>
+            <a
+              href={VOXI_CONTACTS.phoneTel}
+              className="font-mono text-black font-medium hover:underline whitespace-nowrap"
+            >
+              {VOXI_CONTACTS.phoneDisplay}
+            </a>
+            <a
+              href={VOXI_CONTACTS.telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-black hover:underline whitespace-nowrap"
+            >
+              <TelegramIcon size={12} />
+              <span>{VOXI_CONTACTS.telegramHandle}</span>
+            </a>
+            <a
+              href={VOXI_CONTACTS.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-black hover:underline whitespace-nowrap"
+            >
+              <WhatsAppIcon size={12} />
+              <span>WhatsApp</span>
+            </a>
+            <a
+              href={VOXI_CONTACTS.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-black hover:underline whitespace-nowrap"
+            >
+              <InstagramIcon size={12} />
+              <span>{VOXI_CONTACTS.instagramHandle}</span>
+            </a>
           </div>
 
-          <div>
-            <h3 className="text-[#1d1d1f] font-semibold mb-3 text-xs">
-              Навигация
-            </h3>
-            <ul className="space-y-2 text-xs">
-              <li><a href="#showcase" onClick={(e) => handleLinkClick(e, 'showcase')} className="hover:text-[#1d1d1f] transition-colors">Voxi Голос</a></li>
-              <li><a href="#benchmark" onClick={(e) => handleLinkClick(e, 'benchmark')} className="hover:text-[#1d1d1f] transition-colors">Бенчмарк синтеза речи</a></li>
-              <li><a href="#features" onClick={(e) => handleLinkClick(e, 'features')} className="hover:text-[#1d1d1f] transition-colors">Возможности платформы</a></li>
-              <li><a href="#how-it-works" onClick={(e) => handleLinkClick(e, 'how-it-works')} className="hover:text-[#1d1d1f] transition-colors">Как это работает</a></li>
-              <li><a href="#integrations" onClick={(e) => handleLinkClick(e, 'integrations')} className="hover:text-[#1d1d1f] transition-colors">SIP-телефония МТС и А1</a></li>
-              <li><a href="#pricing" onClick={(e) => handleLinkClick(e, 'pricing')} className="hover:text-[#1d1d1f] transition-colors">Тарифы и цены</a></li>
-              <li><a href="#faq" onClick={(e) => handleLinkClick(e, 'faq')} className="hover:text-[#1d1d1f] transition-colors">Вопросы и ответы</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-[#1d1d1f] font-semibold mb-3 text-xs">
-              Мессенджеры и соцсети
-            </h3>
-            <ul className="space-y-2.5 text-xs">
-              <li>
-                <a
-                  href={VOXI_CONTACTS.telegramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-[#1d1d1f] hover:text-[#0088cc] transition-colors group"
-                >
-                  <span className="w-6 h-6 rounded-full bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center shrink-0 group-hover:bg-[#0088cc] group-hover:text-white transition-colors">
-                    <TelegramIcon size={13} />
-                  </span>
-                  <span className="font-medium">Telegram: {VOXI_CONTACTS.telegramHandle}</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href={VOXI_CONTACTS.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-[#1d1d1f] hover:text-[#25D366] transition-colors group"
-                >
-                  <span className="w-6 h-6 rounded-full bg-[#25D366]/10 text-[#25D366] flex items-center justify-center shrink-0 group-hover:bg-[#25D366] group-hover:text-white transition-colors">
-                    <WhatsAppIcon size={13} />
-                  </span>
-                  <span className="font-medium">WhatsApp чат</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href={VOXI_CONTACTS.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-[#1d1d1f] hover:text-[#E4405F] transition-colors group"
-                >
-                  <span className="w-6 h-6 rounded-full bg-[#E4405F]/10 text-[#E4405F] flex items-center justify-center shrink-0 group-hover:bg-[#E4405F] group-hover:text-white transition-colors">
-                    <InstagramIcon size={13} />
-                  </span>
-                  <span className="font-medium">Instagram: {VOXI_CONTACTS.instagramHandle}</span>
-                </a>
-              </li>
-              <li className="pt-1">
-                <a
-                  href={VOXI_CONTACTS.emailMailto}
-                  className="inline-flex items-center gap-1.5 text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
-                >
-                  <span>Email:</span>
-                  <span className="text-[#1d1d1f] font-medium underline underline-offset-2">{VOXI_CONTACTS.email}</span>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-[#1d1d1f] font-semibold mb-3 text-xs">
-              Контакты и реквизиты
-            </h3>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <div className="text-[11px] text-[#6e6e73]">Отдел подключений и звонки:</div>
-                <a href={VOXI_CONTACTS.phoneTel} className="text-[#1d1d1f] font-semibold hover:underline text-sm inline-block mt-0.5">
-                  {VOXI_CONTACTS.phoneDisplay}
-                </a>
-              </li>
-              <li className="text-[11px] text-[#6e6e73] leading-relaxed">
-                {VOXI_CONTACTS.city}<br />
-                {VOXI_CONTACTS.address}
-              </li>
-              <li className="pt-1 text-[11px] text-[#6e6e73] leading-relaxed border-t border-black/[0.05]">
-                {VOXI_CONTACTS.legalEntity}<br />
-                УНП {VOXI_CONTACTS.unp}
-              </li>
-            </ul>
-          </div>
-
-        </div>
-
-        {/* Payment Systems Strip (Required by bePaid / Belkart / Visa / Mastercard rules in Belarus) */}
-        <div className="border-t border-[#e5e5ea] py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#6e6e73]">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-            <span>Приём платежей онлайн:</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#e5e5ea] font-semibold text-[#1d1d1f]">bePaid</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#e5e5ea] font-semibold text-[#1d1d1f]">ЕРИП</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#e5e5ea] font-semibold text-[#1d1d1f]">БЕЛКАРТ</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#e5e5ea] font-semibold text-[#1d1d1f]">Visa</span>
-            <span className="px-2 py-0.5 rounded bg-white border border-[#e5e5ea] font-semibold text-[#1d1d1f]">Mastercard</span>
-          </div>
-          <div className="text-center sm:text-right">
-            Режим работы: приём заявок 24/7, поддержка 09:00–21:00
-          </div>
-        </div>
-
-        <div className="border-t border-[#e5e5ea] pt-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[#6e6e73] text-[11px]">
-          <div>
-            © 2026 Voxi.by — ИП Беляков К. О. (УНП 193991846). Все права защищены.
-          </div>
-          <div className="flex flex-wrap justify-center gap-5">
-            <button type="button" onClick={() => openInternalDoc('privacy')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
-              Политика конфиденциальности (Закон <span className="whitespace-nowrap">№ 99‑З</span>)
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+            <span className="font-mono text-[10px] text-[#8E8E8E] whitespace-nowrap">
+              bePaid · ЕРИП · БЕЛКАРТ · Visa · MC
+            </span>
+            <button
+              type="button"
+              onClick={() => openInternalDoc('privacy')}
+              className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+            >
+              99‑З
             </button>
             {onOpenCookieSettings && (
-              <button type="button" onClick={onOpenCookieSettings} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
-                Настройки файлов cookie
+              <button
+                type="button"
+                onClick={onOpenCookieSettings}
+                className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Cookie
               </button>
             )}
-            <button type="button" onClick={() => openInternalDoc('offer')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
-              Публичная оферта и оплата
+            <button
+              type="button"
+              onClick={() => openInternalDoc('offer')}
+              className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Оферта
             </button>
-            <button type="button" onClick={() => openInternalDoc('sla')} className="hover:text-[#1d1d1f] transition-colors cursor-pointer">
+            <button
+              type="button"
+              onClick={() => openInternalDoc('sla')}
+              className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+            >
               SLA 99.9%
             </button>
           </div>
@@ -316,11 +196,11 @@ export const Footer: React.FC<FooterProps> = ({
         aria-labelledby="legal-modal-title"
         onClose={closeDocModal}
         onClick={handleBackdropClick}
-        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[16px] liquid-glass-card shadow-2xl p-0 text-[#1d1d1f] backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
+        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[20px] bg-white border border-black/[0.1] shadow-2xl p-0 text-black backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
       >
         {activeDocModal && (
           <div>
-            <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-black/[0.08] flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <ShieldCheckIcon size={18} className="text-black shrink-0" aria-hidden="true" />
                 <h2 id="legal-modal-title" className="text-sm font-semibold text-black">
@@ -331,22 +211,24 @@ export const Footer: React.FC<FooterProps> = ({
                 type="button"
                 aria-label="Закрыть документ"
                 onClick={closeDocModal}
-                className="p-1.5 rounded-full text-[#777169] hover:text-black hover:bg-black/[0.04] transition-colors cursor-pointer"
+                className="p-1.5 rounded-full text-[#666666] hover:text-black hover:bg-[#F5F5F5] transition-colors cursor-pointer"
               >
                 <CloseCircleIcon size={18} />
               </button>
             </div>
-            <div className="p-6 space-y-3 text-xs text-[#59544F] leading-relaxed max-h-[65vh] overflow-y-auto">
+            <div className="p-6 space-y-3 text-[13px] text-[#404040] leading-relaxed max-h-[65vh] overflow-y-auto">
               {LEGAL_DOCS[activeDocModal].content.map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
             </div>
-            <div className="px-6 py-4 border-t border-black/[0.06] bg-[#F5F3F1]/70 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-[#777169]">ИП Беляков К. О. • УНП 193991846 • г. Минск</span>
+            <div className="px-6 py-4 border-t border-black/[0.08] bg-[#F5F5F5] flex items-center justify-between gap-3">
+              <span className="text-[11px] font-mono text-[#666666]">
+                ИП Беляков К. О. · УНП 193991846 · г. Минск
+              </span>
               <button
                 type="button"
                 onClick={closeDocModal}
-                className="px-4 py-1.5 rounded-full liquid-glass-btn-primary text-white text-xs font-normal transition-all cursor-pointer"
+                className="px-5 py-2 rounded-full bg-black hover:bg-[#222222] text-white text-xs font-medium transition-colors cursor-pointer"
               >
                 Закрыть
               </button>

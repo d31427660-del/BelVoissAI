@@ -1,15 +1,14 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { SolarProvider } from '@solar-icons/react';
 import { Navbar } from './components/Navbar';
+import { ScrollProgressBar } from './components/landing/ScrollProgressBar';
 import { Hero } from './components/landing/Hero';
-import { IntegrationsStrip } from './components/landing/IntegrationsStrip';
-import { VoiceComparison } from './components/landing/VoiceComparison';
-import { HowItWorks } from './components/landing/HowItWorks';
-import { FeatureShowcase } from './components/landing/FeatureShowcase';
-import { FaqSection } from './components/landing/FaqSection';
-import { CtaSection } from './components/landing/CtaSection';
-import { LostRevenueCalculator } from './components/landing/LostRevenueCalculator';
-import { PricingSection } from './components/landing/PricingSection';
+import { CallJourneyScroll } from './components/landing/CallJourneyScroll';
+import { BeforeAfterComparison } from './components/landing/BeforeAfterComparison';
+import { NicheScenarios } from './components/landing/NicheScenarios';
+import { TelephonyIntegrations } from './components/landing/TelephonyIntegrations';
+import { ValueAndPricing } from './components/landing/ValueAndPricing';
+import { FaqAndPilotCta } from './components/landing/FaqAndPilotCta';
 import { Footer, LegalDocType } from './components/Footer';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import {
@@ -443,126 +442,95 @@ export function App() {
         </div>
       )}
 
-      {/* Navbar - only on landing page */}
+      {/* Scroll Progress Hairline & Navbar - only on landing page */}
       {currentView === 'landing' && (
-        <Navbar
-          currentView={currentView}
-          setCurrentView={setCurrentView}
-          user={user}
-          onOpenAuth={(mode = 'signin') => {
-            setAuthModalInitialMode(mode);
-            setIsAuthModalOpen(true);
-          }}
-          onLogout={handleLogout}
-          onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-        />
+        <>
+          <ScrollProgressBar />
+          <Navbar
+            currentView={currentView}
+            setCurrentView={setCurrentView}
+            user={user}
+            onOpenAuth={(mode = 'signin') => {
+              setAuthModalInitialMode(mode);
+              setIsAuthModalOpen(true);
+            }}
+            onLogout={handleLogout}
+            onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
+          />
+        </>
       )}
 
       {/* Main Landmark */}
       <main id="main-content" className="flex-1">
         {currentView === 'landing' ? (
-          <div
-            className="relative overflow-hidden overflow-x-clip w-full"
-            style={{
-              backgroundColor: '#FAF7F2',
-              backgroundImage: `
-                radial-gradient(1300px 750px at 18% 6%, rgba(255, 142, 84, 0.22) 0%, transparent 60%),
-                radial-gradient(1000px 650px at 85% 16%, rgba(251, 191, 36, 0.16) 0%, transparent 55%),
-                radial-gradient(1200px 800px at 82% 46%, rgba(126, 178, 163, 0.15) 0%, transparent 55%),
-                radial-gradient(1100px 750px at 15% 72%, rgba(255, 118, 62, 0.18) 0%, transparent 60%)
-              `
-            }}
-          >
-            {/* Luminous Warm Ambient Orbs */}
-            <div
-              className="pointer-events-none absolute top-[2%] -left-[10%] w-[700px] h-[700px] rounded-full overflow-hidden"
-              style={{
-                background: 'radial-gradient(circle, rgba(255, 142, 84, 0.18) 0%, rgba(251, 146, 60, 0.08) 45%, transparent 70%)',
-                transform: 'translateZ(0)'
-              }}
-            />
-            <div
-              className="pointer-events-none absolute top-[38%] -right-[10%] w-[700px] h-[700px] rounded-full overflow-hidden"
-              style={{
-                background: 'radial-gradient(circle, rgba(126, 178, 163, 0.16) 0%, rgba(255, 150, 95, 0.08) 45%, transparent 70%)',
-                transform: 'translateZ(0)'
-              }}
-            />
-            <div
-              className="pointer-events-none absolute top-[70%] -left-[10%] w-[680px] h-[680px] rounded-full overflow-hidden"
-              style={{
-                background: 'radial-gradient(circle, rgba(255, 118, 62, 0.16) 0%, rgba(251, 191, 36, 0.10) 50%, transparent 70%)',
-                transform: 'translateZ(0)'
-              }}
-            />
-
-            <div className="relative z-10 w-full">
-              <Hero
-                onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-                onOpenAuth={() => {
-                  if (user) setCurrentView('dashboard');
-                  else {
-                    setAuthModalInitialMode('signup');
-                    setIsAuthModalOpen(true);
-                  }
-                }}
-              />
-
-              <IntegrationsStrip />
-
-              <LostRevenueCalculator
-                onOpenAuth={() => {
-                  if (user) setCurrentView('dashboard');
-                  else {
-                    setAuthModalInitialMode('signup');
-                    setIsAuthModalOpen(true);
-                  }
-                }}
-              />
-
-              <VoiceComparison />
-
-              <FeatureShowcase />
-
-              <HowItWorks onOpenAuth={() => {
+          <div className="relative overflow-x-clip w-full bg-white text-black">
+            <Hero
+              onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
+              onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
                 else {
                   setAuthModalInitialMode('signup');
                   setIsAuthModalOpen(true);
                 }
-              }} />
+              }}
+            />
 
-              <PricingSection
-                onOpenAuth={(pkgId) => {
-                  if (pkgId) {
-                    setPendingPackageId(pkgId);
-                  }
-                  if (user) {
-                    setCurrentView('dashboard');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  } else {
-                    setAuthModalInitialMode('signup');
-                    setIsAuthModalOpen(true);
-                  }
-                }}
-              />
+            <CallJourneyScroll
+              onOpenAuth={() => {
+                if (user) setCurrentView('dashboard');
+                else {
+                  setAuthModalInitialMode('signup');
+                  setIsAuthModalOpen(true);
+                }
+              }}
+            />
 
-              <FaqSection />
+            <NicheScenarios
+              onTestNiche={(niche) => {
+                setAgent((prev) => buildAgentForNicheAndVoice(prev, niche));
+                setIsVoiceTestModalOpen(true);
+              }}
+              onOpenAuth={() => {
+                if (user) setCurrentView('dashboard');
+                else {
+                  setAuthModalInitialMode('signup');
+                  setIsAuthModalOpen(true);
+                }
+              }}
+            />
 
-              <CtaSection
-                onOpenAuth={() => {
-                  if (user) setCurrentView('dashboard');
-                  else {
-                    setAuthModalInitialMode('signup');
-                    setIsAuthModalOpen(true);
-                  }
-                }}
-                onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
-              />
-            </div>
+            <TelephonyIntegrations />
+
+            <BeforeAfterComparison />
+
+            <ValueAndPricing
+              onOpenAuth={(pkgId) => {
+                if (pkgId) {
+                  setPendingPackageId(pkgId);
+                }
+                if (user) {
+                  setCurrentView('dashboard');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  setAuthModalInitialMode('signup');
+                  setIsAuthModalOpen(true);
+                }
+              }}
+            />
+
+            <FaqAndPilotCta
+              onOpenAuth={() => {
+                if (user) setCurrentView('dashboard');
+                else {
+                  setAuthModalInitialMode('signup');
+                  setIsAuthModalOpen(true);
+                }
+              }}
+              onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
+            />
           </div>
         ) : currentView === 'not_found' ? (
-          <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 py-24 text-center bg-[#FAF7F2]">
+          <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 py-24 text-center bg-white">
             <span className="inline-flex items-center px-3 py-1 rounded-full bg-black/[0.06] text-xs font-mono font-semibold text-black mb-4">
               404
             </span>
@@ -664,6 +632,13 @@ export function App() {
             }
           }}
           onOpenCookieSettings={() => setCookieSettingsTrigger((n) => n + 1)}
+          onOpenAuth={() => {
+            if (user) setCurrentView('dashboard');
+            else {
+              setAuthModalInitialMode('signup');
+              setIsAuthModalOpen(true);
+            }
+          }}
           onNavigateSection={(sectionId) => {
             const el = document.getElementById(sectionId);
             if (el) el.scrollIntoView({ behavior: 'smooth' });

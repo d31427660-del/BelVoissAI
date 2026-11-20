@@ -1,700 +1,551 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ArrowRightIcon,
-  SoundwaveCircleIcon,
-  PauseIcon,
+  ArrowRightUpIcon,
   PlayIcon,
-  ChatRoundCallIcon,
-  AltArrowLeftIcon,
-  AltArrowRightIcon
+  PauseIcon,
+  PhoneCallingRoundedIcon,
 } from '@solar-icons/react/bold-duotone';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { VoiceId } from '../../types';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MagneticButton, SlidingTabs, WordRoll, ReadAlong } from '@/components/motion';
+import { ScrollReveal } from './ScrollReveal';
 
 interface HeroProps {
   onOpenVoiceTest?: () => void;
   onOpenAuth: () => void;
 }
 
-interface OrbScenario {
-  id: string;
-  pillLabel: string;
-  title: string;
-  subtitle: string;
+interface BentoDemo {
+  id: 'sto' | 'driving' | 'clinic';
+  label: string;
+  company: string;
+  caller: string;
+  reply: string;
   voice: VoiceId;
-  voiceBadge: string;
-  emotionCue: string;
-  image: string;
-  orbGradient: string;
-  orbShadow: string;
-  questions: Array<{
-    id: string;
-    question: string;
-    answerAnna: string;
-    answerMaxim: string;
-  }>;
+  audioPhrase: string;
+  client: string;
+  phone: string;
+  slot: string;
+  priceByn: string;
 }
 
-const ORB_SCENARIOS: OrbScenario[] = [
-  {
-    id: 'driving',
-    pillLabel: 'Автошкола • Категория B',
-    title: 'Автошкола «Драйв-Минск» ↗',
-    subtitle: 'Естественная консультация курсантов по стоимости в BYN, рассрочке и вечерним группам.',
-    voice: 'anna',
-    voiceBadge: 'Голос: Анна • Эмпатичный тембр',
-    emotionCue: '[доброжелательно, без пауз]',
-    image: '/orbs/orb-1.webp',
-    orbGradient: 'radial-gradient(circle at 32% 28%, #60a5fa 0%, #2563eb 45%, #3730a3 85%, #1e1b4b 100%)',
-    orbShadow: '0 24px 60px -10px rgba(37, 99, 235, 0.45)',
-    questions: [
-      {
-        id: 'price',
-        question: 'Сколько стоит обучение и есть ли рассрочка?',
-        answerAnna: 'Полный курс обучения стоит тысячу пятьдесят белорусских рублей. Мы оформляем беспроцентную рассрочку на четыре платежа без справок о доходах.',
-        answerMaxim: 'Полный курс категории Б с топливом стоит тысячу пятьдесят белорусских рублей. Доступна внутренняя рассрочка на четыре этапа.'
-      },
-      {
-        id: 'booking',
-        question: 'Можно записаться на сегодня после 18:00?',
-        answerAnna: 'Да, конечно! Сегодня в восемнадцать тридцать есть свободное место на вводное занятие. Подскажите ваше имя, и я сразу отправлю пропуск вам в Телеграм.',
-        answerMaxim: 'Да, сегодня в восемнадцать тридцать открыта запись в вечернюю группу. Назовите ваше имя, я забронирую место.'
-      },
-      {
-        id: 'location',
-        question: 'Где вы находитесь и работаете ли в выходные?',
-        answerAnna: 'Мы находимся в Минске на улице Сурганова двадцать четыре, в двух минутах от метро Академия Наук. Работаем ежедневно с девяти утра до девяти вечера.',
-        answerMaxim: 'Наш учебный класс находится в Минске на улице Сурганова двадцать четыре, рядом с метро Академия Наук. Ждем вас и в выходные дни.'
-      }
-    ]
-  },
+const BENTO_DEMOS: BentoDemo[] = [
   {
     id: 'sto',
-    pillLabel: 'Автосервис и СТО',
-    title: 'СТО «Минск-Моторс Экспресс» ↗',
-    subtitle: 'Уверенный мужской голос мастера-приёмщика: расчёт ТО, проверка подъёмников и запись по марке авто.',
+    label: 'СТО',
+    company: 'СТО «Минск-Моторс»',
+    caller: 'Есть свободный подъёмник сегодня после 18:00?',
+    reply: 'Да! Сегодня в 18:30 свободен второй бокс. Назовите марку авто и ваше имя — сразу забронирую.',
     voice: 'maxim',
-    voiceBadge: 'Голос: Максим • Уверенный эксперт',
-    emotionCue: '[уверенно, по-деловому]',
-    image: '/orbs/orb-3.webp',
-    orbGradient: 'radial-gradient(circle at 32% 28%, #34d399 0%, #059669 45%, #2563eb 85%, #0f172a 100%)',
-    orbShadow: '0 24px 60px -10px rgba(16, 185, 129, 0.45)',
-    questions: [
-      {
-        id: 'price',
-        question: 'Сколько стоит диагностика подвески и замена масла?',
-        answerAnna: 'Компьютерная и слесарная диагностика подвески стоит тридцать пять белорусских рублей, а при ремонте у нас проводится бесплатно.',
-        answerMaxim: 'Стоимость диагностики и обслуживания в нашем СТО — от тридцати пяти белорусских рублей, а при ремонте диагностика бесплатна. Есть рассрочка по Халве.'
-      },
-      {
-        id: 'booking',
-        question: 'Есть свободный подъёмник на сегодня вечером?',
-        answerAnna: 'Да, сегодня на восемнадцать тридцать свободен второй бокс. Подскажите марку автомобиля и ваше имя.',
-        answerMaxim: 'Да, конечно! Сегодня после восемнадцати ноль-ноль свободен второй бокс на восемнадцать тридцать. Назовите марку автомобиля и ваше имя, я сразу забронирую время за вами.'
-      },
-      {
-        id: 'location',
-        question: 'Куда подъезжать и есть ли запчасти в наличии?',
-        answerAnna: 'Мы находимся на улице Тимирязева сто двадцать один, удобный заезд с МКАД. Фильтры и масла в наличии на складе.',
-        answerMaxim: 'Мы находимся в Минске на улице Тимирязева сто двадцать один, удобный съезд с МКАД. Работаем ежедневно с девяти утра до восьми вечера, запчасти в наличии.'
-      }
-    ]
+    audioPhrase:
+      'Да, конечно! Сегодня после восемнадцати ноль-ноль свободен второй бокс на восемнадцать тридцать. Назовите марку автомобиля и ваше имя, я сразу забронирую время за вами.',
+    client: 'Дмитрий · VW Tiguan',
+    phone: '+375 (29) 642-18-90',
+    slot: 'Сегодня, 18:30 · Бокс №2',
+    priceByn: 'от 35 BYN',
+  },
+  {
+    id: 'driving',
+    label: 'Автошкола',
+    company: 'Автошкола «Драйв-Минск»',
+    caller: 'Сколько стоит категория B и есть ли рассрочка?',
+    reply: 'Полный курс стоит 1 050 BYN, рассрочка на 4 платежа без справок. Записать на вводное занятие?',
+    voice: 'anna',
+    audioPhrase:
+      'Полный курс обучения стоит тысячу пятьдесят белорусских рублей. Мы оформляем беспроцентную рассрочку на четыре платежа без справок о доходах.',
+    client: 'Екатерина · Категория B',
+    phone: '+375 (33) 319-44-12',
+    slot: 'Завтра, 18:30 · Сурганова, 24',
+    priceByn: '1 050 BYN',
   },
   {
     id: 'clinic',
-    pillLabel: 'Стоматология и Медцентр',
-    title: 'Клиника «Дент-Престиж» ↗',
-    subtitle: 'Мгновенный приём обращений с острой болью за 0.5 сек, подбор врача и сверка с расписанием.',
+    label: 'Клиника',
+    company: 'Клиника «Дент-Престиж»',
+    caller: 'Болит зуб, можно попасть к врачу сегодня?',
+    reply: 'При острой боли принимаем без очереди! Сегодня в 17:45 есть окно у хирурга-терапевта.',
     voice: 'anna',
-    voiceBadge: 'Голос: Анна • Заботливый администратор',
-    emotionCue: '[мягко, внимательно]',
-    image: '/orbs/orb-2.webp',
-    orbGradient: 'radial-gradient(circle at 32% 28%, #818cf8 0%, #4f46e5 48%, #2563eb 82%, #1e1b4b 100%)',
-    orbShadow: '0 24px 60px -10px rgba(79, 70, 229, 0.45)',
-    questions: [
-      {
-        id: 'price',
-        question: 'Сколько стоит консультация стоматолога и снимок?',
-        answerAnna: 'Первичная консультация врача-стоматолога с планом лечения стоит сорок пять белорусских рублей, 3D-снимок делаем на месте за пятьдесят рублей.',
-        answerMaxim: 'Первичный осмотр и составление плана лечения стоят сорок пять белорусских рублей. Принимаем также по страховкам Белгосстрах и ТАСК.'
-      },
-      {
-        id: 'booking',
-        question: 'Болит зуб, можно попасть к врачу сегодня?',
-        answerAnna: 'При острой боли мы принимаем без очереди! Сегодня в семнадцать сорок пять есть окно у хирурга-терапевта. Записать вас на это время?',
-        answerMaxim: 'С острой болью примем вас сегодня! Есть окно в семнадцать сорок пять. Подскажите ваше имя для оформления карты.'
-      },
-      {
-        id: 'location',
-        question: 'Работаете ли вы по медицинским страховкам?',
-        answerAnna: 'Да, мы работаем со страховыми компаниями Белгосстрах, ТАСК и Белнефтестрах. Находимся на проспекте Победителей восемьдесят четыре.',
-        answerMaxim: 'Да, обслуживаем по полисам ДМС Белгосстрах и ТАСК. Ждем вас на проспекте Победителей восемьдесят четыре.'
-      }
-    ]
+    audioPhrase:
+      'При острой боли мы принимаем без очереди! Сегодня в семнадцать сорок пять есть окно у хирурга-терапевта. Записать вас на это время?',
+    client: 'Алексей · Острая боль',
+    phone: '+375 (44) 705-88-21',
+    slot: 'Сегодня, 17:45 · Победителей, 84',
+    priceByn: '45 BYN',
   },
-  {
-    id: 'beauty',
-    pillLabel: 'Салон красоты и SPA',
-    title: 'Салон «Лофт Бьюти» ↗',
-    subtitle: 'Круглосуточная запись в YCLIENTS, подбор топ-мастера и предложение комплексных процедур.',
-    voice: 'anna',
-    voiceBadge: 'Голос: Анна • Премиальный сервис',
-    emotionCue: '[приветливо, выразительно]',
-    image: '/orbs/orb-4.webp',
-    orbGradient: 'radial-gradient(circle at 32% 28%, #38bdf8 0%, #2563eb 45%, #10b981 88%, #0f172a 100%)',
-    orbShadow: '0 24px 60px -10px rgba(14, 165, 233, 0.45)',
-    questions: [
-      {
-        id: 'price',
-        question: 'Какая стоимость маникюра с покрытием и укладки?',
-        answerAnna: 'Комплекс маникюра со снятием и укреплением у топ-мастера стоит семьдесят пять белорусских рублей, вечерняя укладка — от восьмидесяти рублей.',
-        answerMaxim: 'Маникюр с покрытием стоит семьдесят пять белорусских рублей, укладка — от восьмидесяти рублей.'
-      },
-      {
-        id: 'booking',
-        question: 'Есть окошко на завтра в первой половине дня?',
-        answerAnna: 'Да! Завтра в одиннадцать тридцать свободно окно у топ-мастера Алины. Оформить запись и прислать напоминание в Телеграм?',
-        answerMaxim: 'Завтра на одиннадцать тридцать есть свободное окно у мастера Алины. Записать вас?'
-      },
-      {
-        id: 'location',
-        question: 'Есть ли парковка рядом с вашим салоном?',
-        answerAnna: 'Да, для гостей салона работает бесплатная парковка со стороны улицы Немига двенадцать. Будем рады видеть вас!',
-        answerMaxim: 'У нас есть гостевая парковка в центре на улице Немига двенадцать.'
-      }
-    ]
-  },
-  {
-    id: 'sip',
-    pillLabel: 'Ночной дежурный 24/7',
-    title: 'Ночной консьерж РБ ↗',
-    subtitle: 'Приём вызовов после 20:00 и в выходные дни без потерь рекламного бюджета.',
-    voice: 'maxim',
-    voiceBadge: 'Голос: Максим • Дежурный 24/7',
-    emotionCue: '[спокойно, чёткая дикция]',
-    image: '/orbs/orb-5.webp',
-    orbGradient: 'radial-gradient(circle at 32% 28%, #2dd4bf 0%, #2563eb 52%, #1e3a8a 90%, #090d16 100%)',
-    orbShadow: '0 24px 60px -10px rgba(37, 99, 235, 0.45)',
-    questions: [
-      {
-        id: 'price',
-        question: 'Вы сейчас работаете? Хочу оставить заявку на утро.',
-        answerAnna: 'Офис откроется в девять утра, но я дежурный голосовой ассистент и могу прямо сейчас рассчитать стоимость и записать вас на удобное время!',
-        answerMaxim: 'Здравствуйте! Сейчас нерабочее время офиса, но я голосовой помощник компании и с радостью забронирую для вас время на завтрашнее утро.'
-      },
-      {
-        id: 'booking',
-        question: 'Пусть мне перезвонит старший специалист в 9:30.',
-        answerAnna: 'Принято! Я уже передала ваш номер в Телеграм старшему менеджеру с пометкой позвонить ровно в девять тридцать утра.',
-        answerMaxim: 'Договорились! Я зафиксировал ваш номер и отправил карточку руководителю в Телеграм. Вам перезвонят завтра ровно в девять тридцать.'
-      },
-      {
-        id: 'location',
-        question: 'Пришлите мне схему проезда и прайс в SMS.',
-        answerAnna: 'Уже отправляю! В течение десяти секунд вам придет сообщение с точным адресом, точкой на карте и актуальным прайс-листом в белорусских рублях.',
-        answerMaxim: 'Готово! Отправил вам SMS-визитку с адресом, картой проезда и ценами в белорусских рублях.'
-      }
-    ]
-  }
 ];
 
-export const Hero: React.FC<HeroProps> = ({
-  onOpenVoiceTest,
-  onOpenAuth
-}) => {
-  const [activeScenarioIndex, setActiveScenarioIndex] = useState<number>(0);
-  const [selectedVoice, setSelectedVoice] = useState<VoiceId>('anna');
-  const [activeQuestionId, setActiveQuestionId] = useState<string>('price');
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [screenWidth, setScreenWidth] = useState<number>(
-    typeof window !== 'undefined' ? window.innerWidth : 1200
-  );
+const MICRO_DOTS = [
+  'top-3 left-3',
+  'top-3 right-3',
+  'bottom-3 left-3',
+  'bottom-3 right-3',
+];
+
+export const Hero: React.FC<HeroProps> = ({ onOpenVoiceTest, onOpenAuth }) => {
+  const [activeId, setActiveId] = useState<'sto' | 'driving' | 'clinic'>('sto');
+  const [playingTrack, setPlayingTrack] = useState<'live' | 'ivr' | 'voxi' | null>(null);
+
+  const activeDemo = BENTO_DEMOS.find((d) => d.id === activeId) || BENTO_DEMOS[0];
 
   useEffect(() => {
-    let resizeTimer: number;
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
-        setScreenWidth(window.innerWidth);
-      }, 150);
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
     return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(resizeTimer);
       VoiceSimulator.stop();
     };
   }, []);
 
-  const currentScenario = ORB_SCENARIOS[activeScenarioIndex] || ORB_SCENARIOS[0];
-  const currentQuestionObj =
-    currentScenario.questions.find((q) => q.id === activeQuestionId) ||
-    currentScenario.questions[0];
-  const currentAnswerText =
-    selectedVoice === 'maxim' ? currentQuestionObj.answerMaxim : currentQuestionObj.answerAnna;
-
-  const selectScenarioByIndex = (nextIndex: number) => {
-    const normalized = (nextIndex + ORB_SCENARIOS.length) % ORB_SCENARIOS.length;
-    const nextScenario = ORB_SCENARIOS[normalized];
-    setActiveScenarioIndex(normalized);
-    setSelectedVoice(nextScenario.voice);
-    setActiveQuestionId(nextScenario.questions[0].id);
+  const handlePlay = (track: 'live' | 'ivr' | 'voxi', phrase: string, voice: VoiceId) => {
+    if (playingTrack === track) {
+      VoiceSimulator.stop();
+      setPlayingTrack(null);
+      return;
+    }
+    VoiceSimulator.unlock();
     VoiceSimulator.stop();
-    setIsSpeaking(false);
-  };
-
-  const playQuestionAnswer = (
-    questionObj: OrbScenario['questions'][0],
-    voiceOverride?: VoiceId
-  ) => {
-    const targetVoice = voiceOverride || selectedVoice;
-    const textToSpeak =
-      targetVoice === 'maxim' ? questionObj.answerMaxim : questionObj.answerAnna;
-
-    setActiveQuestionId(questionObj.id);
-    VoiceSimulator.stop();
-
+    setPlayingTrack(track);
     VoiceSimulator.speak(
-      textToSpeak,
-      targetVoice,
-      () => setIsSpeaking(true),
-      () => setIsSpeaking(false)
+      phrase,
+      voice,
+      () => setPlayingTrack(track),
+      () => setPlayingTrack(null)
     );
   };
 
-  const handleOrbToggle = () => {
-    if (isSpeaking) {
-      VoiceSimulator.stop();
-      setIsSpeaking(false);
-    } else {
-      playQuestionAnswer(currentQuestionObj);
-    }
-  };
-
-  const handleVoiceChange = (voice: VoiceId) => {
-    setSelectedVoice(voice);
-    if (isSpeaking) {
-      playQuestionAnswer(currentQuestionObj, voice);
-    }
-  };
-
-  // Compute relative position (-2, -1, 0, +1, +2) for the 5-Orb ElevenLabs Carousel
-  const getRelativeOffset = (idx: number) => {
-    const total = ORB_SCENARIOS.length;
-    let diff = idx - activeScenarioIndex;
-    if (diff > total / 2) diff -= total;
-    if (diff < -total / 2) diff += total;
-    return diff;
-  };
-
   return (
-    <section className="relative overflow-hidden pt-10 pb-20 md:pt-16 md:pb-24 bg-transparent">
-      {/* Subtle Hardware-accelerated Radial Ambiance (Zero blur raster overhead) */}
-      <div
-        className="pointer-events-none absolute -top-36 right-[8%] w-[580px] h-[580px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(255, 142, 84, 0.16) 0%, rgba(251, 146, 60, 0.06) 45%, transparent 70%)',
-          transform: 'translateZ(0)'
-        }}
-      />
-      <div
-        className="pointer-events-none absolute top-1/2 -left-36 w-[480px] h-[480px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, rgba(126, 178, 163, 0.08) 45%, transparent 70%)',
-          transform: 'translateZ(0)'
-        }}
-      />
+    <section id="showcase" className="relative bg-white pb-16 lg:pb-24">
+      <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12">
+        {/* 1-to-1 shopify.design Monumental 2-Line Centered Hero Lockup */}
+        <div className="pt-8 sm:pt-14 lg:pt-16 pb-16 sm:pb-24 lg:pb-28 text-center flex flex-col items-center justify-center min-h-[430px] sm:min-h-[540px] lg:min-h-[600px]">
+          <h1 className="font-display font-bold text-black text-[48px] sm:text-[86px] lg:text-[124px] xl:text-[144px] leading-[0.94] tracking-[-0.048em] select-none">
+            Каждый звонок
+            <br />
+            в запись 24/7
+          </h1>
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 relative z-10">
-        
-        {/* PART 1: ElevenLabs Editorial Asymmetrical 2-Column Hero Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start pb-12 md:pb-14">
-          
-          {/* Left Column: H1 + Shadcn UI Buttons & Badges */}
-          <div className="lg:col-span-7 space-y-6">
-            <Badge
-              variant="outline"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-slate-300 bg-white/80 backdrop-blur-sm text-slate-900 text-xs font-normal shadow-xs"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Голосовой ИИ для бизнеса Беларуси • Отклик 0.5 сек</span>
-            </Badge>
+          <p className="mt-6 sm:mt-8 max-w-[560px] text-[15px] sm:text-[17px] leading-[1.45] font-medium text-black">
+            ИИ-администратор Voxi.by отвечает на звонки и заявки в Беларуси за 0.5 сек — без пропущенных и очередей.
+          </p>
+        </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.1] font-light">
-              Ни одного пропущенного звонка{' '}
-              <span className="block">
-                <WordRoll
-                  words={[
-                    'для стоматологий.',
-                    'для СТО и сервисов.',
-                    'для салонов красоты.',
-                    'для автошкол.',
-                  ]}
-                  className="font-normal text-black underline decoration-black/15 decoration-2 underline-offset-4"
-                />
-              </span>
-              <span className="block font-normal text-black">
-                ИИ-администратор 24/7.
-              </span>
-            </h1>
-
-            {/* Shadcn UI Action Buttons */}
-            <div className="pt-1 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-              <MagneticButton className="w-full sm:w-auto">
-                <Button
-                  type="button"
-                  size="lg"
-                  onClick={onOpenAuth}
-                  className="w-full sm:w-auto rounded-full bg-slate-900 text-white hover:bg-slate-800 px-6 h-12 text-sm font-medium shadow-sm gap-2"
-                >
-                  <span>Настроить за 5 минут</span>
-                  <ArrowRightIcon size={18} />
-                </Button>
-              </MagneticButton>
-
-              {onOpenVoiceTest && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={onOpenVoiceTest}
-                  className="rounded-full border-slate-300 bg-white/80 hover:bg-slate-100 text-slate-900 px-6 h-12 text-sm font-medium shadow-sm transition-all gap-2 group"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  <SoundwaveCircleIcon size={19} className="text-black group-hover:scale-105 transition-transform" />
-                  <span>Поговорить с Voxi прямо сейчас</span>
-                </Button>
-              )}
-            </div>
+        {/* Exact shopify.design Full-Width LIVE Hairline Bar */}
+        <div className="mb-6 flex items-center gap-4">
+          <div className="inline-flex items-center gap-2 shrink-0">
+            <span className="w-[6px] h-[6px] rounded-full bg-[#34D399]" aria-hidden="true" />
+            <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-black">
+              LIVE
+            </span>
           </div>
-
-          {/* Right Column: Top-Aligned Lead Value Proposition */}
-          <div className="lg:col-span-5 lg:pt-11 flex flex-col justify-between space-y-5">
-            <p className="text-base sm:text-[18px] text-[#59544F] font-normal leading-relaxed">
-              Платформа речевого ИИ для передовых компаний Беларуси. От{' '}
-              <strong className="font-medium text-black">Voxi Агентов</strong> для круглосуточного приёма звонков МТС и А1 и{' '}
-              <strong className="font-medium text-black">Voxi Голоса</strong> с живой интонацией — до прямой записи клиентов в YCLIENTS, Bitrix24 и Telegram.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#777169] border-t border-black/[0.075] pt-4">
-              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                15 мин бесплатно • без карты
-              </span>
-              <span className="font-medium text-black whitespace-nowrap">от 0 BYN абонплата</span>
-              <span className="font-mono text-xs text-black font-medium whitespace-nowrap">~0.5 сек отклик</span>
-              <span className="whitespace-nowrap">ЕРИП и bePaid</span>
-              <a href="#benchmark" className="text-black hover:underline font-medium whitespace-nowrap">
-                Бенчмарк речи →
-              </a>
-            </div>
+          <div className="h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
+          <div className="inline-flex items-center gap-2.5 shrink-0">
+            <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-black">
+              VOXI.BY · БЕЛАРУСЬ
+            </span>
+            <span
+              className="w-[22px] h-[22px] rounded-[6px] bg-black text-white inline-flex items-center justify-center gap-[2px]"
+              aria-hidden="true"
+            >
+              <span className="w-[2px] h-2.5 rounded-full bg-white" />
+              <span className="w-[2px] h-2.5 rounded-full bg-white" />
+            </span>
           </div>
         </div>
 
-        {/* PART 2: Central Interactive Showcase Widget (shadcn/ui Card + Tabs) */}
-        <Card
-          id="showcase"
-          className="rounded-2xl border-slate-200/90 bg-white/80 backdrop-blur-md shadow-lg p-5 sm:p-7 lg:p-8 scroll-mt-24 relative overflow-hidden"
-        >
-          {/* Top Bar: Title & Voice Switcher */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-200/80">
-            <div className="flex items-center gap-2.5">
-              <span
-                aria-hidden="true"
-                className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs bg-slate-900"
-              />
-              <CardTitle className="text-base sm:text-lg font-semibold text-slate-900">
-                Voxi Голос
-              </CardTitle>
-              <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-normal">
-                4 отрасли РБ + ночной режим
-              </Badge>
-            </div>
-
-            {/* Right Status & Voice Switcher */}
-            <div className="flex items-center justify-between sm:justify-end gap-2">
-              <SlidingTabs<VoiceId>
-                ariaLabel="Выбор голоса ИИ"
-                value={selectedVoice}
-                onChange={handleVoiceChange}
-                className="bg-slate-100 border-slate-200"
-                tabClassName="px-3.5 py-1.5 text-xs sm:text-xs"
-                activePillClassName="shadow-sm"
-                options={[
-                  { value: 'anna', label: 'Голос: Анна' },
-                  { value: 'maxim', label: 'Голос: Максим' },
-                ]}
-              />
-            </div>
-          </div>
-
-          {/* 5-Orb Floating Audio Showcase Stage with shadcn Tabs */}
-          <div className="space-y-7">
-            {/* Category Switcher Tabs */}
-            <Tabs
-              value={ORB_SCENARIOS[activeScenarioIndex].id}
-              onValueChange={(val) => {
-                const idx = ORB_SCENARIOS.findIndex((s) => s.id === val);
-                if (idx !== -1) selectScenarioByIndex(idx);
-              }}
-            >
-              <TabsList className="flex flex-nowrap sm:flex-wrap h-auto justify-start sm:justify-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/70 overflow-x-auto max-w-full">
-                {ORB_SCENARIOS.map((sc) => (
-                  <TabsTrigger
-                    key={sc.id}
-                    value={sc.id}
-                    className="rounded-lg px-3.5 py-1.5 text-xs font-medium text-slate-700 whitespace-nowrap shrink-0 data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-sm"
-                  >
-                    {sc.pillLabel}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-              {/* ElevenLabs 5-Orb Floating Audio Stage */}
-              <div className="relative py-6 sm:py-8 flex flex-col items-center justify-center overflow-hidden">
-                
-                {/* 5-Sphere Horizontal Stage with Authentic ElevenLabs Arc Trajectory */}
-                <div className="relative w-full max-w-[880px] h-64 sm:h-72 md:h-80 flex items-center justify-center select-none overflow-visible">
-                  {ORB_SCENARIOS.map((sc, idx) => {
-                    const offset = getRelativeOffset(idx);
-                    const isCenter = offset === 0;
-                    const absOffset = Math.abs(offset);
-                    const sign = offset < 0 ? -1 : 1;
-
-                    // Responsive X multiplier for mobile/tablet screens
-                    const xMultiplier =
-                      screenWidth < 480 ? 0.44 : screenWidth < 768 ? 0.60 : screenWidth < 1024 ? 0.70 : 1;
-
-                    // ElevenLabs Slot Transforms (X arc, Y depression, Scale depth, Opacity, Z-Index)
-                    let tx = 0;
-                    let ty = 0;
-                    let scale = 1;
-                    let opacity = 1;
-                    let zIndex = 30;
-
-                    if (absOffset === 1) {
-                      tx = sign * 215 * xMultiplier;
-                      ty = 22;
-                      scale = 0.76;
-                      opacity = 0.78;
-                      zIndex = 20;
-                    } else if (absOffset === 2) {
-                      tx = sign * 395 * xMultiplier;
-                      ty = 46;
-                      scale = 0.54;
-                      opacity = 0.44;
-                      zIndex = 10;
-                    }
-
-                    return (
-                      <div
-                        key={sc.id}
-                        style={{
-                          transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
-                          opacity,
-                          zIndex,
-                          transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
-                        }}
-                        className="absolute flex items-center justify-center origin-center will-change-transform"
-                      >
-                        <div className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center">
-                          {/* Center Acoustic Radiant Glow - active only during speech */}
-                          {isCenter && isSpeaking && (
-                            <div className="absolute -inset-4 sm:-inset-6 rounded-full bg-black/15 blur-xl pointer-events-none animate-pulse will-change-transform" />
-                          )}
-
-                          {/* Sphere Body with Authentic ElevenLabs 3D Texture */}
-                          <div
-                            role={!isCenter ? 'button' : undefined}
-                            tabIndex={!isCenter ? 0 : undefined}
-                            aria-label={!isCenter ? `Выбрать сценарий: ${sc.pillLabel}` : undefined}
-                            className={`w-full h-full rounded-full overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.14)] ring-1 ring-inset ring-black/10 transition-transform ${
-                              !isCenter
-                                ? 'cursor-pointer hover:scale-105 hover:ring-black/20 hover:shadow-[0_26px_60px_rgba(0,0,0,0.22)]'
-                                : ''
+        <div className="relative">
+          {/* EXACT 3-Column Independent Flex Masonry Grid (shopify.design .hero-grid: 3 cols, 21.6px gaps, 24px radius, zero drop shadows) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[21px] items-start">
+            {/* ==================== COLUMN 1 ==================== */}
+            <div className="flex flex-col gap-[21px]">
+              {/* Card 1A: Obsidian Dotted Surface — Live Call Stream (mirrors `Suppl` card) */}
+              <div className="voxi-dot-surface rounded-[24px] p-6 sm:p-7 text-white flex flex-col justify-between min-h-[430px]">
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="w-7 h-7 rounded-[7px] bg-white/15 text-white inline-flex items-center justify-center font-display text-xs font-bold">
+                      V
+                    </span>
+                    <div
+                      role="tablist"
+                      aria-label="Сценарии живого звонка"
+                      className="inline-flex items-center gap-1 p-1 rounded-full bg-white/10"
+                    >
+                      {BENTO_DEMOS.map((demo) => {
+                        const selected = demo.id === activeId;
+                        return (
+                          <button
+                            key={demo.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={selected}
+                            onClick={() => {
+                              VoiceSimulator.stop();
+                              setPlayingTrack(null);
+                              setActiveId(demo.id);
+                            }}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                              selected ? 'bg-white text-black' : 'text-white/70 hover:text-white'
                             }`}
-                            onClick={!isCenter ? () => selectScenarioByIndex(idx) : undefined}
-                            onKeyDown={
-                              !isCenter
-                                ? (e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault();
-                                      selectScenarioByIndex(idx);
-                                    }
-                                  }
-                                : undefined
-                            }
                           >
-                            {/* High-Resolution Photorealistic 3D Texture */}
-                            <img
-                              src={sc.image}
-                              alt={sc.title}
-                              loading={isCenter ? 'eager' : 'lazy'}
-                              decoding="async"
-                              className={`w-full h-full object-cover select-none pointer-events-none will-change-transform ${
-                                isCenter && isSpeaking ? 'animate-[spin_16s_linear_infinite]' : ''
-                              }`}
-                              draggable={false}
-                            />
+                            {demo.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                            {/* Specular 3D Lighting Sheen Overlay */}
-                            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-black/5 via-transparent to-white/25 pointer-events-none" />
-                          </div>
+                  <div>
+                    <div className="font-display text-[56px] sm:text-[64px] font-bold leading-[0.94] tracking-[-0.045em] text-white">
+                      0.5 сек
+                    </div>
+                    <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.1em] text-[#6BFF91]">
+                      {activeDemo.company} · А1 / МТС
+                    </div>
+                  </div>
 
-                          {/* Exact Center White Circular Play/Pause Button with Liquid Glass */}
-                          {isCenter && (
-                            <button
-                              type="button"
-                              onClick={handleOrbToggle}
-                              aria-label={isSpeaking ? 'Остановить озвучку' : 'Прослушать голос ИИ'}
-                              className="absolute inset-0 m-auto z-30 w-14 h-14 sm:w-16 sm:h-16 rounded-full liquid-glass-pill text-black hover:scale-105 active:scale-95 shadow-[inset_0_1.5px_1px_rgba(255,255,255,1),0_12px_36px_rgba(0,0,0,0.18)] flex items-center justify-center transition-transform cursor-pointer group"
-                            >
-                              {isSpeaking ? (
-                                <PauseIcon size={24} className="text-black" />
-                              ) : (
-                                <PlayIcon
-                                  size={24}
-                                  className="text-black ml-0.5 transition-colors"
-                                />
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <div className="space-y-2.5 pt-2">
+                    <div className="rounded-[16px] bg-white/[0.07] p-3.5 text-[13px] text-white/80 leading-snug">
+                      «{activeDemo.caller}»
+                    </div>
+                    <div className="rounded-[16px] bg-white text-black p-3.5 text-[13px] font-medium leading-snug">
+                      «{activeDemo.reply}»
+                    </div>
+                  </div>
                 </div>
 
-                {/* Scenario Title, Prev/Next Arrows & Subtitle Underneath Center Orb */}
-                <div className="mt-2 flex flex-col items-center text-center max-w-xl mx-auto px-2 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => selectScenarioByIndex(activeScenarioIndex - 1)}
-                      aria-label="Предыдущий сценарий"
-                      className="w-8 h-8 rounded-full bg-white text-black shadow-[0_0_0_0.5px_rgba(0,0,0,0.125),0_1px_1px_rgba(0,0,0,0.04)] hover:bg-[#FDFCFC] flex items-center justify-center transition-colors cursor-pointer active:scale-95"
-                    >
-                      <AltArrowLeftIcon size={16} />
-                    </button>
+                <div className="pt-5 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePlay('live', activeDemo.audioPhrase, activeDemo.voice)}
+                    className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-[12px] font-medium transition-colors cursor-pointer ${
+                      playingTrack === 'live'
+                        ? 'bg-[#6BFF91] text-black'
+                        : 'bg-white/15 hover:bg-white text-white hover:text-black'
+                    }`}
+                  >
+                    {playingTrack === 'live' ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
+                    <span>{playingTrack === 'live' ? 'Пауза' : 'Послушать ответ'}</span>
+                  </button>
+                  <span className="font-mono text-[10.5px] uppercase tracking-wider text-white/50">
+                    ЖИВАЯ РЕЧЬ
+                  </span>
+                </div>
+              </div>
 
-                    <div className="text-base sm:text-lg font-medium text-black tracking-tight">
-                      {currentScenario.title}
+              {/* Card 1B: Soft Neutral Minimal Greeting (mirrors `Welcome back` card) */}
+              <ScrollReveal>
+                <div className="rounded-[24px] bg-[#E8E8E8] p-7 sm:p-8 min-h-[210px] flex flex-col justify-between">
+                  <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+                    ВЕЧЕР · 21:42 · БЕЗ ГУДКОВ
+                  </span>
+                  <div className="font-display text-[26px] sm:text-[30px] font-medium tracking-[-0.03em] leading-[1.1] text-[#666666]">
+                    «Здравствуйте, слушаю вас»
+                  </div>
+                  <div className="flex items-center justify-between font-mono text-[10.5px] uppercase tracking-wider text-[#737373]">
+                    <span>0 ОЧЕРЕДЕЙ</span>
+                    <span>24/7</span>
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              {/* Card 1C: Quick Audio Comparison Bento Card */}
+              <ScrollReveal>
+                <div className="rounded-[24px] bg-[#0A0A0A] text-white p-6 sm:p-7 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/55">
+                      ДО / ПОСЛЕ VOXI.BY
+                    </span>
+                    <span className="font-mono text-[10.5px] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#6BFF91] text-black font-semibold">
+                      0 ПРОПУЩЕННЫХ
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-[16px] bg-white/[0.06] p-4 space-y-1">
+                      <div className="flex items-center justify-between font-mono text-[10.5px] text-[#FE432A]">
+                        <span>ДО · ПРОПУЩЕННЫЙ ВЫЗОВ</span>
+                        <span>−45% ЛИДОВ</span>
+                      </div>
+                      <p className="text-[13px] text-white/75 leading-snug">
+                        Перезвон через 2–12 часов: «Спасибо, я уже записался в другом месте».
+                      </p>
                     </div>
 
+                    <div className="rounded-[16px] bg-[#1C3B36] p-4 space-y-1">
+                      <div className="flex items-center justify-between font-mono text-[10.5px] text-[#6BFF91]">
+                        <span>ПОСЛЕ · ОТВЕТ ЗА 0.5 СЕК</span>
+                        <span>ЗАПИСЬ В CRM</span>
+                      </div>
+                      <p className="text-[13px] text-white leading-snug">
+                        Назвал цену в BYN, проверил окно и прислал карточку в Telegram + SMS клиенту.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => selectScenarioByIndex(activeScenarioIndex + 1)}
-                      aria-label="Следующий сценарий"
-                      className="w-8 h-8 rounded-full bg-white text-black shadow-[0_0_0_0.5px_rgba(0,0,0,0.125),0_1px_1px_rgba(0,0,0,0.04)] hover:bg-[#FDFCFC] flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+                      onClick={() =>
+                        handlePlay(
+                          'ivr',
+                          'Здравствуйте... Если вы хотите записаться... нажмите один... Для соединения с оператором... ожидайте на линии...',
+                          'maxim'
+                        )
+                      }
+                      className={`h-9 px-3.5 rounded-full text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        playingTrack === 'ivr'
+                          ? 'bg-[#FE432A] text-white'
+                          : 'bg-white/10 text-white/80 hover:bg-white/20'
+                      }`}
                     >
-                      <AltArrowRightIcon size={16} />
+                      {playingTrack === 'ivr' ? <PauseIcon size={12} /> : <PlayIcon size={12} />}
+                      <span>Старый IVR</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handlePlay(
+                          'voxi',
+                          'Здравствуйте! СТО «Минск-Моторс Экспресс», меня зовут Анна. У нас как раз есть свободный подъемник на сегодня в 18:30. Записать вас?',
+                          'anna'
+                        )
+                      }
+                      className={`h-9 px-3.5 rounded-full text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        playingTrack === 'voxi'
+                          ? 'bg-[#6BFF91] text-black'
+                          : 'bg-white text-black hover:bg-[#6BFF91]'
+                      }`}
+                    >
+                      {playingTrack === 'voxi' ? <PauseIcon size={12} /> : <PlayIcon size={12} />}
+                      <span>Ответ Voxi.by</span>
                     </button>
                   </div>
-
-                  <p className="text-xs sm:text-sm text-[#777169]">
-                    {currentScenario.subtitle}
-                  </p>
                 </div>
-              </div>
-
-              {/* Live Spoken Script & 3 Interactive Client Questions */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch pt-2">
-                
-                {/* Left: Live Emotional Prompt Reader Card (shadcn Card) */}
-                <Card className="lg:col-span-6 rounded-xl border border-slate-200/90 bg-white p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <Badge variant="outline" className="font-mono text-[11px] font-normal border-slate-200 text-slate-800 whitespace-nowrap">
-                      {currentScenario.emotionCue}
-                    </Badge>
-                    <span className="text-slate-500 font-mono text-[11px] whitespace-nowrap">
-                      {selectedVoice === 'maxim' ? 'Максим (48 kHz Neural)' : 'Анна (48 kHz Neural)'}
-                    </span>
-                  </div>
-
-                  <div
-                    key={`${currentScenario.id}-${selectedVoice}-${activeQuestionId}`}
-                    className="text-sm sm:text-base text-slate-900 font-normal leading-relaxed animate-fadeIn"
-                  >
-                    <span className="text-slate-950 font-semibold mr-1.5">
-                      {selectedVoice === 'maxim' ? 'Максим:' : 'Анна:'}
-                    </span>
-                    «<ReadAlong text={currentAnswerText} isActive={isSpeaking} />»
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleOrbToggle}
-                      className="rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2 shrink-0"
-                    >
-                      {isSpeaking ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
-                      <span>{isSpeaking ? 'Пауза' : 'Озвучить ответ'}</span>
-                    </Button>
-
-                    {onOpenVoiceTest && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={onOpenVoiceTest}
-                        className="text-xs text-slate-700 hover:text-slate-950 gap-1 shrink-0 max-w-full"
-                      >
-                        <span className="truncate">Задать свой вопрос микрофоном</span>
-                        <ArrowRightIcon size={14} className="shrink-0" />
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-
-                {/* Right: 3 Interactive Question Cards (shadcn Card) */}
-                <div className="lg:col-span-6 flex flex-col justify-between space-y-2">
-                  <div className="text-[11px] font-medium text-slate-500 tracking-normal px-1 uppercase">
-                    Выберите вопрос клиента для мгновенной озвучки:
-                  </div>
-
-                  {currentScenario.questions.map((item) => {
-                    const isSelected = activeQuestionId === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => playQuestionAnswer(item)}
-                        className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center justify-between gap-3 transition-all text-left cursor-pointer ${
-                          isSelected
-                            ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
-                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 text-slate-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2.5 min-w-0">
-                          <ChatRoundCallIcon
-                            size={17}
-                            className={isSelected ? 'text-white shrink-0' : 'text-slate-500 shrink-0'}
-                          />
-                          <span className="truncate">«{item.question}»</span>
-                        </span>
-                        <Badge
-                          variant={isSelected ? 'secondary' : 'outline'}
-                          className={isSelected ? 'bg-white/20 text-white border-transparent' : 'text-slate-700 border-slate-200'}
-                        >
-                          {isSelected && isSpeaking ? '● Звучит' : 'Слушать'}
-                        </Badge>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              </ScrollReveal>
             </div>
-        </Card>
+
+            {/* ==================== COLUMN 2 ==================== */}
+            <div className="flex flex-col gap-[21px]">
+              {/* Card 2A: Deep Cobalt #0225AC Geometric Acoustic Wireframe (exact twin of shopify.design blue art card) */}
+              <div className="rounded-[24px] bg-[#0225AC] text-white p-6 sm:p-7 min-h-[340px] flex flex-col justify-between relative overflow-hidden">
+                <svg
+                  viewBox="0 0 400 320"
+                  fill="none"
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full opacity-90 pointer-events-none"
+                >
+                  <polygon points="185,22 360,155 245,296 72,202" stroke="#53B8FF" strokeWidth="1" />
+                  <polygon points="185,22 292,52 204,160 112,248" stroke="#7CC8FF" strokeWidth="0.9" />
+                  <polygon points="292,52 360,155 204,160" stroke="#53B8FF" strokeWidth="0.9" />
+                  <polygon points="185,22 204,160 72,202" stroke="#53B8FF" strokeWidth="0.9" />
+                  <polygon points="204,160 360,155 245,296" stroke="#7CC8FF" strokeWidth="0.9" />
+                  <line x1="185" y1="22" x2="245" y2="296" stroke="#9BD6FF" strokeWidth="0.8" />
+                  <line x1="72" y1="202" x2="292" y2="52" stroke="#9BD6FF" strokeWidth="0.8" />
+                  <circle cx="185" cy="22" r="3" fill="#9BD6FF" />
+                  <circle cx="204" cy="160" r="3.5" fill="#FFFFFF" />
+                  <circle cx="360" cy="155" r="3" fill="#9BD6FF" />
+                  <circle cx="245" cy="296" r="3" fill="#9BD6FF" />
+                  <circle cx="72" cy="202" r="3" fill="#9BD6FF" />
+                </svg>
+
+                <div className="relative z-10 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/75">
+                  <span>МАРШРУТИЗАЦИЯ РБ</span>
+                  <span>SIP / WEBRTC</span>
+                </div>
+
+                <div className="relative z-10 space-y-1">
+                  <div className="font-display text-[32px] font-bold tracking-[-0.03em] leading-none">
+                    А1 · МТС · Unitalk
+                  </div>
+                  <div className="text-[13px] text-white/80">
+                    Прямой шлюз в Минске без смены вашего номера
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2B: Tall Crisp Light Neutral #F1F1F1 Live Bookings Feed (exact twin of center tall grid card in shopify.design!) */}
+              <ScrollReveal>
+                <div className="rounded-[24px] bg-[#F1F1F1] p-6 sm:p-7 min-h-[450px] flex flex-col justify-between relative">
+                  {/* Subtle editorial registration dots matching shopify.design center card */}
+                  {MICRO_DOTS.map((pos) => (
+                    <span
+                      key={pos}
+                      aria-hidden="true"
+                      className={`absolute ${pos} w-1 h-1 rounded-full bg-black/20`}
+                    />
+                  ))}
+
+                  <div className="flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+                    <span>ГОТОВЫЕ ЗАПИСИ В CRM</span>
+                    <span className="text-black font-semibold">СЕГОДНЯ</span>
+                  </div>
+
+                  {/* Active Highlighted Booking Card + 2 Queue Items */}
+                  <div className="my-5 space-y-3">
+                    {BENTO_DEMOS.map((item) => {
+                      const isSelected = item.id === activeId;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveId(item.id)}
+                          className={`w-full text-left rounded-[18px] p-4 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-white shadow-[0_12px_28px_-10px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.06]'
+                              : 'bg-white/60 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-display text-[15px] font-bold text-black">
+                              {item.client}
+                            </span>
+                            <span className="font-mono text-[11px] font-semibold text-black">
+                              {item.priceByn}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-[12px] text-[#525252] flex items-center justify-between gap-2">
+                            <span>{item.slot}</span>
+                            <span className="font-mono text-[10px] text-[#10B981]">● CRM + TG</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Bottom bar with floating white circular ↗ button (exact shopify.design detail!) */}
+                  <div className="flex items-end justify-between gap-3 pt-2">
+                    <div>
+                      <div className="font-display text-[15px] font-bold text-black">
+                        {activeDemo.company}
+                      </div>
+                      <div className="text-[12px] text-[#525252] font-mono mt-0.5">
+                        {activeDemo.phone} · {activeDemo.priceByn}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onOpenVoiceTest?.()}
+                      aria-label="Открыть живой голосовой тест"
+                      className="w-10 h-10 rounded-full bg-white shadow-[0_4px_14px_rgba(0,0,0,0.08)] hover:bg-black hover:text-white text-black inline-flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    >
+                      <ArrowRightUpIcon size={17} />
+                    </button>
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              {/* Card 2C: Pure White Minimal Typographic Card (mirrors `artifact` card in shopify.design!) */}
+              <ScrollReveal>
+                <div className="rounded-[24px] bg-white border border-black/[0.08] p-8 min-h-[210px] flex flex-col items-center justify-center text-center">
+                  <div className="font-display text-[42px] sm:text-[48px] font-bold tracking-[-0.045em] text-black leading-none">
+                    0 BYN
+                  </div>
+                  <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.1em] text-[#666666]">
+                    АБОНПЛАТА BYO-SIP · ОПЛАТА ЗА МИНУТЫ
+                  </div>
+                </div>
+              </ScrollReveal>
+            </div>
+
+            {/* ==================== COLUMN 3 ==================== */}
+            <div className="flex flex-col gap-[21px] md:col-span-2 lg:col-span-1">
+              {/* Card 3A: Deep Forest Green Card with Crisp White Inset Frame (mirrors green top-right card in shopify.design!) */}
+              <div className="rounded-[24px] bg-[#1D7426] p-6 sm:p-7 min-h-[280px] flex flex-col justify-between">
+                <div className="rounded-[20px] bg-white border-[2px] border-black p-5 space-y-3">
+                  <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-[#525252]">
+                    <span>В РЕАЛЬНОМ ВРЕМЕНИ</span>
+                    <span className="text-[#1D7426] font-semibold">● ONLINE</span>
+                  </div>
+                  <div className="font-display text-[20px] font-bold tracking-tight text-black leading-tight">
+                    Поговорите с Voxi прямо в браузере
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenVoiceTest?.()}
+                    className="inline-flex items-center gap-2 h-10 px-4 rounded-full bg-black hover:bg-[#FE432A] text-white text-[12px] font-medium transition-colors cursor-pointer"
+                  >
+                    <PhoneCallingRoundedIcon size={15} />
+                    <span>Запустить живой звонок</span>
+                  </button>
+                </div>
+
+                <div className="pt-4 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/85">
+                  <span>YCLIENTS · BITRIX24</span>
+                  <span>TELEGRAM · SMS</span>
+                </div>
+              </div>
+
+              {/* Card 3B: iPhone Top-Bezel Card (exact twin of shopify.design `Sidekick` iPhone card!) */}
+              <ScrollReveal>
+                <a
+                  href="#calculator"
+                  className="block rounded-[24px] bg-[#EAEAEA] pt-6 px-5 sm:px-6 overflow-hidden group min-h-[290px]"
+                >
+                  <div className="rounded-t-[36px] border-[5px] border-b-0 border-[#1C1C1E] bg-[#F4F4F6] pt-3.5 px-5 pb-6 shadow-inner">
+                    {/* iPhone Status Bar + Dynamic Island */}
+                    <div className="flex items-center justify-between mb-6">
+                      <span className="font-mono text-[11px] font-semibold text-black">21:42</span>
+                      <span className="w-[78px] h-[20px] rounded-full bg-black" aria-hidden="true" />
+                      <span className="flex items-center gap-1" aria-hidden="true">
+                        <span className="w-1 h-2 bg-black rounded-sm" />
+                        <span className="w-1 h-2.5 bg-black rounded-sm" />
+                        <span className="w-4 h-2.5 border border-black rounded-[3px] p-[1px]">
+                          <span className="block w-full h-full bg-black rounded-[1px]" />
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Floating Pill matching `Sidekick` pill in shopify.design */}
+                    <div className="flex justify-end mb-5">
+                      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-[0_6px_18px_rgba(0,0,0,0.08)] text-[13px] font-medium text-black">
+                        <span className="w-2 h-2 rounded-full bg-[#0225AC]" />
+                        <span>Voxi.by</span>
+                      </span>
+                    </div>
+
+                    {/* Cut-off Big Metric matching `Total balance` in shopify.design */}
+                    <div className="space-y-0.5">
+                      <div className="text-[13px] text-[#666666] font-medium">
+                        Сохранённая выручка / мес
+                      </div>
+                      <div className="font-display text-[46px] font-bold tracking-[-0.04em] text-black leading-none group-hover:text-[#0225AC] transition-colors">
+                        +5 638 BYN
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </ScrollReveal>
+
+              {/* Card 3C: Acid Lime #D8E738 Graphic Punch Card (exact twin of `tinker` lime card in shopify.design!) */}
+              <ScrollReveal>
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="w-full text-left rounded-[24px] bg-[#D8E738] hover:bg-[#CFE02A] p-7 sm:p-8 min-h-[260px] flex flex-col justify-between transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.1em] text-black/75">
+                    <span>ПИЛОТ · БЕЗ КАРТЫ</span>
+                    <ArrowRightUpIcon size={18} className="text-black transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </div>
+
+                  <div className="flex items-center gap-3 py-4">
+                    {/* Crisp Geometric Spark Mark echoing shopify.design lime graphic */}
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true" className="shrink-0">
+                      <path
+                        d="M18 2L21.5 12.5L32 8L24.5 17L34 23L22.5 23.5L25 34L17.5 25.5L8 32L13 21.5L2 19L12.5 14.5L9 4L18 11.5V2Z"
+                        stroke="#000000"
+                        strokeWidth="2.4"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span className="font-display text-[28px] sm:text-[32px] font-extrabold tracking-[-0.04em] text-black leading-[0.98]">
+                      Настроить за 5 минут
+                    </span>
+                  </div>
+
+                  <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-black font-semibold">
+                    +15 МИНУТ ЗВОНКОВ В ПОДАРОК
+                  </div>
+                </button>
+              </ScrollReveal>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

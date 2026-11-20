@@ -104,111 +104,110 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
+      {/* Editorial mono eyebrow rule */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isBotOnline ? 'bg-[#16A34A]' : isSuspended ? 'bg-[#FE432A]' : 'bg-[#A3A3A3]'
+            }`}
+          />
+          <span>Обзор кабинета</span>
+        </div>
+        <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" />
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          VOXI.BY · BYN
+        </span>
+      </div>
+
       {isSuspended && (
         <div
           role="alert"
-          className="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+          className="p-5 sm:p-6 rounded-[24px] bg-[#FFF5F3] border border-[#FE432A]/40 text-[#7F1D1D] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div className="space-y-1">
-            <div className="text-sm font-bold text-rose-900">
-              Кредитный лимит ({creditLimitByn} BYN) превышен — бот временно поставлен на паузу
+            <div className="font-display text-[15px] font-bold text-black">
+              Кредитный лимит ({creditLimitByn} BYN) превышен — бот временно на паузе
             </div>
-            <p className="text-xs text-rose-800 leading-relaxed">
-              Накопленная задолженность составляет <strong>{unpaidDebtByn.toFixed(2)} BYN</strong>. Перейдите в раздел «Тариф и оплата» и погасите счёт картой или через ЕРИП, чтобы бот снова принимал звонки.
+            <p className="text-[13px] text-[#7F1D1D] leading-relaxed">
+              Накопленная задолженность составляет <strong className="font-mono">{unpaidDebtByn.toFixed(2)} BYN</strong>. Погасите счёт картой или через ЕРИП в разделе «Тариф и оплата», чтобы возобновить приём звонков.
             </p>
           </div>
           <button
             type="button"
             onClick={() => onNavigateTab('billing')}
-            className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 cursor-pointer transition-colors"
+            className="h-10 px-5 rounded-full bg-[#FE432A] hover:bg-[#DC2626] text-white text-[12px] font-semibold shrink-0 cursor-pointer transition-colors"
           >
-            Оплатить долг ({unpaidDebtByn.toFixed(2)} BYN) →
+            Оплатить долг ({unpaidDebtByn.toFixed(2)} BYN) ↗
           </button>
         </div>
       )}
 
-      {/* 1. Dark Contrast Hero Card (Главный статус-блок) */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-[#141417] text-white border border-white/10 shadow-xl relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute -top-24 -right-16 w-80 h-80 rounded-full opacity-25"
-          style={{
-            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(59, 130, 246, 0.25) 55%, transparent 75%)'
-          }}
-        />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-start sm:items-center gap-4">
-            <div
-              className={`w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                isBotOnline
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+      {/* 1. Dotted Obsidian Hero Status Card */}
+      <div className="voxi-dot-surface p-6 sm:p-8 rounded-[28px] text-white border border-black">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-4 min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-mono text-[10.5px] uppercase tracking-[0.1em] font-semibold border ${
+                  isBotOnline
+                    ? 'bg-[#6BFF91]/15 text-[#6BFF91] border-[#6BFF91]/30'
+                    : isSuspended
+                    ? 'bg-[#FE432A]/20 text-[#FCA5A5] border-[#FE432A]/40'
+                    : 'bg-white/10 text-white/70 border-white/15'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isBotOnline ? 'bg-[#6BFF91] animate-pulse' : isSuspended ? 'bg-[#FE432A]' : 'bg-white/50'
+                  }`}
+                />
+                {isBotOnline
+                  ? 'Принимает звонки 24/7'
                   : isSuspended
-                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  : 'bg-white/10 text-zinc-400 border border-white/15'
-              }`}
-            >
-              <PhoneCall className="w-6 h-6" />
+                  ? `Приостановлен · лимит ${creditLimitByn} BYN`
+                  : 'Поставлен на паузу'}
+              </span>
+
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/50">
+                Голос: {agent.voice === 'maxim' ? 'Максим' : 'Анна'}
+              </span>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                  {agent.companyName || user.companyName || 'Моя компания'}
-                </h2>
-                <span
-                  className={`px-3 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
-                    isBotOnline
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : isSuspended
-                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
-                      : 'bg-white/10 text-zinc-300 border border-white/15'
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      isBotOnline ? 'bg-emerald-400 animate-pulse' : isSuspended ? 'bg-rose-400' : 'bg-zinc-400'
-                    }`}
-                  />
-                  {isBotOnline
-                    ? 'Принимает звонки 24/7'
-                    : isSuspended
-                    ? `Приостановлен (превышен лимит ${creditLimitByn} BYN)`
-                    : 'Поставлен на паузу'}
-                </span>
-              </div>
+            <h1 className="font-display text-2xl sm:text-[32px] font-bold tracking-[-0.035em] leading-[1.1] text-white truncate">
+              {agent.companyName || user.companyName || 'Моя компания'}
+            </h1>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-zinc-300">
-                <span className="whitespace-nowrap">
-                  Голос бота: <strong className="text-white">{agent.voice === 'maxim' ? 'Максим' : 'Анна'}</strong>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-white/70">
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <PhoneCall className="w-4 h-4 text-white/45" />
+                <span className="font-mono text-white">
+                  {sipSettings.callerId || '+375 (29) — не указан'}
                 </span>
-                <span className="whitespace-nowrap">
-                  Номер линии:{' '}
-                  <strong className="text-white font-mono">
-                    {sipSettings.callerId || '+375 (29) — не указан'}
-                  </strong>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => onNavigateTab('billing')}
+                className="inline-flex items-center gap-1.5 text-[#D8E738] hover:underline underline-offset-4 font-mono text-[12px] cursor-pointer whitespace-nowrap"
+              >
+                <span>
+                  {(user.ratePerMinute || 0.45).toFixed(2)} BYN/мин ·{' '}
+                  {isOwnSip ? 'Свой SIP (0 BYN)' : 'А1 ВАТС (15 BYN/мес)'}
                 </span>
-                <span className="whitespace-nowrap">
-                  Тариф:{' '}
-                  <button
-                    type="button"
-                    onClick={() => onNavigateTab('billing')}
-                    className="text-amber-300 hover:text-amber-200 font-semibold underline underline-offset-2 cursor-pointer"
-                  >
-                    {(user.ratePerMinute || 0.45).toFixed(2)} BYN/мин ({isOwnSip ? 'Свой SIP 0 BYN' : 'А1 ВАТС 15 BYN/мес'})
-                  </button>
-                </span>
-              </div>
+                <span>↗</span>
+              </button>
             </div>
           </div>
 
           {/* Master Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center shrink-0">
             <button
               type="button"
               onClick={onOpenVoiceTest}
               title="Позвонить боту через микрофон компьютера или телефона"
-              className="px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+              className="h-11 px-5 rounded-full bg-[#6BFF91] hover:bg-[#52F07A] text-black text-[13px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
             >
               <Radio className="w-4 h-4" />
               <span>Позвонить боту (тест)</span>
@@ -227,16 +226,16 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
                   ? 'Временно отключить ответы бота'
                   : 'Снова включить ответы бота на звонки'
               }
-              className={`px-4 h-10 rounded-full text-xs font-medium transition-all border ${
+              className={`h-11 px-5 rounded-full text-[13px] font-semibold transition-colors border ${
                 isSuspended
-                  ? 'bg-rose-500/20 text-rose-200 border-rose-400/30 cursor-not-allowed opacity-80'
+                  ? 'bg-[#FE432A]/15 text-[#FCA5A5] border-[#FE432A]/30 cursor-not-allowed'
                   : agent.isActive
-                  ? 'bg-white/10 hover:bg-white/15 text-white border-white/15 cursor-pointer'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 cursor-pointer'
+                  ? 'bg-white/[0.08] hover:bg-white/[0.14] text-white border-white/15 cursor-pointer'
+                  : 'bg-white text-black border-white hover:bg-[#D8E738] cursor-pointer'
               }`}
             >
               {isSuspended
-                ? 'Приостановлен до оплаты'
+                ? 'Приостановлен'
                 : agent.isActive
                 ? 'Поставить на паузу'
                 : 'Включить приём звонков'}
@@ -245,23 +244,112 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
         </div>
       </div>
 
-      {/* Real Analytics StatCard (honest empty state when 0 calls, real data when calls exist) */}
+      {/* 2. Three Editorial Metric Tiles (Neutral / Forest / Lime) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Metric 1: Calls */}
+        <div className="p-6 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06] flex flex-col justify-between gap-5">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+              01 · Принято звонков
+            </span>
+            <PhoneCall className="w-4 h-4 text-black/40" />
+          </div>
+          <div>
+            <div className="font-display text-4xl font-bold text-black tracking-[-0.04em] tabular-nums">
+              {totalCalls}
+            </div>
+            <p className="text-[12.5px] text-[#525252] mt-2 leading-snug">
+              {totalCalls > 0
+                ? 'Все клиенты получили ответ с первого гудка'
+                : 'Готов принять первый тестовый или рабочий звонок'}
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 2: Saved Revenue (Deep Forest + Neon Mint) */}
+        <button
+          type="button"
+          onClick={() => onNavigateTab('leads')}
+          className="p-6 rounded-[24px] bg-[#1C3B36] hover:bg-[#16302C] text-white text-left flex flex-col justify-between gap-5 transition-colors group cursor-pointer"
+          title="Открыть список заявок"
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/65">
+              02 · Сохранённые заказы
+            </span>
+            <Wallet className="w-4 h-4 text-[#6BFF91]" />
+          </div>
+          <div>
+            <div className="font-display text-4xl font-bold text-[#6BFF91] tracking-[-0.04em] tabular-nums">
+              +{savedRevenueByn.toLocaleString('ru-RU')}{' '}
+              <span className="text-lg font-mono font-semibold text-white/75">BYN</span>
+            </div>
+            <div className="text-[12.5px] text-white/75 mt-2 flex items-center justify-between gap-2">
+              <span>Вечерние и пиковые звонки</span>
+              <span className="font-mono text-[11px] text-[#6BFF91] group-hover:translate-x-0.5 transition-transform">
+                Заявки ↗
+              </span>
+            </div>
+          </div>
+        </button>
+
+        {/* Metric 3: Tariff & Monthly Due (Acid Lime) */}
+        <button
+          type="button"
+          onClick={() => onNavigateTab('billing')}
+          className="p-6 rounded-[24px] bg-[#D8E738] hover:bg-[#CFDF2E] text-black text-left flex flex-col justify-between gap-5 transition-colors group cursor-pointer"
+          title="Открыть раздел Тариф и оплата"
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-black/65">
+              03 · Счёт за месяц
+            </span>
+            <Clock className="w-4 h-4 text-black/65" />
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="font-display text-4xl font-bold text-black tracking-[-0.04em] tabular-nums">
+                {unpaidDebtByn.toFixed(2)}{' '}
+                <span className="text-lg font-mono font-semibold text-black/65">BYN</span>
+              </div>
+              <span className="text-[11px] px-3 py-1 rounded-full bg-black text-white font-semibold shrink-0">
+                Тарифы ↗
+              </span>
+            </div>
+            <div className="text-[12px] text-black/75 mt-2 flex items-center justify-between gap-2">
+              <span className="font-medium truncate">
+                {freeMins > 0
+                  ? `Баланс: ${freeMins.toFixed(1)} мин`
+                  : `${(user.ratePerMinute || 0.45).toFixed(2)} BYN/мин`}
+              </span>
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] shrink-0">
+                Карта · ЕРИП
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* 3. Real Analytics StatCard (honest empty state when 0 calls) */}
       {totalCalls === 0 ? (
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-6 sm:p-7 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900">
-              Статистика выручки и звонков появится после первого диалога
+            <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+              Динамика звонков
+            </div>
+            <h3 className="font-display text-[17px] font-bold text-black tracking-[-0.02em]">
+              Статистика выручки появится после первого диалога
             </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Сейчас в журнале 0 звонков и 0 BYN. Сделайте тестовый звонок вашему боту, чтобы увидеть реальную статистику и расшифровку.
+            <p className="text-[13px] text-[#525252] leading-relaxed">
+              Сейчас в журнале 0 звонков и 0 BYN. Сделайте тестовый звонок вашему боту, чтобы увидеть график и расшифровку.
             </p>
           </div>
           <button
             type="button"
             onClick={onOpenVoiceTest}
-            className="px-4 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shrink-0 transition-colors cursor-pointer"
+            className="h-10 px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12px] font-semibold shrink-0 transition-colors cursor-pointer"
           >
-            Проверить бота сейчас
+            Проверить бота сейчас ↗
           </button>
         </div>
       ) : (
@@ -271,7 +359,7 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
             week: {
               valueLabel: `${savedRevenueByn.toLocaleString('ru-RU')} BYN`,
               deltaLabel: `${totalCalls} звонков`,
-              subtitle: 'Реальные данные за последние 7 дней • отклик ~0.5 сек',
+              subtitle: 'Реальные данные за последние 7 дней · отклик ~0.5 сек',
               points: [
                 Math.max(10, Math.round(savedRevenueByn * 0.2)),
                 Math.max(15, Math.round(savedRevenueByn * 0.35)),
@@ -302,293 +390,218 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
         />
       )}
 
-      {/* 2. Simple 3-Step Launch Checklist with Real Completion Status */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+      {/* 4. 3-Step Launch Checklist */}
+      <div className="p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900">
-              Быстрая настройка в 3 простых шага
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Нажмите на любой шаг, чтобы заполнить или проверить настройки вашей компании
-            </p>
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+              Чек-лист запуска
+            </span>
+            <h2 className="font-display text-lg sm:text-xl font-bold text-black tracking-[-0.025em] mt-0.5">
+              Быстрая настройка в 3 шага
+            </h2>
           </div>
 
-          <div className="flex items-center gap-2.5 self-start sm:self-auto">
-            <div className="flex items-center gap-1" aria-hidden="true">
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <div className="flex items-center gap-1.5" aria-hidden="true">
               {[isStep1Done, isStep2Done, isStep3Done].map((done, i) => (
                 <span
                   key={i}
-                  className={`w-6 h-1.5 rounded-full transition-colors ${
-                    done ? 'bg-emerald-500' : 'bg-slate-200'
+                  className={`w-7 h-1.5 rounded-full transition-colors ${
+                    done ? 'bg-black' : 'bg-black/[0.1]'
                   }`}
                 />
               ))}
             </div>
             <span
-              className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
+              className={`font-mono text-[11px] font-semibold px-3 py-1 rounded-full ${
                 completedStepsCount === 3
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                  ? 'bg-[#6BFF91] text-black'
+                  : 'bg-[#F5F5F5] text-black border border-black/[0.08]'
               }`}
             >
               {completedStepsCount === 3
-                ? '✓ Все 3 шага готовы'
-                : `Готово ${completedStepsCount} из 3 шагов`}
+                ? '✓ Все 3 готовы'
+                : `${completedStepsCount} из 3`}
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          {/* Шаг 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Step 1 */}
           <button
             type="button"
             onClick={() => onNavigateTab('agent')}
-            className={`p-4 rounded-2xl border text-left transition-all group flex flex-col justify-between gap-3 cursor-pointer ${
+            className={`p-5 rounded-[20px] border text-left transition-colors group flex flex-col justify-between gap-4 cursor-pointer ${
               isStep1Done
-                ? 'bg-emerald-50/35 hover:bg-emerald-50/70 border-emerald-200/90'
-                : 'bg-slate-50/80 hover:bg-indigo-50/50 border-slate-200/90 hover:border-indigo-300'
+                ? 'bg-white hover:bg-[#F5F5F5] border-black/[0.12]'
+                : 'bg-[#F5F5F5] hover:bg-[#EBEBEB] border-black/[0.06]'
             }`}
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-2 text-xs font-bold text-slate-900">
-                  <span
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      isStep1Done ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'
-                    }`}
-                  >
-                    {isStep1Done ? <CheckCircle2 className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                  </span>
-                  <span>1. Услуги, цены и голос</span>
+                <span className="font-mono text-[11px] font-bold text-[#737373]">01</span>
+                <span
+                  className={`w-8 h-8 rounded-[10px] flex items-center justify-center ${
+                    isStep1Done ? 'bg-[#6BFF91] text-black' : 'bg-white text-black border border-black/[0.08]'
+                  }`}
+                >
+                  {isStep1Done ? <CheckCircle2 className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Укажите сферу бизнеса, адрес, график работы и прайс-лист простыми словами.
-              </p>
+              <div>
+                <div className="font-display text-[15px] font-bold text-black">
+                  Услуги, цены и голос
+                </div>
+                <p className="text-[12.5px] text-[#525252] leading-relaxed mt-1">
+                  Укажите сферу бизнеса, адрес, график работы и прайс-лист в BYN.
+                </p>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px]">
+            <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between text-[11.5px]">
               <span
-                className={`px-2 py-0.5 rounded-full font-semibold ${
-                  isStep1Done
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-900'
+                className={`font-mono text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold ${
+                  isStep1Done ? 'bg-[#6BFF91]/40 text-black' : 'bg-[#D8E738] text-black'
                 }`}
               >
-                {isStep1Done ? '✓ Заполнено' : 'Требует настройки'}
+                {isStep1Done ? 'Готово' : 'Настроить'}
               </span>
-              <span className="text-slate-500 group-hover:text-slate-900 font-medium">
-                {isStep1Done ? 'Изменить →' : 'Заполнить →'}
+              <span className="inline-flex items-center gap-1 text-black font-semibold group-hover:translate-x-0.5 transition-transform">
+                <span>{isStep1Done ? 'Изменить' : 'Заполнить'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>
           </button>
 
-          {/* Шаг 2 */}
+          {/* Step 2 */}
           <button
             type="button"
             onClick={onOpenVoiceTest}
-            className={`p-4 rounded-2xl border text-left transition-all group flex flex-col justify-between gap-3 cursor-pointer ${
+            className={`p-5 rounded-[20px] border text-left transition-colors group flex flex-col justify-between gap-4 cursor-pointer ${
               isStep2Done
-                ? 'bg-emerald-50/35 hover:bg-emerald-50/70 border-emerald-200/90'
-                : 'bg-slate-50/80 hover:bg-emerald-50/50 border-slate-200/90 hover:border-emerald-300'
+                ? 'bg-white hover:bg-[#F5F5F5] border-black/[0.12]'
+                : 'bg-[#F5F5F5] hover:bg-[#EBEBEB] border-black/[0.06]'
             }`}
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-2 text-xs font-bold text-slate-900">
-                  <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    {isStep2Done ? <CheckCircle2 className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
-                  </span>
-                  <span>2. Проверка диалога</span>
+                <span className="font-mono text-[11px] font-bold text-[#737373]">02</span>
+                <span
+                  className={`w-8 h-8 rounded-[10px] flex items-center justify-center ${
+                    isStep2Done ? 'bg-[#6BFF91] text-black' : 'bg-white text-black border border-black/[0.08]'
+                  }`}
+                >
+                  {isStep2Done ? <CheckCircle2 className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Позвоните боту прямо с экрана и проверьте ответы на вопросы голосом или текстом.
-              </p>
+              <div>
+                <div className="font-display text-[15px] font-bold text-black">
+                  Проверка диалога
+                </div>
+                <p className="text-[12.5px] text-[#525252] leading-relaxed mt-1">
+                  Позвоните боту прямо с экрана и проверьте ответы на вопросы голосом или текстом.
+                </p>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px]">
+            <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between text-[11.5px]">
               <span
-                className={`px-2 py-0.5 rounded-full font-semibold ${
-                  isStep2Done
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-900'
+                className={`font-mono text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold ${
+                  isStep2Done ? 'bg-[#6BFF91]/40 text-black' : 'bg-[#D8E738] text-black'
                 }`}
               >
-                {isStep2Done ? `✓ Проверено (${totalCalls})` : 'Требует проверки'}
+                {isStep2Done ? `Проверено (${totalCalls})` : 'Проверить'}
               </span>
-              <span className="text-slate-500 group-hover:text-slate-900 font-medium">
-                Позвонить →
+              <span className="inline-flex items-center gap-1 text-black font-semibold group-hover:translate-x-0.5 transition-transform">
+                <span>Позвонить</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>
           </button>
 
-          {/* Шаг 3 */}
+          {/* Step 3 */}
           <button
             type="button"
             onClick={() => onNavigateTab('phone')}
-            className={`p-4 rounded-2xl border text-left transition-all group flex flex-col justify-between gap-3 cursor-pointer ${
+            className={`p-5 rounded-[20px] border text-left transition-colors group flex flex-col justify-between gap-4 cursor-pointer ${
               isStep3Done
-                ? 'bg-emerald-50/35 hover:bg-emerald-50/70 border-emerald-200/90'
-                : 'bg-slate-50/80 hover:bg-teal-50/50 border-slate-200/90 hover:border-teal-300'
+                ? 'bg-white hover:bg-[#F5F5F5] border-black/[0.12]'
+                : 'bg-[#F5F5F5] hover:bg-[#EBEBEB] border-black/[0.06]'
             }`}
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-2 text-xs font-bold text-slate-900">
-                  <span
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      isStep3Done ? 'bg-emerald-100 text-emerald-700' : 'bg-teal-100 text-teal-700'
-                    }`}
-                  >
-                    {isStep3Done ? <CheckCircle2 className="w-4 h-4" /> : <Network className="w-4 h-4" />}
-                  </span>
-                  <span>3. Подключение номера</span>
+                <span className="font-mono text-[11px] font-bold text-[#737373]">03</span>
+                <span
+                  className={`w-8 h-8 rounded-[10px] flex items-center justify-center ${
+                    isStep3Done ? 'bg-[#6BFF91] text-black' : 'bg-white text-black border border-black/[0.08]'
+                  }`}
+                >
+                  {isStep3Done ? <CheckCircle2 className="w-4 h-4" /> : <Network className="w-4 h-4" />}
                 </span>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Настройте переадресацию за 10 секунд или свой SIP и укажите номер для перевода.
-              </p>
+              <div>
+                <div className="font-display text-[15px] font-bold text-black">
+                  Подключение номера
+                </div>
+                <p className="text-[12.5px] text-[#525252] leading-relaxed mt-1">
+                  Настройте переадресацию за 10 секунд или свой SIP и укажите номер для перевода.
+                </p>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px]">
+            <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between text-[11.5px]">
               <span
-                className={`px-2 py-0.5 rounded-full font-semibold ${
-                  isStep3Done
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-900'
+                className={`font-mono text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold ${
+                  isStep3Done ? 'bg-[#6BFF91]/40 text-black' : 'bg-[#D8E738] text-black'
                 }`}
               >
-                {isStep3Done ? '✓ Заполнено' : 'Требует настройки'}
+                {isStep3Done ? 'Подключено' : 'Подключить'}
               </span>
-              <span className="text-slate-500 group-hover:text-slate-900 font-medium">
-                {isStep3Done ? 'Проверить →' : 'Подключить →'}
+              <span className="inline-flex items-center gap-1 text-black font-semibold group-hover:translate-x-0.5 transition-transform">
+                <span>{isStep3Done ? 'Проверить' : 'Настроить'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>
           </button>
         </div>
       </div>
 
-      {/* 3. Three Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Метрика 1: Звонки */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2.5">
-          <div className="flex items-center justify-between text-slate-600 text-xs">
-            <span className="font-semibold">Принято звонков ботом</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center">
-              <PhoneCall className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
-            {totalCalls}
-          </div>
-          <p className="text-[11px] text-blue-700 font-medium flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>
-              {totalCalls > 0
-                ? 'Все клиенты получили ответ с первого гудка'
-                : 'Готов принять первый тестовый или рабочий звонок'}
-            </span>
-          </p>
-        </div>
-
-        {/* Метрика 2: Сохраненные заказы */}
-        <button
-          type="button"
-          onClick={() => onNavigateTab('leads')}
-          className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2.5 text-left hover:border-emerald-300 transition-all group cursor-pointer"
-          title="Открыть список заявок"
-        >
-          <div className="flex items-center justify-between text-slate-600 text-xs">
-            <span className="font-semibold group-hover:text-emerald-700 transition-colors">
-              Сохранённые заказы
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center justify-center">
-              <Wallet className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
-            +{savedRevenueByn} <span className="text-base font-bold text-slate-500">BYN</span>
-          </div>
-          <p className="text-[11px] text-emerald-700 font-semibold flex items-center justify-between">
-            <span>Вечерние и выходные звонки</span>
-            <span>Все заявки →</span>
-          </p>
-        </button>
-
-        {/* Метрика 3: Тариф и оплата */}
-        <button
-          type="button"
-          onClick={() => onNavigateTab('billing')}
-          className="p-5 rounded-2xl bg-white border border-amber-200/90 hover:border-amber-400 shadow-xs space-y-2.5 text-left transition-all group cursor-pointer"
-          title="Открыть раздел Тариф и оплата"
-        >
-          <div className="flex items-center justify-between text-slate-600 text-xs">
-            <span className="font-semibold group-hover:text-amber-800 transition-colors">
-              Тариф и счёт за месяц
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
-              {unpaidDebtByn.toFixed(2)}{' '}
-              <span className="text-base font-bold text-slate-500">BYN</span>
-            </div>
-            <span className="text-xs px-3 py-1 rounded-full bg-amber-500 group-hover:bg-amber-400 text-slate-950 font-bold transition-colors shrink-0">
-              Тарифы →
-            </span>
-          </div>
-          <div className="text-[11px] text-slate-600 flex items-center justify-between">
-            <span className="font-medium text-emerald-700">
-              {freeMins > 0
-                ? `Баланс: ${freeMins.toFixed(1)} мин (пакет + бонус)`
-                : `Тариф: ${(user.ratePerMinute || 0.45).toFixed(2)} BYN/мин`}
-            </span>
-            <span className="text-slate-500">Карта / ЕРИП</span>
-          </div>
-        </button>
-      </div>
-
-      {/* 4. Recent Call Leads Section */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      {/* 5. Recent Call Leads Section */}
+      <div className="p-6 sm:p-7 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06] space-y-4">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-bold text-slate-900">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+              Журнал обращений
+            </span>
+            <h2 className="font-display text-lg font-bold text-black tracking-[-0.025em] mt-0.5">
               Последние заявки со звонков
-            </h3>
-            <p className="text-xs text-slate-500">
-              Нажмите на кнопку воспроизведения, чтобы послушать ответ бота
-            </p>
+            </h2>
           </div>
 
           <button
             type="button"
             onClick={() => onNavigateTab('leads')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors cursor-pointer"
+            className="h-9 px-4 rounded-full bg-white hover:bg-black hover:text-white border border-black/[0.08] text-black text-[12px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
           >
             <span>Все заявки ({callLogs.length})</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="space-y-2.5">
           {recentCalls.length === 0 ? (
-            <div className="py-8 text-center space-y-2.5">
-              <p className="text-xs text-slate-500">
-                В журнале пока нет звонков. Проверьте бота голосом — тестовый диалог сразу появится здесь!
+            <div className="py-10 px-4 rounded-[18px] bg-white border border-black/[0.06] text-center space-y-3">
+              <p className="text-[13px] text-[#525252] max-w-md mx-auto">
+                В журнале пока нет звонков. Проверьте бота голосом — тестовый диалог сразу появится здесь.
               </p>
               <button
                 type="button"
                 onClick={onOpenVoiceTest}
-                className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="h-10 px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12px] font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                <Radio className="w-4 h-4 text-[#6BFF91]" />
                 <span>Сделать пробный звонок</span>
               </button>
             </div>
@@ -596,16 +609,17 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
             recentCalls.map((call) => (
               <div
                 key={call.id}
-                className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                className="p-4 rounded-[18px] bg-white border border-black/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
-                <div className="flex items-start sm:items-center gap-3">
+                <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                   <button
                     type="button"
                     onClick={() => handlePlayAudio(call)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                    aria-label={playingCallId === call.id ? 'Остановить запись' : 'Послушать запись ответа'}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                       playingCallId === call.id
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                        ? 'bg-black text-[#6BFF91]'
+                        : 'bg-[#F5F5F5] text-black hover:bg-black hover:text-white'
                     }`}
                     title="Послушать запись ответа"
                   >
@@ -616,26 +630,26 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
                     )}
                   </button>
 
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[13.5px] font-bold text-black">
                         {call.callerName || 'Новый клиент'}
                       </span>
-                      <span className="text-xs text-slate-500 font-mono">
+                      <span className="text-[12px] text-[#737373] font-mono">
                         {call.callerNumber}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 line-clamp-1 mt-0.5">
+                    <p className="text-[12.5px] text-[#525252] line-clamp-1 mt-0.5">
                       {call.summary}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 sm:self-center pl-12 sm:pl-0">
-                  <span className="text-xs font-bold font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                <div className="flex items-center gap-3 sm:self-center pl-13 sm:pl-0 shrink-0">
+                  <span className="font-mono text-[11.5px] font-bold text-black bg-[#D8E738] px-3 py-1 rounded-full tabular-nums">
                     +{call.dealValueByn} BYN
                   </span>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="font-mono text-[11px] text-[#737373] tabular-nums">
                     {call.timestamp.split(' ')[1] || call.timestamp}
                   </span>
                 </div>
@@ -645,11 +659,11 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
         </div>
       </div>
 
-      {/* 5. Calm Data Safety Footer */}
-      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center gap-3 text-xs text-slate-600">
-        <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+      {/* 6. Minimal Data Safety Strip */}
+      <div className="px-5 py-4 rounded-[18px] bg-white border border-black/[0.08] flex items-center gap-3 text-[12.5px] text-[#525252]">
+        <ShieldCheck className="w-5 h-5 text-black shrink-0" />
         <span>
-          <strong className="text-slate-900">Безопасная работа в Беларуси:</strong> ваши контакты и записи разговоров защищены и обрабатываются в соответствии с Законом РБ № 99‑З. ИП Беляков К.О. (УНП 193991846).
+          <strong className="text-black">Защита данных в РБ:</strong> контакты и записи разговоров обрабатываются в соответствии с Законом РБ № 99‑З. ИП Беляков К.О. (УНП 193991846).
         </span>
       </div>
     </div>

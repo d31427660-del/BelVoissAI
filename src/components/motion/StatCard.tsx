@@ -63,30 +63,33 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       className={cn(
-        'p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4',
+        'p-6 sm:p-7 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06] space-y-5',
         className
       )}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="text-xs font-medium text-slate-500">{title}</div>
-          <div className="flex items-baseline gap-2.5 mt-1">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-950 tracking-tight tabular-nums">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+            {title}
+          </div>
+          <div className="flex items-baseline gap-2.5 mt-1.5">
+            <span className="font-display text-3xl sm:text-4xl font-bold text-black tracking-[-0.04em] tabular-nums">
               {active.valueLabel}
             </span>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+            <span className="font-mono text-[11px] font-semibold text-black bg-[#D8E738] px-2.5 py-0.5 rounded-full">
               {active.deltaLabel}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">{active.subtitle}</div>
+          <div className="text-[12px] text-[#525252] mt-1">{active.subtitle}</div>
         </div>
 
         <SlidingTabs<PeriodKey>
           ariaLabel="Период статистики"
           value={period}
           onChange={setPeriod}
-          className="bg-slate-100 border-slate-200/80 self-start sm:self-auto"
-          tabClassName="px-3 py-1 text-xs sm:text-xs"
+          className="bg-black/[0.06] border-transparent self-start sm:self-auto"
+          tabClassName="px-3.5 py-1.5 text-[12px]"
+          activePillClassName="bg-white shadow-xs"
           options={[
             { value: 'week', label: 'Неделя' },
             { value: 'month', label: 'Месяц' },
@@ -95,7 +98,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         />
       </div>
 
-      <div className="w-full h-24 overflow-hidden">
+      <div className="w-full h-24 overflow-hidden rounded-[16px] bg-white border border-black/[0.06] p-2">
         <svg
           viewBox="0 0 320 88"
           preserveAspectRatio="none"
@@ -105,8 +108,8 @@ export const StatCard: React.FC<StatCardProps> = ({
         >
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.24" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#0A0A0A" stopOpacity="0.14" />
+              <stop offset="100%" stopColor="#0A0A0A" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -123,7 +126,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           <motion.path
             d={line}
             fill="none"
-            stroke="#059669"
+            stroke="#000000"
             strokeWidth="2.25"
             strokeLinecap="round"
             strokeLinejoin="round"

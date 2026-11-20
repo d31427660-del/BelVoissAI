@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   PhoneCallingRoundedIcon as Phone,
   SendSquareIcon as Send,
@@ -12,14 +11,12 @@ import {
   CalendarIcon,
   ClockCircleIcon as Clock,
   ChatRoundDotsIcon as MessageSquare,
-  ShieldCheckIcon as ShieldCheck,
-  DisketteIcon as Save,
-  RefreshIcon as RefreshCw
+  DisketteIcon as Save
 } from '@solar-icons/react/bold-duotone';
 import { CallLog, AgentConfig, TelegramSettings, WebhookSettings, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { sendTestTelegramCard } from '../../lib/vapiService';
-import { FieldLabel, FieldHint } from './FieldHelp';
+import { FieldLabel } from './FieldHelp';
 
 interface LeadsTabProps {
   callLogs: CallLog[];
@@ -30,6 +27,8 @@ interface LeadsTabProps {
   webhookSettings?: WebhookSettings;
   onSaveWebhook?: (settings: WebhookSettings) => void;
 }
+
+const nativeSwitchAttr = { switch: '' } as React.InputHTMLAttributes<HTMLInputElement>;
 
 export const LeadsTab: React.FC<LeadsTabProps> = ({
   callLogs,
@@ -147,26 +146,35 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
     const hasGoogle = Boolean(googleCalendarId.trim() && googleOAuthToken.trim());
     const hasYclients = Boolean(partnerToken.trim());
-    const nextPlatform = hasGoogle && !hasYclients ? 'google_calendar' : hasYclients ? 'yclients' : (googleCalendarId.trim() ? 'google_calendar' : 'none');
+    const nextPlatform =
+      hasGoogle && !hasYclients
+        ? 'google_calendar'
+        : hasYclients
+        ? 'yclients'
+        : googleCalendarId.trim()
+        ? 'google_calendar'
+        : 'none';
 
-    // Sync SMS follow-up, YCLIENTS, and Google Calendar settings in agent config
     onSaveAgent({
       ...agent,
-      callerNotification: agent.callerNotification ? {
-        ...agent.callerNotification,
-        isEnabled: smsFollowUpEnabled
-      } : {
-        isEnabled: smsFollowUpEnabled,
-        channel: 'sms',
-        provider: 'sms_by',
-        template: 'Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} на {ВРЕМЯ}. Наш адрес: {АДРЕС}. Ждём вас!',
-        sendMapLink: false,
-        notifyOnlyOnLead: true
-      },
+      callerNotification: agent.callerNotification
+        ? {
+            ...agent.callerNotification,
+            isEnabled: smsFollowUpEnabled
+          }
+        : {
+            isEnabled: smsFollowUpEnabled,
+            channel: 'sms',
+            provider: 'sms_by',
+            template: 'Здравствуйте, {ИМЯ}! Вы записаны в {КОМПАНИЯ} на {ВРЕМЯ}. Наш адрес: {АДРЕС}. Ждём вас!',
+            sendMapLink: false,
+            notifyOnlyOnLead: true
+          },
       yclientsConfig: {
         isEnabled: Boolean(hasYclients || hasGoogle || googleCalendarId.trim()),
         partnerToken: nextPlatform === 'google_calendar' ? googleOAuthToken.trim() : partnerToken.trim(),
-        companyId: nextPlatform === 'google_calendar' ? googleCalendarId.trim() : (agent.yclientsConfig?.companyId || ''),
+        companyId:
+          nextPlatform === 'google_calendar' ? googleCalendarId.trim() : agent.yclientsConfig?.companyId || '',
         googleCalendarId: googleCalendarId.trim(),
         platform: nextPlatform,
         autoBookSlots: agent.yclientsConfig?.autoBookSlots ?? false,
@@ -176,7 +184,6 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       updatedAt: new Date().toISOString()
     });
 
-    // Save Webhook settings if handler provided
     if (onSaveWebhook) {
       onSaveWebhook({
         webhookUrl: webhookUrl.trim(),
@@ -213,8 +220,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       summary.includes(q) ||
       service.includes(q);
 
-    const matchesStatus =
-      statusFilter === 'all' || log.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
 
     return matchesQuery && matchesStatus;
   });
@@ -223,67 +229,75 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
   const totalRevenueByn = callLogs.reduce((sum, c) => sum + (c.dealValueByn || 0), 0);
 
   return (
-    <form id="active-workspace-form" onSubmit={handleSaveTelegram} className="space-y-6 max-w-4xl mx-auto">
-      {/* Top Dark Hero Header */}
-      <div className="p-6 rounded-3xl bg-[#141417] text-white border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute -top-20 -right-16 w-64 h-64 rounded-full opacity-25"
-          style={{
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.55) 0%, rgba(16, 185, 129, 0.25) 60%, transparent 75%)'
-          }}
-        />
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[11px] font-semibold mb-1.5">
+    <form id="active-workspace-form" onSubmit={handleSaveTelegram} className="space-y-6">
+      {/* Editorial mono eyebrow rule */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          <span className="w-1.5 h-1.5 rounded-full bg-black" />
+          <span>Журнал звонков · Telegram и CRM</span>
+        </div>
+        <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" />
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          {callLogs.length} ЗАПИСЕЙ
+        </span>
+      </div>
+
+      {/* Top Dotted Obsidian Header */}
+      <div className="voxi-dot-surface p-6 sm:p-8 rounded-[28px] text-white border border-black flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#6BFF91]">
             <Send className="w-3.5 h-3.5" />
             <span>Журнал звонков и лиды</span>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight">
+          <h1 className="font-display text-2xl sm:text-[30px] font-bold tracking-[-0.035em] leading-[1.1] text-white">
             Заявки и уведомления
-          </h2>
-          <p className="text-xs text-zinc-300 mt-0.5">
-            Контакты клиентов, записи на услуги и мгновенная доставка лидов в Telegram
+          </h1>
+          <p className="text-[13px] text-white/70 max-w-xl">
+            Контакты клиентов, записи на услуги, аудиозаписи и мгновенная доставка карточек лидов в Telegram.
           </p>
         </div>
 
         <button
           type="submit"
-          className="relative z-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm self-start sm:self-auto shrink-0"
+          className="h-10 px-5 rounded-full bg-[#6BFF91] hover:bg-[#52F07A] text-black text-[12.5px] font-semibold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors self-start lg:self-center shrink-0"
         >
           <Save className="w-4 h-4" />
           <span>Сохранить настройки</span>
         </button>
       </div>
 
-      {/* CARD 1: Уведомления о новых заявках в Telegram */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center shrink-0">
+      {/* CARD 1: Уведомления о новых заявках в Telegram и SMS */}
+      <section className="p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-black/[0.08]">
+          <div className="flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-[12px] bg-[#0A0A0A] text-[#6BFF91] flex items-center justify-center shrink-0">
               <Send className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
+              <h2 className="font-display text-[17px] font-bold text-black tracking-[-0.02em]">
                 Получение заявок в Telegram
-              </h3>
-              <p className="text-xs text-slate-500">
+              </h2>
+              <p className="text-[12.5px] text-[#737373]">
                 Бот сразу присылает имя клиента, телефон и услугу после завершения звонка
               </p>
             </div>
           </div>
 
-          <label className="inline-flex items-center gap-2 cursor-pointer">
+          <label htmlFor="tg-enabled-switch" className="inline-flex items-center gap-2.5 cursor-pointer select-none">
             <input
+              id="tg-enabled-switch"
               type="checkbox"
+              {...nativeSwitchAttr}
               checked={localTg.isEnabled}
               onChange={(e) => setLocalTg({ ...localTg, isEnabled: e.target.checked })}
-              className="w-4 h-4 rounded accent-blue-600"
+              className="w-4 h-4 accent-black cursor-pointer"
             />
-            <span className="text-xs font-semibold text-slate-900">Включено</span>
+            <span className="text-[13px] font-semibold text-black">Включено</span>
           </label>
         </div>
 
         {localTg.isEnabled && (
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
             <div className="sm:col-span-8">
               <FieldLabel
                 htmlFor="tg-chat-id"
@@ -300,30 +314,30 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 value={localTg.chatId}
                 onChange={(e) => setLocalTg({ ...localTg, chatId: e.target.value })}
                 placeholder="Например: 419283746 или -100192837465"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 focus:bg-white border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-600"
+                className="w-full px-4 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[13px] text-black font-mono focus:outline-none transition-colors"
               />
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[11.5px] text-[#737373] mt-1.5">
                 Чтобы узнать свой ID: откройте в Telegram бота{' '}
                 <a
                   href="https://t.me/userinfobot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-blue-600 underline hover:text-blue-800"
+                  className="font-semibold text-black underline underline-offset-4 hover:text-[#0225AC]"
                 >
                   @userinfobot
                 </a>{' '}
-                и нажмите «Старт». Он сразу пришлёт ваш цифровой Id.
+                и нажмите «Старт».
               </p>
             </div>
 
-            <div className="sm:col-span-4 flex flex-col gap-2">
+            <div className="sm:col-span-4 pb-[22px]">
               <button
                 type="button"
                 onClick={handleTestTelegram}
                 disabled={isTestingTg || !localTg.chatId}
-                className="w-full px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
+                className="w-full h-[42px] px-4 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] font-semibold inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-35 cursor-pointer"
               >
-                <Send className="w-3.5 h-3.5 text-blue-600" />
+                <Send className="w-3.5 h-3.5 text-[#6BFF91]" />
                 <span>{isTestingTg ? 'Отправляем...' : 'Отправить тест'}</span>
               </button>
             </div>
@@ -331,61 +345,81 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
         )}
 
         {tgTestResult && (
-          <div className={`p-2.5 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 ${
-            tgTestResult.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-          }`}>
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+          <div
+            className={`p-3.5 rounded-[14px] text-[12.5px] font-semibold flex items-center gap-2 border ${
+              tgTestResult.ok
+                ? 'bg-[#0A0A0A] text-white border-black'
+                : 'bg-[#FFF5F3] text-[#991B1B] border-[#FE432A]/40'
+            }`}
+          >
+            <CheckCircle2
+              className={`w-4 h-4 shrink-0 ${tgTestResult.ok ? 'text-[#6BFF91]' : 'text-[#FE432A]'}`}
+            />
             <span>{tgTestResult.message}</span>
           </div>
         )}
 
         {/* SMS-визитка клиенту */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-semibold text-slate-900">SMS-визитка клиенту сразу после звонка</div>
-            <div className="text-[11px] text-slate-500">
+        <div className="pt-4 border-t border-black/[0.08] flex items-center justify-between gap-4">
+          <label htmlFor="sms-followup-toggle" className="cursor-pointer">
+            <div className="text-[13.5px] font-semibold text-black">
+              SMS-визитка клиенту сразу после звонка
+            </div>
+            <div className="text-[12px] text-[#737373] mt-0.5">
               Отправляет клиенту SMS с адресом, датой записи и телефоном компании
             </div>
-          </div>
+          </label>
           <input
             id="sms-followup-toggle"
             type="checkbox"
+            {...nativeSwitchAttr}
             aria-label="SMS-визитка клиенту сразу после звонка"
             checked={smsFollowUpEnabled}
             onChange={(e) => setSmsFollowUpEnabled(e.target.checked)}
-            className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+            className="w-4 h-4 accent-black cursor-pointer shrink-0"
           />
         </div>
-      </div>
+      </section>
 
       {/* STATS OVERVIEW */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-          <div className="text-xs font-semibold text-slate-500">Всего звонков</div>
-          <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">{callLogs.length}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-5 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06]">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#737373]">
+            Всего звонков
+          </div>
+          <div className="font-display text-3xl font-bold text-black tracking-[-0.03em] tabular-nums mt-2">
+            {callLogs.length}
+          </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-emerald-200/90 shadow-xs">
-          <div className="text-xs font-semibold text-emerald-700">Записано клиентов</div>
-          <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1">{totalLeadsCount}</div>
+        <div className="p-5 rounded-[24px] bg-[#1C3B36] text-white">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/65">
+            Записано клиентов
+          </div>
+          <div className="font-display text-3xl font-bold text-[#6BFF91] tracking-[-0.03em] tabular-nums mt-2">
+            {totalLeadsCount}
+          </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-amber-200/90 shadow-xs">
-          <div className="text-xs font-semibold text-amber-800">Сумма заказов по заявкам</div>
-          <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">{totalRevenueByn} BYN</div>
+        <div className="p-5 rounded-[24px] bg-[#D8E738] text-black">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-black/65">
+            Сумма заказов
+          </div>
+          <div className="font-display text-3xl font-bold text-black tracking-[-0.03em] tabular-nums mt-2">
+            {totalRevenueByn.toLocaleString('ru-RU')}{' '}
+            <span className="font-mono text-base font-semibold text-black/65">BYN</span>
+          </div>
         </div>
       </div>
 
       {/* FILTER & SEARCH BAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-full bg-[#F5F5F5] border border-black/[0.06] self-start">
           <button
             type="button"
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === 'all'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors cursor-pointer ${
+              statusFilter === 'all' ? 'bg-black text-white' : 'text-[#525252] hover:text-black'
             }`}
           >
             Все ({callLogs.length})
@@ -393,10 +427,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           <button
             type="button"
             onClick={() => setStatusFilter('lead_captured')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === 'lead_captured'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors cursor-pointer ${
+              statusFilter === 'lead_captured' ? 'bg-black text-white' : 'text-[#525252] hover:text-black'
             }`}
           >
             С записью ({totalLeadsCount})
@@ -404,40 +436,38 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           <button
             type="button"
             onClick={() => setStatusFilter('consultation')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === 'consultation'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+            className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors cursor-pointer ${
+              statusFilter === 'consultation' ? 'bg-black text-white' : 'text-[#525252] hover:text-black'
             }`}
           >
             Консультации ({callLogs.filter((c) => c.status === 'consultation').length})
           </button>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 text-[#737373] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск по имени, номеру, услуге..."
-            className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            className="w-full h-10 pl-9 pr-4 rounded-full bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[12.5px] text-black placeholder:text-[#A3A3A3] focus:outline-none transition-colors"
           />
         </div>
       </div>
 
       {/* LEADS LIST */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {filteredLogs.length === 0 ? (
-          <div className="p-8 rounded-[16px] liquid-glass-card text-center space-y-2">
-            <div className="w-10 h-10 rounded-full bg-black/[0.04] text-[#777169] flex items-center justify-center mx-auto">
+          <div className="p-10 rounded-[24px] bg-[#F5F5F5] border border-black/[0.06] text-center space-y-2.5">
+            <div className="w-11 h-11 rounded-full bg-white border border-black/[0.08] text-black flex items-center justify-center mx-auto">
               <CalendarIcon className="w-5 h-5" />
             </div>
-            <div className="text-xs font-medium text-black">Заявок не найдено</div>
-            <p className="text-[11px] text-[#777169]">
+            <div className="font-display text-[15px] font-bold text-black">Заявок не найдено</div>
+            <p className="text-[12.5px] text-[#737373] max-w-sm mx-auto">
               {searchQuery
                 ? 'По вашему запросу ничего не найдено. Попробуйте изменить параметры поиска.'
-                : 'Здесь появятся клиенты, записавшиеся через бота.'}
+                : 'Здесь появятся клиенты, записавшиеся через голосового ИИ-администратора.'}
             </p>
           </div>
         ) : (
@@ -447,51 +477,53 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
             const isPlayingThis = playingCallId === log.id;
 
             return (
-              <div
+              <article
                 key={log.id}
-                className="p-4 sm:p-5 rounded-[16px] liquid-glass-card space-y-3 transition-all border border-black/[0.06] hover:border-black/[0.12]"
+                className="p-5 sm:p-6 rounded-[24px] bg-white border border-black/[0.08] hover:border-black/20 space-y-4 transition-colors"
               >
                 {/* Header row of card */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3.5">
                     <div
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${
+                      className={`w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 ${
                         isLead
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          ? 'bg-[#0A0A0A] text-[#6BFF91]'
+                          : 'bg-[#F5F5F5] text-black border border-black/[0.06]'
                       }`}
                     >
                       <Phone className="w-4 h-4" />
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-black">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-display text-[15px] font-bold text-black">
                           {log.callerName || log.capturedData?.clientName || 'Клиент'}
                         </span>
                         <span
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                          className={`font-mono text-[10px] uppercase tracking-[0.08em] font-bold px-2.5 py-0.5 rounded-full ${
                             isLead
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-[#6BFF91] text-black'
+                              : 'bg-[#F5F5F5] text-[#525252] border border-black/[0.08]'
                           }`}
                         >
                           {isLead ? 'Записан' : 'Консультация'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs font-mono text-[#59544F] mt-0.5">
+                      <div className="flex items-center gap-2 text-[12.5px] font-mono text-[#525252] mt-0.5">
                         <span>{log.callerNumber}</span>
                         <button
                           type="button"
                           onClick={(e) => handleCopyPhone(log.id, log.callerNumber, e)}
-                          className="text-[#777169] hover:text-black cursor-pointer"
+                          className="text-[#737373] hover:text-black cursor-pointer transition-colors"
                           title="Скопировать номер"
                         >
                           {copiedPhoneId === log.id ? (
-                            <span className="text-[10px] text-emerald-600 font-sans">Скопировано!</span>
+                            <span className="text-[11px] text-[#15803D] font-sans font-semibold">
+                              Скопировано!
+                            </span>
                           ) : (
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </div>
@@ -499,40 +531,51 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    {log.callerNumber && !log.isTest && !log.callerNumber.includes('(Тест)') && log.callerNumber.replace(/[^\d+]/g, '').length >= 7 && (
-                      <a
-                        href={`tel:${log.callerNumber.replace(/[^\d+]/g, '')}`}
-                        className="px-3 py-1.5 rounded-[8px] bg-black text-white text-xs font-medium inline-flex items-center gap-1.5 hover:bg-black/80 transition-colors"
-                      >
-                        <Phone className="w-3 h-3" />
-                        <span>Позвонить</span>
-                      </a>
-                    )}
+                    {log.callerNumber &&
+                      !log.isTest &&
+                      !log.callerNumber.includes('(Тест)') &&
+                      log.callerNumber.replace(/[^\d+]/g, '').length >= 7 && (
+                        <a
+                          href={`tel:${log.callerNumber.replace(/[^\d+]/g, '')}`}
+                          className="h-9 px-4 rounded-full bg-black hover:bg-[#171717] text-white text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-[#6BFF91]" />
+                          <span>Позвонить</span>
+                        </a>
+                      )}
 
                     <button
                       type="button"
                       onClick={(e) => handlePlayAudio(log, e)}
-                      className="px-3 py-1.5 rounded-[8px] bg-white hover:bg-black/[0.04] text-black border border-black/[0.12] text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className={`h-9 px-4 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                        isPlayingThis
+                          ? 'bg-black text-[#6BFF91] border-black'
+                          : 'bg-[#F5F5F5] hover:bg-black hover:text-white text-black border-black/[0.08]'
+                      }`}
                     >
-                      {isPlayingThis ? <Pause className="w-3 h-3 text-blue-600" /> : <Play className="w-3 h-3 text-black" />}
+                      {isPlayingThis ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                       <span>{isPlayingThis ? 'Остановить' : 'Слушать'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Details row: Service, Time, Price */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-[10px] liquid-glass-cream text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-[16px] bg-[#F5F5F5] border border-black/[0.06] text-[12.5px]">
                   <div>
-                    <span className="text-[10px] text-[#777169] block">Выбранная услуга:</span>
-                    <span className="font-medium text-black">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[#737373] block mb-1">
+                      Услуга
+                    </span>
+                    <span className="font-semibold text-black">
                       {log.capturedData?.service || 'Консультация по услугам'}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-[#777169] block">Желаемое время:</span>
-                    <span className="font-medium text-black flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-black shrink-0" />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[#737373] block mb-1">
+                      Желаемое время
+                    </span>
+                    <span className="font-semibold text-black flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#525252] shrink-0" />
                       <span>
                         {log.bookedSlot
                           ? `${log.bookedSlot.date || 'Ближайшая дата'}, ${log.bookedSlot.time}`
@@ -542,8 +585,10 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-[#777169] block">Сумма заказа:</span>
-                    <span className="font-medium text-emerald-700 font-mono">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[#737373] block mb-1">
+                      Сумма заказа
+                    </span>
+                    <span className="font-mono font-bold text-black">
                       {log.dealValueByn > 0 ? `${log.dealValueByn} BYN` : 'По прайсу'}
                     </span>
                   </div>
@@ -551,8 +596,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
 
                 {/* AI Summary */}
                 {log.summary && (
-                  <p className="text-[11px] text-[#59544F] leading-relaxed">
-                    <strong className="text-black font-medium">Резюме диалога:</strong> {log.summary}
+                  <p className="text-[12.5px] text-[#525252] leading-relaxed">
+                    <strong className="text-black font-semibold">Резюме диалога:</strong> {log.summary}
                   </p>
                 )}
 
@@ -562,17 +607,17 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                     <button
                       type="button"
                       onClick={() => setExpandedCallId(isExpanded ? null : log.id)}
-                      className="text-[11px] font-medium text-black/70 hover:text-black inline-flex items-center gap-1 cursor-pointer"
+                      className="text-[12px] font-semibold text-black/75 hover:text-black inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      <MessageSquare className="w-3 h-3" />
+                      <MessageSquare className="w-3.5 h-3.5" />
                       <span>{isExpanded ? 'Скрыть текст беседы' : 'Показать текст беседы'}</span>
                       <ChevronDown
-                        className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                       />
                     </button>
 
                     {isExpanded && (
-                      <div className="mt-2 p-3 rounded-[10px] bg-white border border-black/[0.06] space-y-2 text-xs">
+                      <div className="mt-3 p-4 rounded-[16px] bg-[#F5F5F5] border border-black/[0.06] space-y-2.5 text-[12.5px]">
                         {log.transcript.map((t, idx) => {
                           const isBot = t.speaker === 'assistant';
                           return (
@@ -580,14 +625,14 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                               key={idx}
                               className={`flex flex-col ${isBot ? 'items-start' : 'items-end'}`}
                             >
-                              <div className="text-[9px] text-[#777169] mb-0.5">
-                                {isBot ? 'Бот Voxi' : 'Клиент'} • {t.time}
+                              <div className="font-mono text-[10px] text-[#737373] mb-1">
+                                {isBot ? 'Бот Voxi' : 'Клиент'} · {t.time}
                               </div>
                               <div
-                                className={`px-3 py-1.5 rounded-[10px] max-w-[85%] text-xs leading-relaxed ${
+                                className={`px-3.5 py-2 rounded-[14px] max-w-[85%] leading-relaxed ${
                                   isBot
-                                    ? 'bg-black/[0.04] text-black rounded-tl-none'
-                                    : 'bg-black text-white rounded-tr-none'
+                                    ? 'bg-white text-black border border-black/[0.06] rounded-tl-xs'
+                                    : 'bg-[#0A0A0A] text-white rounded-tr-xs'
                                 }`}
                               >
                                 {t.text}
@@ -599,31 +644,33 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                     )}
                   </div>
                 )}
-              </div>
+              </article>
             );
           })
         )}
       </div>
 
       {/* DISCLOSURE: Дополнительные интеграции (YClients, Google Календарь, Webhook) */}
-      <details className="group rounded-[16px] liquid-glass-card overflow-hidden">
-        <summary className="p-4 sm:p-5 flex items-center justify-between text-xs font-medium text-black hover:bg-black/[0.02] cursor-pointer list-none transition-colors">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-black shrink-0" />
+      <details className="group rounded-[24px] bg-white border border-black/[0.08] overflow-hidden">
+        <summary className="p-5 sm:p-6 flex items-center justify-between text-[13.5px] font-semibold text-black hover:bg-[#F5F5F5] cursor-pointer list-none transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-[10px] bg-[#F5F5F5] border border-black/[0.06] flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-4 h-4 text-black" />
+            </span>
             <span>Дополнительные интеграции (YCLIENTS, Google Календарь, Webhook)</span>
           </div>
-          <ChevronDown className="w-4 h-4 text-[#777169] transition-transform group-open:rotate-180" />
+          <ChevronDown className="w-4 h-4 text-[#737373] transition-transform group-open:rotate-180" />
         </summary>
 
-        <div className="p-5 pt-3 border-t border-black/[0.06] space-y-4 liquid-glass-cream">
-          <div className="text-xs text-[#59544F] leading-relaxed">
+        <div className="p-6 pt-4 border-t border-black/[0.08] space-y-4 bg-[#F5F5F5]">
+          <p className="text-[12.5px] text-[#525252] leading-relaxed">
             Если ваша компания использует CRM-систему или онлайн-календарь, бот может автоматически проверять свободные окна сотрудников и бронировать слоты без вашего участия.
-          </div>
+          </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-3 rounded-[10px] bg-white border border-black/[0.08] space-y-2">
-              <div className="text-xs font-medium text-black">YCLIENTS (онлайн-запись)</div>
-              <p className="text-[11px] text-[#777169]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-[18px] bg-white border border-black/[0.08] space-y-2.5">
+              <div className="font-display text-[14px] font-bold text-black">YCLIENTS (онлайн-запись)</div>
+              <p className="text-[12px] text-[#737373]">
                 Подключение через Partner Token для чтения свободных окон в салонах и клиниках.
               </p>
               <input
@@ -631,13 +678,13 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 placeholder="Вставьте Partner Token YCLIENTS"
                 value={partnerToken}
                 onChange={(e) => setPartnerToken(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
+                className="w-full px-3.5 py-2 rounded-[10px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[12px] font-mono focus:outline-none"
               />
             </div>
 
-            <div className="p-3 rounded-[10px] bg-white border border-black/[0.08] space-y-2">
-              <div className="text-xs font-medium text-black">Google Calendar / FreeBusy</div>
-              <p className="text-[11px] text-[#777169]">
+            <div className="p-4 rounded-[18px] bg-white border border-black/[0.08] space-y-2.5">
+              <div className="font-display text-[14px] font-bold text-black">Google Calendar / FreeBusy</div>
+              <p className="text-[12px] text-[#737373]">
                 Проверка расписания через Google Calendar API в реальном времени.
               </p>
               <input
@@ -645,31 +692,35 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 placeholder="Calendar ID (например, primary или email)"
                 value={googleCalendarId}
                 onChange={(e) => setGoogleCalendarId(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
+                className="w-full px-3.5 py-2 rounded-[10px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[12px] font-mono focus:outline-none"
               />
               <input
                 type="password"
                 placeholder="OAuth2 Access Token"
                 value={googleOAuthToken}
                 onChange={(e) => setGoogleOAuthToken(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
+                className="w-full px-3.5 py-2 rounded-[10px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[12px] font-mono focus:outline-none"
               />
             </div>
 
-            <div className="p-3 rounded-[10px] bg-white border border-black/[0.08] space-y-2 sm:col-span-2">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-black">Webhook (HTTP POST уведомления)</div>
-                <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[#777169]">
+            <div className="p-4 rounded-[18px] bg-white border border-black/[0.08] space-y-2.5 sm:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-display text-[14px] font-bold text-black">
+                  Webhook (HTTP POST уведомления)
+                </div>
+                <label htmlFor="webhook-enabled-switch" className="inline-flex items-center gap-2 cursor-pointer text-[12px] font-semibold text-black">
                   <input
+                    id="webhook-enabled-switch"
                     type="checkbox"
+                    {...nativeSwitchAttr}
                     checked={webhookEnabled}
                     onChange={(e) => setWebhookEnabled(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-black focus:ring-0 cursor-pointer"
+                    className="w-4 h-4 accent-black cursor-pointer"
                   />
                   <span>Включено</span>
                 </label>
               </div>
-              <p className="text-[11px] text-[#777169]">
+              <p className="text-[12px] text-[#737373]">
                 Отправка JSON данных о каждом звонке и зафиксированном лиде на ваш сервер или CRM.
               </p>
               <input
@@ -677,7 +728,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                 placeholder="https://crm.company.by/api/voxi-webhook"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-[6px] bg-white border border-black/[0.1] text-xs font-mono focus:outline-none focus:border-black"
+                className="w-full px-3.5 py-2 rounded-[10px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[12px] font-mono focus:outline-none"
               />
             </div>
           </div>

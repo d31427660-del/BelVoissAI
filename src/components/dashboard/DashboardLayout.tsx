@@ -58,7 +58,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSaveWebhook,
   callLogs,
   onCallCompleted,
-  onOpenVoiceTest,
   initialSelectedPackage,
   onInitialPackageConsumed,
   onExitToLanding,
@@ -78,6 +77,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       setActiveTab('billing');
     }
   }, [initialSelectedPackage]);
+
+  React.useEffect(() => {
+    if (!isLiveTesterOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLiveTesterOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [isLiveTesterOpen]);
 
   const showSaveResult = (ok: boolean, errorMsg?: string) => {
     if (ok) {
@@ -154,7 +162,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const freeMins = billing ? billing.freeMinutesRemaining : (user.balanceMinutes || 0);
   const unpaidDebtByn = billing ? billing.unpaidDebtByn : 0;
   const creditLimitByn = billing?.creditLimitByn ?? 100;
-  const isSuspended = billing?.billingStatus === 'suspended' || (billing?.overdueInvoicesCount || 0) > 0 || unpaidDebtByn > creditLimitByn;
+  const isSuspended =
+    billing?.billingStatus === 'suspended' ||
+    (billing?.overdueInvoicesCount || 0) > 0 ||
+    unpaidDebtByn > creditLimitByn;
   const isBotOnline = agent.isActive && !isSuspended;
   const isOwnSip = billing ? billing.numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode);
 
@@ -167,7 +178,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       label: 'Главная',
       subtitle: 'Статус бота и сводка',
       icon: <LayoutDashboard className="w-4 h-4 shrink-0" />,
-      iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200/70',
       badge: undefined
     },
     {
@@ -175,7 +185,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       label: 'Настройка бота',
       subtitle: 'Голос, услуги и график',
       icon: <Bot className="w-4 h-4 shrink-0" />,
-      iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200/70',
       badge: undefined
     },
     {
@@ -183,7 +192,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       label: 'Заявки',
       subtitle: 'Контакты и Telegram',
       icon: <ChecklistIcon className="w-4 h-4 shrink-0" />,
-      iconBg: 'bg-blue-50 text-blue-600 border-blue-200/70',
       badge: `${leadsCount}`
     },
     {
@@ -191,23 +199,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       label: 'Телефония',
       subtitle: 'Номер и перевод',
       icon: <PhoneCall className="w-4 h-4 shrink-0" />,
-      iconBg: 'bg-teal-50 text-teal-600 border-teal-200/70',
       badge: isOwnSip ? '0 BYN' : '15 BYN'
     },
     {
       id: 'billing' as const,
       label: 'Тариф и оплата',
-      subtitle: 'Карта, ЕРИП и баланс',
+      subtitle: 'Карта и ЕРИП',
       icon: <Wallet className="w-4 h-4 shrink-0" />,
-      iconBg: 'bg-amber-50 text-amber-600 border-amber-200/70',
       badge: `${(user.ratePerMinute || 0.45).toFixed(2)} BYN`
     }
   ];
 
-  const allNavItems = primaryNavItems;
-  const currentNav = allNavItems.find((n) => n.id === activeTab) || primaryNavItems[0];
+  const currentNav = primaryNavItems.find((n) => n.id === activeTab) || primaryNavItems[0];
 
-  const renderNavButton = (item: typeof allNavItems[number]) => {
+  const renderNavButton = (item: (typeof primaryNavItems)[number]) => {
     const isActive = activeTab === item.id;
     return (
       <button
@@ -218,35 +223,37 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           setActiveTab(item.id);
           setIsMobileMenuOpen(false);
         }}
-        className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-all cursor-pointer relative ${
+        className={`group w-full text-left px-3 py-2.5 rounded-[14px] text-[13px] flex items-center justify-between transition-colors cursor-pointer ${
           isActive
-            ? 'bg-slate-900 text-white shadow-sm font-semibold'
-            : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 font-medium'
+            ? 'bg-[#0A0A0A] text-white font-semibold'
+            : 'text-[#404040] hover:text-black hover:bg-[#F5F5F5] font-medium'
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${
-              isActive ? 'bg-white/15 text-white border-white/20' : item.iconBg
+            className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 transition-colors ${
+              isActive
+                ? 'bg-white/10 text-[#6BFF91]'
+                : 'bg-[#F5F5F5] group-hover:bg-white text-black border border-black/[0.06]'
             }`}
           >
             {item.icon}
           </span>
           <div className="truncate">
-            <div className={isActive ? 'font-semibold text-white' : 'font-semibold text-slate-900'}>
+            <div className={`leading-tight ${isActive ? 'font-semibold text-white' : 'font-semibold text-black'}`}>
               {item.label}
             </div>
-            <div className={`text-[10px] font-normal truncate ${isActive ? 'text-zinc-300' : 'text-slate-500'}`}>
+            <div className={`text-[11px] font-normal truncate mt-0.5 ${isActive ? 'text-white/60' : 'text-[#737373]'}`}>
               {item.subtitle}
             </div>
           </div>
         </div>
         {item.badge && (
           <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold shrink-0 ${
+            className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold shrink-0 tabular-nums ${
               isActive
-                ? 'bg-amber-400 text-slate-950'
-                : 'bg-slate-100 text-slate-700 border border-slate-200'
+                ? 'bg-[#D8E738] text-black'
+                : 'bg-[#F5F5F5] group-hover:bg-white text-[#525252] border border-black/[0.06]'
             }`}
           >
             {item.badge}
@@ -257,49 +264,48 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   return (
-    <div
-      className="min-h-screen text-slate-900 flex font-sans selection:bg-slate-900 selection:text-white relative overflow-x-hidden"
-      style={{
-        backgroundColor: '#F3F5F8',
-        backgroundImage: `
-          radial-gradient(1100px 600px at 18% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 60%),
-          radial-gradient(1000px 550px at 88% 12%, rgba(245, 158, 11, 0.07) 0%, transparent 55%),
-          radial-gradient(1100px 700px at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 55%)
-        `
-      }}
-    >
-      {/* 1. Left Sidebar */}
+    <div className="min-h-screen bg-white text-black flex font-sans selection:bg-black selection:text-white relative overflow-x-clip">
+      {/* 1. Left Editorial Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-[268px] shrink-0 bg-white border-r border-slate-200 flex flex-col justify-between transition-transform duration-200 ease-in-out
-          lg:static lg:translate-x-0
+          fixed inset-y-0 left-0 z-50 w-[272px] shrink-0 bg-white border-r border-black/[0.08] flex flex-col justify-between transition-transform duration-200 ease-in-out
+          lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
           ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:shadow-none'}
         `}
       >
-        <div className="p-4 space-y-4">
-          {/* Workspace Brand */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="p-4 sm:p-5 space-y-5 overflow-y-auto">
+          {/* Workspace Brand (matches Landing Navbar) */}
+          <div className="flex items-center justify-between pb-4 border-b border-black/[0.08]">
             <button
               type="button"
               onClick={onExitToLanding}
               className="flex items-center gap-2.5 text-left group cursor-pointer"
               title="Перейти на главную страницу сайта"
             >
-              <div
-                className="w-8 h-8 rounded-lg bg-slate-900 p-[1px] transition-transform group-hover:scale-105 shrink-0"
+              <svg
+                viewBox="0 0 32 32"
                 aria-hidden="true"
+                className="w-8 h-8 shrink-0 transition-transform group-hover:scale-105"
               >
-                <div className="w-full h-full rounded-[7px] bg-white flex items-center justify-center gap-[2.5px]">
-                  <span className="w-[2.5px] h-3 rounded-full bg-slate-900" />
-                  <span className="w-[2.5px] h-3 rounded-full bg-slate-900" />
-                </div>
-              </div>
+                <rect width="32" height="32" rx="9" fill="#0A0A0A" />
+                <rect x="6.5" y="14" width="2.4" height="5.2" rx="1.2" fill="#FFFFFF" />
+                <rect x="10.5" y="10.5" width="2.4" height="9.8" rx="1.2" fill="#FFFFFF" />
+                <path
+                  d="M14.8 15.2L18.4 20.9L25.4 10.2"
+                  stroke="#6BFF91"
+                  strokeWidth="2.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </svg>
               <div>
-                <div className="flex items-center gap-0.5 font-bold text-xs tracking-tight text-slate-900 group-hover:opacity-80 transition-opacity">
-                  <span className="text-sm font-bold">Voxi</span>
-                  <span className="text-xs font-semibold font-mono text-slate-500">.by</span>
+                <div className="font-display font-extrabold text-[17px] tracking-[-0.04em] leading-none text-black">
+                  voxi<span className="text-[#737373]">.by</span>
                 </div>
-                <div className="text-[10px] text-slate-500 font-medium">Личный кабинет</div>
+                <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-[#737373] mt-1">
+                  Кабинет
+                </div>
               </div>
             </button>
 
@@ -307,58 +313,67 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               type="button"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-label="Закрыть меню"
-              className="lg:hidden p-1 text-slate-500 hover:text-slate-900 cursor-pointer"
+              className="lg:hidden w-8 h-8 rounded-full flex items-center justify-center text-[#737373] hover:text-black hover:bg-[#F5F5F5] cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Company Status Pill */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
+          <div className="p-3.5 rounded-[18px] bg-[#F5F5F5] border border-black/[0.06] space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-900 truncate">
+              <span className="text-[13px] font-bold text-black truncate">
                 {agent.companyName || user.companyName || 'Моя компания'}
               </span>
               <span
-                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                  isBotOnline ? 'bg-emerald-500 animate-pulse' : isSuspended ? 'bg-rose-500' : 'bg-slate-400'
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isBotOnline ? 'bg-[#16A34A] animate-pulse' : isSuspended ? 'bg-[#FE432A]' : 'bg-[#A3A3A3]'
                 }`}
                 title={isBotOnline ? 'Бот принимает звонки' : isSuspended ? 'Приостановлен из-за лимита' : 'Бот на паузе'}
               />
             </div>
-            <div className="text-[11px] text-slate-500 flex items-center justify-between">
-              <span className="font-mono truncate">{sipSettings.callerId || 'Линия не указана'}</span>
-              <span className={isBotOnline ? 'text-emerald-700 font-semibold' : isSuspended ? 'text-rose-600 font-semibold' : 'text-slate-500'}>
-                {isBotOnline ? 'На линии' : isSuspended ? 'Лимит превышен' : 'Пауза'}
+            <div className="text-[11px] flex items-center justify-between gap-2">
+              <span className="font-mono text-[#737373] truncate">
+                {sipSettings.callerId || 'Линия не указана'}
+              </span>
+              <span
+                className={`font-mono text-[10px] uppercase tracking-[0.06em] font-semibold shrink-0 ${
+                  isBotOnline ? 'text-[#15803D]' : isSuspended ? 'text-[#FE432A]' : 'text-[#737373]'
+                }`}
+              >
+                {isBotOnline ? 'На линии' : isSuspended ? 'Лимит' : 'Пауза'}
               </span>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="space-y-1 pt-1" aria-label="Разделы кабинета">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 pb-1">
-              Разделы кабинета
+          <nav className="space-y-1" aria-label="Разделы кабинета">
+            <span className="block font-mono text-[10px] font-semibold text-[#737373] uppercase tracking-[0.12em] px-3 pb-1.5">
+              Навигация
             </span>
             {primaryNavItems.map(renderNavButton)}
           </nav>
         </div>
 
-        {/* Bottom Sidebar: Compact Single-Action Billing Summary */}
-        <div className="p-4 border-t border-slate-200 space-y-3 bg-slate-50/70">
-          <div className="space-y-2 p-3.5 rounded-2xl bg-white border border-amber-200/90 shadow-2xs">
-            <div className="flex items-center justify-between text-xs">
-              <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                <Wallet className="w-4 h-4 text-amber-600" />
-                <span>Баланс минут:</span>
+        {/* Bottom Sidebar: Obsidian Billing Summary + Manager */}
+        <div className="p-4 border-t border-black/[0.08] space-y-3 bg-white">
+          <div className="space-y-3 p-4 rounded-[20px] bg-[#0A0A0A] text-white">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/60">
+                Баланс минут
               </span>
-              <span className="font-mono font-extrabold text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="font-mono font-bold text-[11px] text-black bg-[#6BFF91] px-2.5 py-0.5 rounded-full tabular-nums">
                 {freeMins.toFixed(1)} мин
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-600">
-              <span>К оплате за месяц:</span>
-              <strong className={`font-mono ${isSuspended ? 'text-rose-600' : 'text-slate-900'}`}>
+            <div className="flex items-baseline justify-between text-[12px] text-white/70">
+              <span>К оплате за месяц</span>
+              <strong
+                className={`font-mono text-[13px] tabular-nums ${
+                  isSuspended ? 'text-[#FE432A]' : 'text-white'
+                }`}
+              >
                 {unpaidDebtByn.toFixed(2)} BYN
               </strong>
             </div>
@@ -366,17 +381,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <button
               type="button"
               onClick={navigateToBillingPayment}
-              className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer text-center"
+              className="w-full h-9 px-3 rounded-full bg-white hover:bg-[#D8E738] text-black text-[12px] font-semibold transition-colors cursor-pointer text-center"
             >
-              {unpaidDebtByn > 0 ? 'Оплатить картой / ЕРИП' : 'Тарифы и пополнение →'}
+              {unpaidDebtByn > 0 ? 'Оплатить картой / ЕРИП' : 'Тарифы и пополнение ↗'}
             </button>
           </div>
 
           {/* Quick Manager Contacts */}
-          <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 space-y-1.5 text-[11px]">
-            <div className="text-slate-600 font-semibold flex items-center justify-between">
-              <span>Персональный менеджер</span>
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full font-semibold">
+          <div className="p-3 rounded-[16px] bg-[#F5F5F5] border border-black/[0.06] space-y-2 text-[11px]">
+            <div className="text-black font-semibold flex items-center justify-between">
+              <span>Поддержка 24/7</span>
+              <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.06em] text-[#15803D]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
                 Онлайн
               </span>
             </div>
@@ -386,37 +402,37 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 title={`Написать менеджеру в Telegram (${VOXI_CONTACTS.telegramHandle})`}
-                className="flex-1 py-1.5 px-2 rounded-lg bg-sky-50 hover:bg-[#0088cc] hover:text-white text-sky-800 border border-sky-200/70 font-semibold text-[10px] flex items-center justify-center gap-1 transition-colors"
+                className="flex-1 h-7 px-2 rounded-full bg-white hover:bg-black hover:text-white text-black border border-black/[0.08] font-semibold text-[10.5px] flex items-center justify-center gap-1 transition-colors"
               >
                 <TelegramIcon size={11} />
-                <span>Telegram</span>
+                <span>TG</span>
               </a>
               <a
                 href={VOXI_CONTACTS.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Написать менеджеру в WhatsApp"
-                className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-50 hover:bg-[#25D366] hover:text-white text-emerald-800 border border-emerald-200/70 font-semibold text-[10px] flex items-center justify-center gap-1 transition-colors"
+                className="flex-1 h-7 px-2 rounded-full bg-white hover:bg-black hover:text-white text-black border border-black/[0.08] font-semibold text-[10.5px] flex items-center justify-center gap-1 transition-colors"
               >
                 <WhatsAppIcon size={11} />
-                <span>WhatsApp</span>
+                <span>WA</span>
               </a>
               <a
                 href={VOXI_CONTACTS.phoneTel}
                 title={`Позвонить: ${VOXI_CONTACTS.phoneDisplay}`}
-                className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-800 font-mono font-semibold text-[10px] flex items-center justify-center transition-colors"
+                className="h-7 px-2.5 rounded-full bg-white hover:bg-black hover:text-white text-black border border-black/[0.08] font-mono font-semibold text-[10.5px] flex items-center justify-center transition-colors"
               >
                 Тел
               </a>
             </div>
           </div>
 
-          <div className="pt-1 flex items-center justify-between text-xs text-slate-500">
+          <div className="pt-0.5 px-1 flex items-center justify-between text-[12px] text-[#737373]">
             {onExitToLanding && (
               <button
                 type="button"
                 onClick={onExitToLanding}
-                className="hover:text-slate-900 flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                className="hover:text-black flex items-center gap-1.5 font-medium transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>На сайт</span>
@@ -427,7 +443,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="hover:text-rose-600 flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                className="hover:text-[#FE432A] flex items-center gap-1.5 font-medium transition-colors cursor-pointer"
                 title="Выйти из аккаунта"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -442,49 +458,53 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {isMobileMenuOpen && (
         <div
           onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 lg:hidden"
         />
       )}
 
       {/* 2. Main Content Canvas */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        {/* Compact Workspace Topbar */}
-        <header className="h-14 sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10 bg-white">
+        {/* Sticky Editorial Topbar */}
+        <header className="h-[64px] sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-black/[0.08] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Открыть меню разделов"
-              className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer shrink-0"
+              className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-black hover:bg-[#F5F5F5] cursor-pointer shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-900 min-w-0 shrink">
-              <span className="text-slate-400 hidden md:inline font-medium">Кабинет</span>
-              <span className="text-slate-300 hidden md:inline">/</span>
-              <span className="truncate font-bold">{currentNav.label}</span>
+            <div className="flex items-center gap-2 min-w-0 shrink">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373] hidden md:inline">
+                Кабинет
+              </span>
+              <span className="text-black/20 hidden md:inline">/</span>
+              <span className="font-display text-[15px] font-bold tracking-[-0.02em] text-black truncate">
+                {currentNav.label}
+              </span>
             </div>
 
             <div
-              className={`hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-semibold shrink-0 ${
+              className={`hidden xl:flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-medium shrink-0 ${
                 isBotOnline
-                  ? 'bg-emerald-50 border-emerald-200/80 text-emerald-800'
+                  ? 'bg-[#F5F5F5] border-black/[0.06] text-black'
                   : isSuspended
-                  ? 'bg-rose-50 border-rose-200 text-rose-800'
-                  : 'bg-slate-100 border-slate-200 text-slate-700'
+                  ? 'bg-[#FFF5F3] border-[#FE432A]/30 text-[#B91C1C]'
+                  : 'bg-[#F5F5F5] border-black/[0.06] text-[#737373]'
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  isBotOnline ? 'bg-emerald-500 animate-pulse' : isSuspended ? 'bg-rose-500' : 'bg-slate-400'
+                  isBotOnline ? 'bg-[#16A34A] animate-pulse' : isSuspended ? 'bg-[#FE432A]' : 'bg-[#A3A3A3]'
                 }`}
               />
               <span>
                 {isBotOnline
-                  ? 'Бот на линии • отвечает за 0.5 сек'
+                  ? 'Бот на линии · ответ 0.5 сек'
                   : isSuspended
-                  ? 'Приём звонков приостановлен (превышен лимит)'
+                  ? 'Приём звонков приостановлен (лимит)'
                   : 'Бот поставлен на паузу'}
               </span>
             </div>
@@ -494,14 +514,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 type="button"
                 onClick={() => setActiveTab('billing')}
                 title="Открыть раздел тарифов, калькулятора и оплаты"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200/90 transition-all cursor-pointer shrink-0"
+                className="hidden sm:flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-full text-[12px] font-semibold bg-[#F5F5F5] hover:bg-[#EBEBEB] text-black border border-black/[0.06] transition-colors cursor-pointer shrink-0"
               >
-                <Wallet className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="whitespace-nowrap">
-                  {freeMins > 0 ? `Баланс: ${freeMins.toFixed(0)} мин` : `${unpaidDebtByn.toFixed(2)} BYN`}
+                <span className="whitespace-nowrap font-mono text-[11px] tabular-nums">
+                  {freeMins > 0 ? `${freeMins.toFixed(0)} мин` : `${unpaidDebtByn.toFixed(2)} BYN`}
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full ml-0.5 font-bold whitespace-nowrap bg-amber-500 text-slate-950">
-                  Тариф и оплата
+                <span className="text-[10.5px] px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap bg-[#D8E738] text-black">
+                  Тариф ↗
                 </span>
               </button>
             )}
@@ -512,9 +531,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               type="button"
               onClick={() => setIsGuideOpen(true)}
               title="Краткая пошаговая шпаргалка по запуску"
-              className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="h-9 px-3.5 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.12] text-black text-[12px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+              <HelpCircle className="w-4 h-4 text-black" />
               <span className="hidden sm:inline">Как запустить?</span>
             </button>
 
@@ -523,9 +542,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 type="button"
                 onClick={handleGlobalSave}
                 title="Сохранить текущие настройки"
-                className="px-3 sm:px-4 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                className="h-9 px-4 rounded-full bg-black hover:bg-[#171717] text-white text-[12px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[#6BFF91] shrink-0" />
                 <span className="hidden sm:inline">Сохранить изменения</span>
                 <span className="sm:hidden">Сохранить</span>
               </button>
@@ -534,9 +553,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 type="button"
                 onClick={() => setIsLiveTesterOpen(true)}
                 title="Проверить диалог с вашим ботом голосом или текстом"
-                className="px-3 sm:px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs whitespace-nowrap"
+                className="h-9 px-4 rounded-full bg-black hover:bg-[#171717] text-white text-[12px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               >
-                <Radio className="w-3.5 h-3.5 text-white shrink-0" />
+                <Radio className="w-4 h-4 text-[#6BFF91] shrink-0" />
                 <span className="hidden sm:inline">Тестовый звонок</span>
                 <span className="sm:hidden">Тест</span>
               </button>
@@ -544,24 +563,24 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
         </header>
 
-        {/* Bottom-right Save / Error Toast (never overlaps topbar or Telephony hero badges on mobile) */}
+        {/* Bottom-right Save / Error Toast */}
         {(saveToast || saveError) && (
           <div
             role={saveError ? 'alert' : 'status'}
             aria-live="polite"
-            className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-sm z-50 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg border ${
+            className={`fixed bottom-5 right-5 left-5 sm:left-auto sm:max-w-sm z-50 px-4 py-3.5 rounded-[16px] text-[13px] font-semibold flex items-center gap-2.5 shadow-xl border ${
               saveError
-                ? 'bg-rose-50 text-rose-900 border-rose-200'
-                : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                ? 'bg-[#FFF5F3] text-[#991B1B] border-[#FE432A]/40'
+                : 'bg-[#0A0A0A] text-white border-white/10'
             }`}
           >
-            <CheckCircle2 className={`w-4 h-4 shrink-0 ${saveError ? 'text-rose-600' : 'text-emerald-600'}`} />
+            <CheckCircle2 className={`w-4 h-4 shrink-0 ${saveError ? 'text-[#FE432A]' : 'text-[#6BFF91]'}`} />
             <span>{saveError || saveToast}</span>
           </div>
         )}
 
         {/* Tab Body */}
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <div className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-[1160px] mx-auto w-full">
           {activeTab === 'overview' && (
             <SimpleOverviewTab
               user={user}
@@ -626,27 +645,29 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
       </div>
 
-      {/* Live Bot Tester Modal (tests the user's own configured bot) */}
+      {/* Live Bot Tester Modal */}
       {isLiveTesterOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Тестовый звонок вашему боту"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-xs"
         >
-          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl border border-black/[0.1]">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-black/[0.08]">
-              <div className="flex items-center gap-2 min-w-0">
-                <Radio className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-xs font-semibold text-black truncate">
-                  Тест вашего бота: {agent.companyName || user.companyName}
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[24px] bg-white p-5 sm:p-6 shadow-2xl border border-black/[0.1]">
+            <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-black/[0.08]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-7 h-7 rounded-full bg-black text-[#6BFF91] flex items-center justify-center shrink-0">
+                  <Radio className="w-3.5 h-3.5" />
+                </span>
+                <span className="font-display text-[14px] font-bold text-black truncate">
+                  Тест бота · {agent.companyName || user.companyName}
                 </span>
               </div>
               <button
                 type="button"
                 aria-label="Закрыть тестовый звонок"
                 onClick={() => setIsLiveTesterOpen(false)}
-                className="p-1 rounded-full text-[#777169] hover:text-black cursor-pointer shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[#737373] hover:text-black hover:bg-[#F5F5F5] cursor-pointer shrink-0 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -5,7 +5,6 @@ import {
   CallChatIcon as CallTransfer,
   CheckCircleIcon as CheckCircle2,
   DisketteIcon as Save,
-  CopyIcon as Copy,
   ShieldCheckIcon as ShieldCheck,
   RefreshIcon as RefreshCw,
   EyeIcon,
@@ -26,6 +25,14 @@ interface PhoneTabProps {
   numberRentalMode?: 'own_sip' | 'rental';
   onUserUpdated?: (user: UserSession) => void;
 }
+
+const INPUT_CLASS =
+  'w-full px-4 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-[13px] text-black placeholder:text-[#A3A3A3] focus:outline-none transition-colors';
+
+const WHITE_INPUT_CLASS =
+  'w-full px-4 py-2.5 min-h-[42px] rounded-[12px] bg-white border border-black/[0.1] focus:border-black text-[13px] text-black placeholder:text-[#A3A3A3] focus:outline-none transition-colors';
+
+const nativeSwitchAttr = { switch: '' } as React.InputHTMLAttributes<HTMLInputElement>;
 
 export const PhoneTab: React.FC<PhoneTabProps> = ({
   agent,
@@ -56,7 +63,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
     setLocalSip((prev) => ({
       ...prev,
       ...sipSettings,
-      byoSipMode: numberRentalMode ? numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode ?? prev.byoSipMode),
+      byoSipMode: numberRentalMode ? numberRentalMode === 'own_sip' : Boolean(sipSettings.byoSipMode ?? prev.byoSipMode)
     }));
   }, [sipSettings, numberRentalMode]);
 
@@ -68,6 +75,12 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
   const [isTestingTransfer, setIsTestingTransfer] = useState(false);
   const [transferTestResult, setTransferTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const assignedGatewayNumber = localSip.assignedDid?.trim() || '';
+  const hasAssignedDid = assignedGatewayNumber !== '' && assignedGatewayNumber.replace(/\D+/g, '').length >= 9;
+  const assignedGatewayE164 = hasAssignedDid ? '+' + assignedGatewayNumber.replace(/\D+/g, '') : '';
+  const ussdNoAnswer = hasAssignedDid ? `**61*${assignedGatewayE164}**10#` : '';
+  const ussdAlways = hasAssignedDid ? `**21*${assignedGatewayE164}#` : '';
 
   const handleSelectRentalMode = async (useOwnSip: boolean) => {
     const nextSip = { ...localSip, byoSipMode: useOwnSip };
@@ -95,12 +108,6 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
     setIsTestingSip(false);
     setSipTestResult(result);
   };
-
-  const assignedGatewayNumber = localSip.assignedDid?.trim() || '';
-  const hasAssignedDid = assignedGatewayNumber !== '' && assignedGatewayNumber.replace(/\D+/g, '').length >= 9;
-  const assignedGatewayE164 = hasAssignedDid ? '+' + assignedGatewayNumber.replace(/\D+/g, '') : '';
-  const ussdNoAnswer = hasAssignedDid ? `**61*${assignedGatewayE164}**10#` : '';
-  const ussdAlways = hasAssignedDid ? `**21*${assignedGatewayE164}#` : '';
 
   const handleTestTransfer = async () => {
     setIsTestingTransfer(true);
@@ -132,31 +139,37 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
   };
 
   return (
-    <form id="active-workspace-form" onSubmit={handleSave} className="space-y-6 max-w-4xl mx-auto">
-      {/* Top Dark Hero Header */}
-      <div className="p-6 rounded-3xl bg-[#141417] text-white border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute -top-20 -right-16 w-64 h-64 rounded-full opacity-25"
-          style={{
-            background: 'radial-gradient(circle, rgba(20, 184, 166, 0.55) 0%, rgba(59, 130, 246, 0.25) 60%, transparent 75%)'
-          }}
-        />
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-[11px] font-semibold mb-1.5">
+    <form id="active-workspace-form" onSubmit={handleSave} className="space-y-6">
+      {/* Editorial mono eyebrow rule */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          <span className="w-1.5 h-1.5 rounded-full bg-black" />
+          <span>Телефония РБ · А1 · МТС · Белтелеком</span>
+        </div>
+        <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" />
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#737373]">
+          {localSip.byoSipMode ? 'СВОЙ SIP · 0 BYN' : 'А1 ВАТС · 15 BYN'}
+        </span>
+      </div>
+
+      {/* Top Dotted Obsidian Header */}
+      <div className="voxi-dot-surface p-6 sm:p-8 rounded-[28px] text-white border border-black flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#6BFF91]">
             <Phone className="w-3.5 h-3.5" />
-            <span>Телефония РБ (А1 • МТС • Белтелеком)</span>
+            <span>Телефония РБ (А1 · МТС · Белтелеком)</span>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight">
+          <h1 className="font-display text-2xl sm:text-[30px] font-bold tracking-[-0.035em] leading-[1.1] text-white">
             Подключение номера
-          </h2>
-          <p className="text-xs text-zinc-300 mt-0.5">
-            Настройте, как бот принимает входящие звонки и на какой номер переводит клиента
+          </h1>
+          <p className="text-[13px] text-white/70 max-w-xl">
+            Настройте, как бот принимает входящие звонки и на какой номер переводит клиента при сложном вопросе.
           </p>
         </div>
 
         <button
           type="submit"
-          className="relative z-10 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm self-start sm:self-auto shrink-0"
+          className="h-10 px-5 rounded-full bg-[#6BFF91] hover:bg-[#52F07A] text-black text-[12.5px] font-semibold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors self-start lg:self-center shrink-0"
         >
           <Save className="w-4 h-4" />
           <span>Сохранить настройки</span>
@@ -165,7 +178,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
 
       {/* Validation Error & Rental Request Notice */}
       {validationError && (
-        <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold">
+        <div role="alert" className="p-4 rounded-[18px] bg-[#FFF5F3] border border-[#FE432A]/40 text-[#991B1B] text-[13px] font-semibold">
           {validationError}
         </div>
       )}
@@ -174,58 +187,65 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
           <motion.div
             role="status"
             aria-live="polite"
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 font-semibold"
+            exit={{ opacity: 0, y: -6 }}
+            className="p-4 rounded-[18px] bg-[#0A0A0A] text-white text-[13px] flex items-center gap-2.5 font-medium"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#6BFF91] shrink-0" />
             <span>{rentalRequestNotice}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* CARD 1: Как принимать звонки (Аренда номера А1 ВАТС или Свой SIP) */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-200 flex items-center justify-center font-bold text-xs shrink-0">
+      {/* CARD 01: Как принимать звонки */}
+      <section className="p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-black/[0.08]">
+          <div className="flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-[12px] bg-[#0A0A0A] text-[#6BFF91] flex items-center justify-center font-mono font-bold text-[12px] shrink-0">
               01
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900">
+              <h2 className="font-display text-[17px] font-bold text-black tracking-[-0.02em]">
                 Подключение телефонного номера
-              </h3>
-              <p className="text-xs text-slate-500">
-                Выберите: арендовать готовый номер А1 ВАТС у нас (15 BYN/мес) или подключить свою SIP-линию (0 BYN/мес)
+              </h2>
+              <p className="text-[12.5px] text-[#737373]">
+                Арендуйте готовый номер А1 ВАТС (15 BYN/мес) или подключите свою SIP-линию (0 BYN/мес)
               </p>
             </div>
           </div>
-          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 self-start sm:self-auto">
-            {localSip.byoSipMode ? 'Своя SIP-линия (0 BYN/мес)' : 'Аренда А1 ВАТС (15 BYN/мес)'}
+
+          <span
+            className={`font-mono text-[11px] font-bold px-3 py-1 rounded-full shrink-0 self-start sm:self-auto ${
+              localSip.byoSipMode ? 'bg-[#6BFF91] text-black' : 'bg-[#D8E738] text-black'
+            }`}
+          >
+            {localSip.byoSipMode ? 'Свой SIP · 0 BYN/мес' : 'А1 ВАТС · 15 BYN/мес'}
           </span>
         </div>
 
-        {/* Выбор режима подключения */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {/* Mode Switcher */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             type="button"
             onClick={() => handleSelectRentalMode(false)}
-            className={`p-4 rounded-2xl text-left transition-all border cursor-pointer ${
+            className={`p-5 rounded-[20px] text-left transition-colors border cursor-pointer ${
               !localSip.byoSipMode
-                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                : 'bg-slate-50/80 text-slate-900 border-slate-200 hover:bg-white'
+                ? 'bg-[#0A0A0A] text-white border-black'
+                : 'bg-[#F5F5F5] text-black border-black/[0.06] hover:bg-[#EBEBEB]'
             }`}
           >
-            <div className="flex items-center justify-between mb-1.5 gap-2">
-              <span className="text-xs font-bold">Аренда номера Voxi (А1 ВАТС)</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold whitespace-nowrap shrink-0 ${
-                !localSip.byoSipMode ? 'bg-amber-400 text-slate-950' : 'bg-amber-100 text-amber-900'
-              }`}>
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <span className="font-display text-[15px] font-bold">Аренда номера Voxi (А1 ВАТС)</span>
+              <span
+                className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-mono font-bold whitespace-nowrap shrink-0 ${
+                  !localSip.byoSipMode ? 'bg-[#D8E738] text-black' : 'bg-white text-black border border-black/[0.08]'
+                }`}
+              >
                 15 BYN/мес
               </span>
             </div>
-            <p className={`text-xs leading-relaxed ${!localSip.byoSipMode ? 'text-zinc-300' : 'text-slate-600'}`}>
+            <p className={`text-[12.5px] leading-relaxed ${!localSip.byoSipMode ? 'text-white/70' : 'text-[#525252]'}`}>
               Не нужно оформлять SIP у оператора. Просто включите переадресацию за 10 секунд на выданный вам номер.
             </p>
           </button>
@@ -233,21 +253,23 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
           <button
             type="button"
             onClick={() => handleSelectRentalMode(true)}
-            className={`p-4 rounded-2xl text-left transition-all border cursor-pointer ${
+            className={`p-5 rounded-[20px] text-left transition-colors border cursor-pointer ${
               localSip.byoSipMode
-                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                : 'bg-slate-50/80 text-slate-900 border-slate-200 hover:bg-white'
+                ? 'bg-[#0A0A0A] text-white border-black'
+                : 'bg-[#F5F5F5] text-black border-black/[0.06] hover:bg-[#EBEBEB]'
             }`}
           >
-            <div className="flex items-center justify-between mb-1.5 gap-2">
-              <span className="text-xs font-bold">Подключить свой SIP самостоятельно</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold whitespace-nowrap shrink-0 ${
-                localSip.byoSipMode ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'
-              }`}>
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <span className="font-display text-[15px] font-bold">Подключить свой SIP самостоятельно</span>
+              <span
+                className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-mono font-bold whitespace-nowrap shrink-0 ${
+                  localSip.byoSipMode ? 'bg-[#6BFF91] text-black' : 'bg-white text-black border border-black/[0.08]'
+                }`}
+              >
                 0 BYN/мес
               </span>
             </div>
-            <p className={`text-xs leading-relaxed ${localSip.byoSipMode ? 'text-zinc-300' : 'text-slate-600'}`}>
+            <p className={`text-[12.5px] leading-relaxed ${localSip.byoSipMode ? 'text-white/70' : 'text-[#525252]'}`}>
               Для компаний со своей Виртуальной АТС А1, МТС или Белтелеком — платите только за минуты (0.45 BYN/мин).
             </p>
           </button>
@@ -270,9 +292,9 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   value={localSip.callerId || ''}
                   onChange={(e) => setLocalSip({ ...localSip, callerId: e.target.value })}
                   placeholder="+375 (29) 600-10-20"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+                  className={`${INPUT_CLASS} font-mono`}
                 />
-                <p className="text-[11px] text-[#777169] mt-1">
+                <p className="text-[11.5px] text-[#737373] mt-1.5">
                   Ваш рекламный номер остаётся неизменным для всех клиентов.
                 </p>
               </div>
@@ -289,13 +311,13 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   type="text"
                   readOnly
                   value={hasAssignedDid ? assignedGatewayNumber : 'Выделяется менеджером (до 15 мин)'}
-                  className={`w-full px-3 py-2 rounded-[8px] border text-xs focus:outline-none ${
+                  className={`w-full px-4 py-2.5 min-h-[42px] rounded-[12px] border text-[13px] focus:outline-none ${
                     hasAssignedDid
-                      ? 'bg-black/[0.04] border-black/[0.12] text-black font-mono font-bold'
-                      : 'bg-amber-50/70 border-amber-200 text-amber-900 font-medium'
+                      ? 'bg-[#F5F5F5] border-black/[0.08] text-black font-mono font-bold'
+                      : 'bg-[#D8E738]/35 border-black/[0.12] text-black font-semibold'
                   }`}
                 />
-                <p className="text-[11px] text-[#777169] mt-1">
+                <p className="text-[11.5px] text-[#737373] mt-1.5">
                   {hasAssignedDid
                     ? 'Закреплён за вашей организацией в единой АТС Voxi.by.'
                     : 'Персональный номер А1 ВАТС назначается менеджером сразу после регистрации.'}
@@ -303,83 +325,87 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               </div>
             </div>
 
-            {/* Инструкция по переадресации */}
-            <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-3">
-              <div className="text-xs font-medium text-black">
-                Включение ИИ-администратора на вашем телефоне (наберите код с мобильного):
+            {/* USSD Instructions */}
+            <div className="p-5 rounded-[20px] bg-[#F5F5F5] border border-black/[0.06] space-y-4">
+              <div className="font-display text-[14px] font-bold text-black">
+                Включение ИИ-администратора на вашем телефоне (наберите код с мобильного)
               </div>
 
               {hasAssignedDid ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="p-4 rounded-[16px] bg-white border border-black/[0.08] flex flex-col justify-between gap-3">
                       <div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-black">Режим 1: Если не ответили за 10 сек</span>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="text-[13px] font-bold text-black">Режим 1: Если не ответили за 10 сек</span>
+                          <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#6BFF91] text-black shrink-0">
                             Рекомендуем
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
+                        <p className="text-[12px] text-[#525252] mt-1.5 leading-relaxed">
                           Сначала звонит ваш телефон. Если менеджер занят или не поднял трубку за 10 секунд — отвечает ИИ.
                         </p>
                       </div>
-                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
-                        <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-black/[0.06]">
+                        <code className="text-[12px] font-mono font-bold text-black bg-[#F5F5F5] px-2.5 py-1 rounded-[8px] break-all select-all">
                           {ussdNoAnswer}
                         </code>
-                        <CopyButton value={ussdNoAnswer} label="Скопировать код" />
+                        <CopyButton value={ussdNoAnswer} label="Скопировать" />
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-[10px] bg-white border border-black/[0.08] flex flex-col justify-between gap-2 shadow-2xs">
+                    <div className="p-4 rounded-[16px] bg-white border border-black/[0.08] flex flex-col justify-between gap-3">
                       <div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-black">Режим 2: Все звонки сразу на ИИ 24/7</span>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="text-[13px] font-bold text-black">Режим 2: Все звонки на ИИ 24/7</span>
+                          <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#F5F5F5] text-black border border-black/[0.08] shrink-0">
                             Автопилот
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#777169] mt-1 leading-relaxed">
+                        <p className="text-[12px] text-[#525252] mt-1.5 leading-relaxed">
                           ИИ отвечает мгновенно на каждый звонок и переключает на человека только по прямой просьбе клиента.
                         </p>
                       </div>
-                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-2 border-t border-black/[0.06]">
-                        <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-black/[0.06]">
+                        <code className="text-[12px] font-mono font-bold text-black bg-[#F5F5F5] px-2.5 py-1 rounded-[8px] break-all select-all">
                           {ussdAlways}
                         </code>
-                        <CopyButton value={ussdAlways} label="Скопировать код" />
+                        <CopyButton value={ussdAlways} label="Скопировать" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-[11px] text-[#777169] pt-1">
-                    Наберите код на смартфоне и нажмите кнопку вызова. Для отмены переадресации наберите <code className="font-mono font-semibold text-black">##002#</code>.
+                  <div className="text-[12px] text-[#525252]">
+                    Наберите код на смартфоне и нажмите кнопку вызова. Для отмены переадресации наберите{' '}
+                    <code className="font-mono font-bold text-black bg-white px-1.5 py-0.5 rounded border border-black/[0.08]">
+                      ##002#
+                    </code>
+                    .
                   </div>
                 </>
               ) : (
-                <div className="p-3.5 rounded-[10px] bg-amber-50/70 border border-amber-200 text-xs text-amber-950 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-[16px] bg-white border border-black/[0.08] text-[13px] text-black leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="font-semibold">Персональный номер шлюза ещё не закреплён</div>
-                    <p className="text-[11px] text-amber-800 mt-0.5">
-                      USSD-коды переадресации появятся здесь автоматически сразу после выделения номера А1 ВАТС (обычно до 15 минут). Чтобы ускорить подключение, напишите менеджеру.
+                    <div className="font-bold">Персональный номер шлюза ещё не закреплён</div>
+                    <p className="text-[12px] text-[#525252] mt-0.5">
+                      USSD-коды переадресации появятся здесь автоматически сразу после выделения номера А1 ВАТС (обычно до 15 минут).
                     </p>
                   </div>
                   <a
                     href="https://t.me/voxi_manager"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-[8px] bg-amber-900 hover:bg-amber-800 text-white text-[11px] font-semibold transition-colors text-center"
+                    className="shrink-0 whitespace-nowrap h-9 px-4 rounded-full bg-black hover:bg-[#171717] text-white text-[12px] font-semibold inline-flex items-center justify-center transition-colors"
                   >
-                    Написать @voxi_manager
+                    Написать @voxi_manager ↗
                   </a>
                 </div>
               )}
             </div>
           </>
         ) : (
-          <div className="p-4 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-5 rounded-[20px] bg-[#F5F5F5] border border-black/[0.06] space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <FieldLabel
                   htmlFor="sip-server"
@@ -394,7 +420,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   value={localSip.sipServer}
                   onChange={(e) => setLocalSip({ ...localSip, sipServer: e.target.value })}
                   placeholder="sip.a1.by:5060"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+                  className={`${WHITE_INPUT_CLASS} font-mono`}
                 />
               </div>
 
@@ -412,7 +438,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   value={localSip.sipLogin}
                   onChange={(e) => setLocalSip({ ...localSip, sipLogin: e.target.value })}
                   placeholder="37544XXXXXXX"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+                  className={`${WHITE_INPUT_CLASS} font-mono`}
                 />
               </div>
 
@@ -427,9 +453,9 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowSipPassword(!showSipPassword)}
-                    className="text-[10px] text-[#777169] hover:text-black flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-medium text-[#737373] hover:text-black flex items-center gap-1 cursor-pointer mb-1.5"
                   >
-                    {showSipPassword ? <EyeClosedIcon className="w-3 h-3" /> : <EyeIcon className="w-3 h-3" />}
+                    {showSipPassword ? <EyeClosedIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
                     <span>{showSipPassword ? 'Скрыть' : 'Показать'}</span>
                   </button>
                 </div>
@@ -439,7 +465,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   value={localSip.sipPassword || ''}
                   onChange={(e) => setLocalSip({ ...localSip, sipPassword: e.target.value })}
                   placeholder="Пароль от SIP-учётки"
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+                  className={`${WHITE_INPUT_CLASS} font-mono`}
                 />
               </div>
 
@@ -457,47 +483,49 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                   value={localSip.callerId || ''}
                   onChange={(e) => setLocalSip({ ...localSip, callerId: e.target.value })}
                   placeholder="+375 (29) ..."
-                  className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+                  className={`${WHITE_INPUT_CLASS} font-mono`}
                 />
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-black/[0.06]">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-black/[0.08]">
               <button
                 type="button"
                 onClick={handleTestSip}
                 disabled={isTestingSip}
-                className="px-3.5 py-1.5 rounded-[8px] bg-white hover:bg-black/[0.04] text-black border border-black/[0.12] text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                className="h-9 px-4 rounded-full bg-white hover:bg-black hover:text-white text-black border border-black/[0.12] text-[12px] font-semibold inline-flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isTestingSip ? 'animate-spin' : ''}`} />
                 <span>{isTestingSip ? 'Проверяем связь с АТС...' : 'Проверить подключение SIP'}</span>
               </button>
 
               {sipTestResult && (
-                <span className={`text-[11px] font-medium flex items-center gap-1 ${
-                  sipTestResult.ok ? 'text-emerald-700' : 'text-rose-600'
-                }`}>
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span
+                  className={`text-[12px] font-semibold flex items-center gap-1.5 ${
+                    sipTestResult.ok ? 'text-[#15803D]' : 'text-[#FE432A]'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{sipTestResult.message}</span>
                 </span>
               )}
             </div>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* CARD 2: Перевод звонка на сотрудника */}
-      <div className="p-5 sm:p-6 rounded-[16px] liquid-glass-card space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
+      {/* CARD 02: Перевод звонка на сотрудника */}
+      <section className="p-6 sm:p-7 rounded-[24px] bg-white border border-black/[0.08] space-y-5">
+        <div className="flex items-center gap-3.5 pb-4 border-b border-black/[0.08]">
+          <div className="w-9 h-9 rounded-[12px] bg-[#0A0A0A] text-[#D8E738] flex items-center justify-center font-mono font-bold text-[12px] shrink-0">
             02
           </div>
           <div>
-            <h3 className="text-sm font-medium text-black">
+            <h2 className="font-display text-[17px] font-bold text-black tracking-[-0.02em]">
               Перевод звонка на сотрудника
-            </h3>
-            <p className="text-xs text-[#777169] mt-0.5">
-              Если клиент попросит человека или бот поймет, что вопрос требует живого участия
+            </h2>
+            <p className="text-[12.5px] text-[#737373]">
+              Если клиент попросит человека или бот поймёт, что вопрос требует живого участия
             </p>
           </div>
         </div>
@@ -509,7 +537,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               label="Номер телефона администратора / мастера"
               required
               helpTitle="Куда переводить звонок"
-              helpText="Укажите номер дежурного менеджера или мастера в Беларуси (+375). Если звонящий скажет «соедините с человеком» или у него возникнет сложный нестандартный вопрос, бот мгновенно переведет звонок на этот номер."
+              helpText="Укажите номер дежурного менеджера или мастера в Беларуси (+375). Если звонящий скажет «соедините с человеком» или у него возникнет сложный нестандартный вопрос, бот мгновенно переведёт звонок на этот номер."
               helpExample="+375 (29) 111-22-33"
             />
             <input
@@ -518,9 +546,9 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               value={localSip.transferPhone}
               onChange={(e) => setLocalSip({ ...localSip, transferPhone: e.target.value })}
               placeholder="+375 (29) 111-22-33"
-              className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black font-mono focus:outline-none focus:border-black"
+              className={`${INPUT_CLASS} font-mono`}
             />
-            <p className="text-[11px] text-[#777169] mt-1">
+            <p className="text-[11.5px] text-[#737373] mt-1.5">
               На этот номер поступит вызов при переводе.
             </p>
           </div>
@@ -530,7 +558,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               htmlFor="staff-whisper"
               label="Что бот скажет клиенту перед переводом"
               helpTitle="Фраза перед переводом"
-              helpText="Эту фразу бот вежливо произнесет клиенту в трубку, пока соединяет звонок с вашим сотрудником."
+              helpText="Эту фразу бот вежливо произнесёт клиенту в трубку, пока соединяет звонок с вашим сотрудником."
               helpExample="Секунду, перевожу звонок на администратора..."
             />
             <input
@@ -539,65 +567,74 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
               value={localSip.whisperMessage}
               onChange={(e) => setLocalSip({ ...localSip, whisperMessage: e.target.value })}
               placeholder="Секунду, перевожу звонок на администратора..."
-              className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black focus:outline-none focus:border-black"
+              className={INPUT_CLASS}
             />
-            <p className="text-[11px] text-[#777169] mt-1">
+            <p className="text-[11.5px] text-[#737373] mt-1.5">
               Эту фразу клиент услышит в трубке перед соединением.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-black/[0.06]">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-black/[0.08]">
           <button
             type="button"
             onClick={handleTestTransfer}
             disabled={isTestingTransfer}
-            className="px-3.5 py-1.5 rounded-[8px] bg-white hover:bg-black/[0.04] text-black border border-black/[0.12] text-xs font-medium inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+            className="h-9 px-4 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-black border border-black/[0.08] text-[12px] font-semibold inline-flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <CallTransfer className="w-3.5 h-3.5 text-black" />
+            <CallTransfer className="w-3.5 h-3.5" />
             <span>{isTestingTransfer ? 'Проверяем доступность номера...' : 'Проверить номер перевода'}</span>
           </button>
 
           {transferTestResult && (
-            <span className={`text-[11px] font-medium flex items-center gap-1 ${
-              transferTestResult.ok ? 'text-emerald-700' : 'text-rose-600'
-            }`}>
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span
+              className={`text-[12px] font-semibold flex items-center gap-1.5 ${
+                transferTestResult.ok ? 'text-[#15803D]' : 'text-[#FE432A]'
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{transferTestResult.message}</span>
             </span>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* CARD 3: Запись и безопасность (Disclosure) */}
-      <details className="group rounded-[16px] liquid-glass-card overflow-hidden">
-        <summary className="p-4 sm:p-5 flex items-center justify-between text-xs font-medium text-black hover:bg-black/[0.02] cursor-pointer list-none transition-colors">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+      {/* CARD 03: Запись и безопасность (Disclosure) */}
+      <details className="group rounded-[24px] bg-white border border-black/[0.08] overflow-hidden">
+        <summary className="p-5 sm:p-6 flex items-center justify-between text-[13.5px] font-semibold text-black hover:bg-[#F5F5F5] cursor-pointer list-none transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-[10px] bg-[#F5F5F5] border border-black/[0.06] flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4 text-black" />
+            </span>
             <span>Запись разговоров и Закон 99-З о защите персональных данных</span>
           </div>
-          <ChevronDown className="w-4 h-4 text-[#777169] transition-transform group-open:rotate-180" />
+          <ChevronDown className="w-4 h-4 text-[#737373] transition-transform group-open:rotate-180" />
         </summary>
 
-        <div className="p-5 pt-3 border-t border-black/[0.06] space-y-4 liquid-glass-cream">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs font-medium text-black">Предупреждать клиента о записи разговора</div>
-              <div className="text-[11px] text-[#777169]">Бот произнесет эту фразу в начале звонка</div>
-            </div>
+        <div className="p-6 pt-4 border-t border-black/[0.08] space-y-4 bg-[#F5F5F5]">
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="recording-disclaimer-toggle" className="cursor-pointer">
+              <div className="text-[13.5px] font-semibold text-black">
+                Предупреждать клиента о записи разговора
+              </div>
+              <div className="text-[12px] text-[#737373]">
+                Бот произнесёт эту фразу в начале звонка
+              </div>
+            </label>
             <input
               id="recording-disclaimer-toggle"
               type="checkbox"
+              {...nativeSwitchAttr}
               aria-label="Предупреждать клиента о записи разговора"
               checked={localSip.recordingDisclaimerEnabled}
               onChange={(e) => setLocalSip({ ...localSip, recordingDisclaimerEnabled: e.target.checked })}
-              className="w-4 h-4 rounded accent-black cursor-pointer"
+              className="w-4 h-4 accent-black cursor-pointer shrink-0"
             />
           </div>
 
           {localSip.recordingDisclaimerEnabled && (
             <div>
-              <label htmlFor="recording-disclaimer-text" className="text-[11px] font-medium text-black block mb-1">
+              <label htmlFor="recording-disclaimer-text" className="text-[12px] font-semibold text-black block mb-1.5">
                 Фраза предупреждения
               </label>
               <input
@@ -605,13 +642,13 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                 type="text"
                 value={localSip.disclaimerText}
                 onChange={(e) => setLocalSip({ ...localSip, disclaimerText: e.target.value })}
-                className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/[0.12] text-xs text-black focus:outline-none focus:border-black"
+                className={WHITE_INPUT_CLASS}
               />
             </div>
           )}
 
-          <div className="p-3 rounded-[8px] bg-white border border-black/[0.06] text-[11px] text-[#59544F] leading-relaxed">
-            Серверы Voxi размещены на территории Республики Беларусь, все записи диалогов шифруются и соответствуют требованиям НЦЗПД и Закону РБ № 99-З «О защите персональных данных».
+          <div className="p-4 rounded-[14px] bg-white border border-black/[0.08] text-[12px] text-[#525252] leading-relaxed">
+            Серверы Voxi размещены на территории Республики Беларусь, все записи диалогов шифруются и соответствуют требованиям НЦЗПД и Закону РБ № 99‑З «О защите персональных данных».
           </div>
         </div>
       </details>
