@@ -9,6 +9,7 @@ import { UserSession } from '../types';
 import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RollLink } from '@/components/motion';
 
 interface NavbarProps {
   currentView: 'landing' | 'dashboard';
@@ -90,48 +91,48 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-label="Основная"
               className="hidden lg:flex items-center gap-0.5 text-[13px] font-normal text-[#59544F]"
             >
-              <a
+              <RollLink
                 href="#showcase"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Платформа
-              </a>
-              <a
+              </RollLink>
+              <RollLink
                 href="#benchmark"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Бенчмарк речи
-              </a>
-              <a
+              </RollLink>
+              <RollLink
                 href="#features"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Возможности
-              </a>
-              <a
+              </RollLink>
+              <RollLink
                 href="#how-it-works"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Как это работает
-              </a>
-              <a
+              </RollLink>
+              <RollLink
                 href="#pricing"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors font-medium text-slate-900 whitespace-nowrap"
               >
                 Тарифы
-              </a>
-              <a
+              </RollLink>
+              <RollLink
                 href="#integrations"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Телефония РБ
-              </a>
-              <a
+              </RollLink>
+              <RollLink
                 href="#faq"
                 className="px-2.5 py-1.5 rounded-full hover:bg-black/[0.04] hover:text-black transition-colors whitespace-nowrap"
               >
                 Вопросы
-              </a>
+              </RollLink>
             </nav>
           ) : (
             <div className="flex items-center gap-2 text-xs text-[#777169] bg-[#F5F3F1] px-4 py-1.5 rounded-full min-w-0">

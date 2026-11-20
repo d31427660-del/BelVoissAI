@@ -14,6 +14,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { AgentConfig, SipSettings, UserSession } from '../../types';
 import { testSipNode, testFallbackPhone } from '../../lib/vapiService';
+import { CopyButton } from '@/components/motion';
 import { ispUpdateNumberRentalMode } from '../../lib/ispDbClient';
 import { FieldLabel } from './FieldHelp';
 
@@ -319,13 +320,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                         <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
                           {ussdNoAnswer}
                         </code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyUssd(ussdNoAnswer)}
-                          className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
-                        >
-                          {copiedUssd === ussdNoAnswer ? '✓ Скопировано' : 'Скопировать код'}
-                        </button>
+                        <CopyButton value={ussdNoAnswer} label="Скопировать код" />
                       </div>
                     </div>
 
@@ -345,13 +340,7 @@ export const PhoneTab: React.FC<PhoneTabProps> = ({
                         <code className="text-xs font-mono font-bold text-black bg-black/[0.05] px-2 py-1 rounded break-all select-all">
                           {ussdAlways}
                         </code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyUssd(ussdAlways)}
-                          className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded-[6px] bg-black/[0.06] hover:bg-black/[0.1] text-black text-[11px] font-medium transition-colors cursor-pointer"
-                        >
-                          {copiedUssd === ussdAlways ? '✓ Скопировано' : 'Скопировать код'}
-                        </button>
+                        <CopyButton value={ussdAlways} label="Скопировать код" />
                       </div>
                     </div>
                   </div>

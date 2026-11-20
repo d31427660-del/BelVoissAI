@@ -22,6 +22,7 @@ import { formatBelarusPhone } from './InteractiveAgentFields';
 import { formatCallerTemplate, sendCallerFollowUpNotification } from '../../lib/callerNotificationService';
 import { YclientsService } from '../../lib/yclientsService';
 import { syncWithVapiApi, testSipNode, testFallbackPhone, sendTestTelegramCard } from '../../lib/vapiService';
+import { CopyButton } from '@/components/motion';
 
 interface IntegrationsTabProps {
   agent: AgentConfig;
@@ -721,19 +722,24 @@ export const IntegrationsTab: React.FC<IntegrationsTabProps> = ({
                   helpText="Сразу после завершения разговора сервер Voxi отправит POST-запрос с именем клиента, номером телефона, кратким резюме и полной расшифровкой звонка."
                   helpExample="https://crm.mycompany.by/api/voxi-lead"
                 />
-                <input
-                  id="webhook-url-input"
-                  name="webhookUrl"
-                  type="url"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  aria-describedby="webhook-url-hint"
-                  value={localWh.webhookUrl}
-                  onChange={(e) => setLocalWh({ ...localWh, webhookUrl: e.target.value })}
-                  placeholder="https://crm.company.by/webhook/voxi"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    id="webhook-url-input"
+                    name="webhookUrl"
+                    type="url"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    aria-describedby="webhook-url-hint"
+                    value={localWh.webhookUrl}
+                    onChange={(e) => setLocalWh({ ...localWh, webhookUrl: e.target.value })}
+                    placeholder="https://crm.company.by/webhook/voxi"
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-blue-600"
+                  />
+                  {localWh.webhookUrl.trim() && (
+                    <CopyButton value={localWh.webhookUrl.trim()} label="Копировать" />
+                  )}
+                </div>
                 <FieldHint id="webhook-url-hint">
                   Поддерживаются входящие вебхуки Битрикс24, amoCRM, Make и n8n.
                 </FieldHint>

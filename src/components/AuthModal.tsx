@@ -19,7 +19,7 @@ import {
 } from '../lib/ispDbClient';
 import { UserSession } from '../types';
 import { LegalDocType } from './Footer';
-import { Button } from '@/components/ui/button';
+import { LoadingSuccessButton } from '@/components/motion';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -347,14 +347,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          <Button
+          <LoadingSuccessButton
             type="submit"
-            disabled={loading}
-            className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-          >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-label="Загрузка"></div>
-            ) : (
+            status={loading ? 'loading' : infoMessage ? 'success' : 'idle'}
+            loadingLabel="Выполняем вход…"
+            successLabel="Готово"
+            idleLabel={
               <>
                 <span>
                   {mode === 'signup'
@@ -367,8 +365,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </span>
                 <ArrowRightIcon size={17} aria-hidden="true" />
               </>
-            )}
-          </Button>
+            }
+            className="w-full h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-sm"
+          />
         </form>
 
         <div className="flex items-center justify-between text-xs text-[#777169] pt-1">

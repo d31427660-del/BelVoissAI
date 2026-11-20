@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardTitle } from '@/components/ui/card';
+import { SlidingTabs } from '@/components/motion';
 
 interface PricingSectionProps {
   onOpenAuth: (packageId?: 'pack_300' | 'pack_1000') => void;
@@ -37,32 +38,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenAuth }) =>
             Тарифицируется только фактическое время телефонного разговора бота с клиентом — гудки, ожидание соединения и паузы бесплатны. Официальный договор с резидентом РБ (УНП 193991846).
           </p>
 
-          {/* Toggle switcher */}
+          {/* Toggle switcher (DesignBookmark Motion: Tab pill / Plan switch) */}
           <div className="pt-4 flex justify-center">
-            <div className="inline-flex p-1 rounded-full bg-slate-200/80 border border-slate-300/80">
-              <button
-                type="button"
-                onClick={() => setBillingPeriod('packages')}
-                className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
-                  billingPeriod === 'packages'
-                    ? 'bg-white text-slate-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-950'
-                }`}
-              >
-                Пакеты минут со скидкой
-              </button>
-              <button
-                type="button"
-                onClick={() => setBillingPeriod('payg')}
-                className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
-                  billingPeriod === 'payg'
-                    ? 'bg-white text-slate-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-950'
-                }`}
-              >
-                Поминутная постоплата (PAYG)
-              </button>
-            </div>
+            <SlidingTabs<'packages' | 'payg'>
+              ariaLabel="Формат оплаты"
+              value={billingPeriod}
+              onChange={setBillingPeriod}
+              options={[
+                { value: 'packages', label: 'Пакеты минут со скидкой' },
+                { value: 'payg', label: 'Поминутная постоплата (PAYG)' },
+              ]}
+            />
           </div>
         </div>
 

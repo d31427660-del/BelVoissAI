@@ -4,6 +4,7 @@ import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon } from '../../lib/contacts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { MagneticButton } from '@/components/motion';
 
 interface CtaSectionProps {
   onOpenAuth: () => void;
@@ -40,15 +41,17 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenAuth, onOpenVoiceT
             </div>
 
             <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col items-stretch gap-3">
-              <Button
-                type="button"
-                size="lg"
-                onClick={onOpenAuth}
-                className="w-full h-12 px-6 rounded-full bg-white hover:bg-neutral-100 text-black font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
-              >
-                <span>Создать ИИ-агента бесплатно</span>
-                <ArrowRightIcon size={16} />
-              </Button>
+              <MagneticButton className="w-full">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={onOpenAuth}
+                  className="w-full h-12 px-6 rounded-full bg-white hover:bg-neutral-100 text-black font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <span>Создать ИИ-агента бесплатно</span>
+                  <ArrowRightIcon size={16} />
+                </Button>
+              </MagneticButton>
 
               <Button
                 type="button"

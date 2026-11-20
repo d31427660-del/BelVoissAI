@@ -8,6 +8,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { SipSettings, UserSession } from '../../types';
 import { ispUpdateNumberRentalMode } from '../../lib/ispDbClient';
+import { StorageMeter } from '@/components/motion';
 
 interface BillingTabProps {
   user: UserSession;
@@ -344,6 +345,36 @@ export const BillingTab: React.FC<BillingTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* DesignBookmark Motion: Storage meter (Визуальный расход минут пакета) */}
+      <StorageMeter
+        title="Расход минут по сценариям и периодам"
+        usedMinutes={Math.round(freeMinsUsed + billableMinsThisMonth)}
+        totalMinutes={Math.max(Math.round(freeMinsTotal + billableMinsThisMonth), 300)}
+        segments={[
+          {
+            id: 'free-used',
+            label: 'Бонусные минуты (использовано)',
+            minutes: Math.round(freeMinsUsed),
+            colorClass: 'bg-emerald-500',
+            detail: `Из ${Math.round(freeMinsTotal)} бонусных минут израсходовано ${Math.round(freeMinsUsed)} мин. Остаток бонуса: ${Math.round(freeMinsRemaining)} мин (не сгорает).`,
+          },
+          {
+            id: 'billable',
+            label: 'Оплачиваемые звонки в текущем месяце',
+            minutes: Math.round(billableMinsThisMonth),
+            colorClass: 'bg-slate-900',
+            detail: `Тарифицируется только фактическое время диалога по ставке ${ratePerMin.toFixed(2)} BYN/мин. Гудки и ожидание — 0 BYN.`,
+          },
+          {
+            id: 'remaining',
+            label: 'Доступный запас минут',
+            minutes: Math.max(0, Math.round(freeMinsRemaining)),
+            colorClass: 'bg-amber-400',
+            detail: 'Остаток на балансе переносится на следующие месяцы и расходуется в первую очередь перед постоплатой.',
+          },
+        ]}
+      />
 
       {/* 2. ПРАВИЛА ТАРИФА + ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР ВЫГОДЫ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

@@ -8,6 +8,7 @@ import {
 } from '@solar-icons/react/bold-duotone';
 import { MinutePackage, UserSession } from '../../types';
 import { MINUTE_PACKAGES } from '../../lib/mockData';
+import { LoadingSuccessButton } from '@/components/motion';
 
 interface TopUpModalProps {
   isOpen: boolean;
@@ -473,18 +474,13 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
               Отмена
             </button>
 
-            <button
+            <LoadingSuccessButton
               type="button"
               onClick={handlePay}
-              disabled={isProcessing}
-              className="flex-1 sm:flex-initial px-7 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer active:scale-[0.98]"
-            >
-              {isProcessing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Переход в bePaid...</span>
-                </>
-              ) : (
+              status={isProcessing ? 'loading' : isSuccess ? 'success' : 'idle'}
+              loadingLabel="Переход в bePaid…"
+              successLabel="Оплата прошла"
+              idleLabel={
                 <>
                   <WalletMoneyIcon size={16} aria-hidden="true" />
                   <span>
@@ -493,8 +489,9 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
                       : `Оплатить ${finalAmountByn.toFixed(2)} BYN картой`}
                   </span>
                 </>
-              )}
-            </button>
+              }
+              className="flex-1 sm:flex-initial px-7 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold active:scale-[0.98]"
+            />
           </div>
         )}
       </div>

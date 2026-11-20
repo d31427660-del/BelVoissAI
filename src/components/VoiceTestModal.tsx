@@ -24,6 +24,7 @@ import {
   createCallLogFromDialogue,
 } from '../lib/botDialogueEngine';
 import { playRingingTone, playHangupSound } from '../lib/telephonyAudio';
+import { GooThinking, SiriOrb, StreamingReply, VoiceInputButton } from '@/components/motion';
 
 interface VoiceTestModalProps {
   isOpen: boolean;
@@ -784,87 +785,53 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 </div>
               )}
 
-              {/* Clean Light Acoustic Voice Orb + Waveform */}
-              <div className="flex flex-col items-center gap-2.5 py-1">
+              {/* SmoothUI Siri Orb + Waveform + Kokonut Voice Input */}
+              <div className="flex flex-col items-center gap-3 py-1">
                 <button
                   type="button"
                   onClick={handleCenterOrbClick}
                   title={interimTranscript ? 'Нажмите для отправки фразы' : 'Микрофон активен'}
-                  className="relative w-24 h-24 flex items-center justify-center rounded-full focus:outline-none"
+                  className="relative flex items-center justify-center rounded-full focus:outline-none cursor-pointer"
                 >
-                  <motion.span
-                    animate={{
-                      scale: isBotThinking
-                        ? [1, 1.28, 1]
-                        : isBotSpeaking
-                        ? [1, 1.24, 1]
-                        : !isMuted && audioLevel > 5
-                        ? [1, 1.18, 1]
-                        : [1, 1.05, 1],
-                      opacity: isBotThinking
-                        ? [0.55, 0.2, 0.55]
-                        : isBotSpeaking
-                        ? [0.45, 0.15, 0.45]
-                        : [0.3, 0.1, 0.3],
-                    }}
-                    transition={{ repeat: Infinity, duration: isBotThinking ? 0.9 : 1.6, ease: 'easeInOut' }}
-                    className={`absolute inset-0 rounded-full ${
+                  <SiriOrb
+                    size={92}
+                    amplitude={audioLevel}
+                    state={
                       isBotThinking
-                        ? 'bg-zinc-300'
+                        ? 'thinking'
                         : isBotSpeaking
-                        ? 'bg-black/20'
-                        : !isMuted
-                        ? 'bg-emerald-200'
-                        : 'bg-zinc-200'
-                    }`}
-                  />
-                  <span
-                    className={`relative w-18 h-18 rounded-full flex items-center justify-center transition-all ${
-                      isBotThinking
-                        ? 'liquid-glass-btn-primary text-white shadow-md'
-                        : isBotSpeaking
-                        ? 'bg-black text-white shadow-md'
-                        : !isMuted
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25'
-                        : 'liquid-glass-pill text-[#777169]'
-                    }`}
+                        ? 'speaking'
+                        : isMuted
+                        ? 'muted'
+                        : 'listening'
+                    }
                   >
                     {isBotThinking ? (
                       <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
                     ) : isBotSpeaking ? (
-                      <Volume2 className="w-8 h-8 animate-pulse" />
+                      <Volume2 className="w-8 h-8" />
                     ) : !isMuted ? (
                       <Mic className="w-8 h-8" />
                     ) : (
                       <MicOff className="w-8 h-8" />
                     )}
-                  </span>
+                  </SiriOrb>
                 </button>
 
-                <div className="flex items-center justify-center gap-1 h-5 w-44">
-                  {waveBars.map((height, i) => {
-                    const effective = isBotSpeaking
-                      ? height
-                      : !isMuted && audioLevel > 5
-                      ? Math.max(22, audioLevel * (1 + (i % 3) * 0.3))
-                      : 20;
-
-                    return (
-                      <motion.div
-                        key={i}
-                        animate={{ height: `${Math.min(100, Math.max(18, effective))}%` }}
-                        transition={{ duration: 0.08 }}
-                        className={`w-1 rounded-full ${
-                          isBotSpeaking
-                            ? 'bg-black'
-                            : !isMuted && audioLevel > 5
-                            ? 'bg-emerald-500'
-                            : 'bg-zinc-300'
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
+                {isBotThinking ? (
+                  <div className="h-7 flex items-center justify-center">
+                    <GooThinking label="Voxi формирует ответ" />
+                  </div>
+                ) : (
+                  <VoiceInputButton
+                    isListening={callState === 'connected'}
+                    isMuted={isMuted}
+                    isBotSpeaking={isBotSpeaking}
+                    durationSeconds={callDuration}
+                    audioLevel={audioLevel}
+                    onClick={toggleMute}
+                  />
+                )}
               </div>
 
               {/* Mic warning if blocked */}
@@ -924,7 +891,13 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                           : 'liquid-glass-dark text-white'
                       }`}
                     >
-                      <p>{msg.text}</p>
+                      <p>
+                        {msg.speaker === 'assistant' && i === transcript.length - 1 ? (
+                          <StreamingReply text={msg.text} />
+                        ) : (
+                          msg.text
+                        )}
+                      </p>
                     </div>
                   </div>
                 ))}

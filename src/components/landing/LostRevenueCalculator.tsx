@@ -3,6 +3,7 @@ import { CalculatorIcon, CheckCircleIcon, ArrowRightIcon } from '@solar-icons/re
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardTitle } from '@/components/ui/card';
+import { MarkerText } from '@/components/motion';
 
 interface LostRevenueCalculatorProps {
   onOpenAuth: () => void;
@@ -41,7 +42,9 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                 </Badge>
                 <h3 className="text-2xl sm:text-3xl lg:text-4xl font-light text-slate-950 tracking-tight">
                   Сколько денег теряет бизнес на{' '}
-                  <span className="font-normal text-slate-950">пропущенных звонках?</span>
+                  <MarkerText colorClass="bg-amber-300/55" className="font-normal text-slate-950">
+                    пропущенных звонках?
+                  </MarkerText>
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                   Вечером после 19:00, в обеденный перерыв и на выходных клиенты уходят к конкурентам, если не дозваниваются с первой попытки.
@@ -137,7 +140,9 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                     Расчётная потеря выручки
                   </span>
                   <div className="text-3xl sm:text-4xl font-extrabold text-rose-400 font-mono">
-                    ~{lostRevenueMonth.toLocaleString('ru-RU')} BYN
+                    <MarkerText colorClass="bg-rose-500/25">
+                      ~{lostRevenueMonth.toLocaleString('ru-RU')} BYN
+                    </MarkerText>
                   </div>
                   <p className="text-xs text-neutral-400">
                     каждый месяц из-за {missedCallsPerMonth} пропущенных звонков
@@ -155,7 +160,9 @@ export const LostRevenueCalculator: React.FC<LostRevenueCalculatorProps> = ({ on
                   </div>
                   <div className="flex justify-between items-center text-sm font-semibold pt-1 border-t border-neutral-800/80">
                     <span className="text-white">Возврат в кассу с Voxi:</span>
-                    <span className="font-mono text-emerald-400">+{netProfitRetained.toLocaleString('ru-RU')} BYN/мес</span>
+                    <MarkerText colorClass="bg-emerald-500/25" className="font-mono text-emerald-400">
+                      +{netProfitRetained.toLocaleString('ru-RU')} BYN/мес
+                    </MarkerText>
                   </div>
                 </div>
 

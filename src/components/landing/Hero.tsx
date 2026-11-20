@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MagneticButton, SlidingTabs, WordRoll, ReadAlong, MorphIsland } from '@/components/motion';
 
 interface HeroProps {
   onOpenVoiceTest?: () => void;
@@ -316,16 +317,15 @@ export const Hero: React.FC<HeroProps> = ({
           
           {/* Left Column: H1 + Shadcn UI Buttons & Badges */}
           <div className="lg:col-span-7 space-y-6">
-            <Badge
-              variant="outline"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-slate-300 bg-white/80 backdrop-blur-sm text-slate-900 text-xs font-normal shadow-xs"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Голосовой ИИ для бизнеса Беларуси • Отклик 0.5 сек</span>
-            </Badge>
+            <MorphIsland />
 
             <h1 className="text-4xl sm:text-5xl lg:text-[54px] text-black tracking-[-0.025em] leading-[1.08] font-light">
-              Ни одного пропущенного звонка.{' '}
+              Ни одного пропущенного звонка{' '}
+              <WordRoll
+                words={['для стоматологий', 'для СТО', 'для салонов красоты', 'для автошкол']}
+                className="font-normal text-black underline decoration-black/15 decoration-2 underline-offset-4"
+              />
+              .{' '}
               <span className="font-normal text-black">
                 ИИ-администратор отвечает 24/7.
               </span>
@@ -333,15 +333,17 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* Shadcn UI Action Buttons */}
             <div className="pt-1 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-              <Button
-                type="button"
-                size="lg"
-                onClick={onOpenAuth}
-                className="rounded-full bg-slate-900 text-white hover:bg-slate-800 px-6 h-12 text-sm font-medium shadow-sm gap-2"
-              >
-                <span>Настроить за 5 минут</span>
-                <ArrowRightIcon size={18} />
-              </Button>
+              <MagneticButton className="w-full sm:w-auto">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={onOpenAuth}
+                  className="w-full sm:w-auto rounded-full bg-slate-900 text-white hover:bg-slate-800 px-6 h-12 text-sm font-medium shadow-sm gap-2"
+                >
+                  <span>Настроить за 5 минут</span>
+                  <ArrowRightIcon size={18} />
+                </Button>
+              </MagneticButton>
 
               {onOpenVoiceTest && (
                 <Button
@@ -406,25 +408,18 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* Right Status & Voice Switcher */}
             <div className="flex items-center justify-between sm:justify-end gap-2">
-              <Tabs
+              <SlidingTabs<VoiceId>
+                ariaLabel="Выбор голоса ИИ"
                 value={selectedVoice}
-                onValueChange={(v) => handleVoiceChange(v as VoiceId)}
-              >
-                <TabsList className="bg-slate-100 p-1 rounded-full border border-slate-200">
-                  <TabsTrigger
-                    value="anna"
-                    className="rounded-full px-3.5 py-1 text-xs data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                  >
-                    Голос: Анна
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="maxim"
-                    className="rounded-full px-3.5 py-1 text-xs data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                  >
-                    Голос: Максим
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+                onChange={handleVoiceChange}
+                className="bg-slate-100 border-slate-200"
+                tabClassName="px-3.5 py-1.5 text-xs sm:text-xs"
+                activePillClassName="shadow-sm"
+                options={[
+                  { value: 'anna', label: 'Голос: Анна' },
+                  { value: 'maxim', label: 'Голос: Максим' },
+                ]}
+              />
             </div>
           </div>
 
@@ -606,7 +601,7 @@ export const Hero: React.FC<HeroProps> = ({
                     <span className="text-slate-950 font-semibold mr-1.5">
                       {selectedVoice === 'maxim' ? 'Максим:' : 'Анна:'}
                     </span>
-                    «{currentAnswerText}»
+                    «<ReadAlong text={currentAnswerText} isActive={isSpeaking} />»
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">

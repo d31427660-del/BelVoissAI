@@ -20,6 +20,7 @@ import {
   createCallLogFromDialogue,
 } from '../../lib/botDialogueEngine';
 import { playRingingTone, playHangupSound } from '../../lib/telephonyAudio';
+import { GooThinking, StreamingReply, VoiceInputButton } from '@/components/motion';
 
 interface LiveBotTesterProps {
   agent: AgentConfig;
@@ -526,13 +527,11 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                     </div>
                     <div className="text-[11px] mt-0.5">
                       {isBotThinking ? (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-indigo-700 font-medium">Формирует ответ по прайсу...</span>
-                          <progress
-                            aria-label="Генерация ответа ассистента"
-                            className="w-28 h-1 rounded-full overflow-hidden accent-indigo-600"
-                          />
-                        </div>
+                        <GooThinking
+                          label="Формирует ответ…"
+                          className="py-1 px-2.5 text-[11px] bg-white/90"
+                          dotClassName="bg-indigo-600"
+                        />
                       ) : isBotSpeaking ? (
                         <span className="text-blue-700 font-semibold">{voiceLabel} отвечает в динамик...</span>
                       ) : isMicMuted ? (
@@ -649,7 +648,13 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
                         </span>
                         <span className="shrink-0">{m.time}</span>
                       </div>
-                      <p className="leading-relaxed">{m.text}</p>
+                      <p className="leading-relaxed">
+                        {m.speaker === 'assistant' && idx === messages.length - 1 ? (
+                          <StreamingReply text={m.text} />
+                        ) : (
+                          m.text
+                        )}
+                      </p>
                     </div>
                     {m.speaker === 'user' && (
                       <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
@@ -661,23 +666,16 @@ export const LiveBotTester: React.FC<LiveBotTesterProps> = ({ agent, onCallCompl
               </div>
 
               {/* Clean Light Input Bar */}
-              <form onSubmit={handleSubmitForm} className="flex gap-2">
-                <button
-                  type="button"
+              <form onSubmit={handleSubmitForm} className="flex items-center gap-2">
+                <VoiceInputButton
+                  isListening={callStatus === 'connected'}
+                  isMuted={isMicMuted}
+                  isBotSpeaking={isBotSpeaking}
+                  durationSeconds={callDuration}
+                  audioLevel={audioLevel}
                   onClick={toggleMicMute}
-                  title={isMicMuted ? 'Включить микрофон' : 'Отключить микрофон'}
-                  className={`px-3 py-2.5 rounded-xl border text-xs flex items-center justify-center transition-all shrink-0 ${
-                    isMicMuted
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  {isMicMuted ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </button>
+                  className="py-1.5 px-2.5"
+                />
 
                 <input
                   type="text"

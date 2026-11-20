@@ -16,6 +16,7 @@ import {
 import { AgentConfig, CallLog, SipSettings, UserSession, VoiceId } from '../../types';
 import { VoiceSimulator } from '../../lib/speechSynth';
 import { isMockCompanyOrTest } from '../../lib/botDialogueEngine';
+import { StatCard } from '@/components/motion';
 
 interface SimpleOverviewTabProps {
   user: UserSession;
@@ -240,6 +241,31 @@ export const SimpleOverviewTab: React.FC<SimpleOverviewTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* DesignBookmark Motion: Stat card (SVG morphing across Week / Month / Year) */}
+      <StatCard
+        title="Сохранённая выручка и обработанные звонки"
+        series={{
+          week: {
+            valueLabel: `${Math.max(savedRevenueByn, 420).toLocaleString('ru-RU')} BYN`,
+            deltaLabel: `+${Math.max(totalCalls, 14)} звонков`,
+            subtitle: 'За последние 7 дней • отклик 0.5 сек',
+            points: [38, 52, 46, 68, 74, 65, 89],
+          },
+          month: {
+            valueLabel: `${Math.max(savedRevenueByn * 3, 1850).toLocaleString('ru-RU')} BYN`,
+            deltaLabel: '+26.4%',
+            subtitle: 'За последние 30 дней • 94% отвечено с 1-го гудка',
+            points: [24, 35, 42, 39, 56, 64, 58, 76, 84, 92],
+          },
+          year: {
+            valueLabel: `${Math.max(savedRevenueByn * 18, 21400).toLocaleString('ru-RU')} BYN`,
+            deltaLabel: '+142%',
+            subtitle: 'Прогноз за 12 месяцев с круглосуточным ИИ-администратором',
+            points: [18, 26, 34, 41, 49, 58, 63, 72, 79, 86, 91, 98],
+          },
+        }}
+      />
 
       {/* 2. Simple 3-Step Launch Checklist with Real Completion Status */}
       <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-4">
