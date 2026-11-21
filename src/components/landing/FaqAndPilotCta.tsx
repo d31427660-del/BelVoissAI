@@ -62,7 +62,7 @@ export const FaqAndPilotCta: React.FC<FaqAndPilotCtaProps> = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
           {/* Left Sticky Column */}
-          <div className="lg:col-span-4 lg:sticky lg:top-16 space-y-6">
+          <div className="lg:col-span-4 lg:sticky lg:top-28 space-y-6">
             <h2 className="font-display font-bold text-black text-[38px] sm:text-[50px] lg:text-[58px] leading-[0.96] tracking-[-0.045em]">
               Частые
               <br />
@@ -80,14 +80,14 @@ export const FaqAndPilotCta: React.FC<FaqAndPilotCtaProps> = () => {
                   href={VOXI_CONTACTS.telegramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-black font-medium transition-colors"
+                  className="inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-black font-medium transition-colors"
                 >
                   <TelegramIcon size={13} />
                   <span>{VOXI_CONTACTS.telegramHandle}</span>
                 </a>
                 <a
                   href={VOXI_CONTACTS.phoneTel}
-                  className="inline-flex items-center px-3.5 py-2 rounded-full border border-black/[0.12] hover:border-black text-black font-mono text-[12px] transition-colors"
+                  className="inline-flex items-center min-h-[44px] px-4 py-2 rounded-full border border-black/[0.12] hover:border-black text-black font-mono text-[12px] transition-colors"
                 >
                   {VOXI_CONTACTS.phoneDisplay}
                 </a>

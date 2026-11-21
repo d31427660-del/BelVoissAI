@@ -23,7 +23,7 @@ import { LoadingSuccessButton } from '@/components/motion';
 
 interface AuthModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (reason?: 'dismiss' | 'authenticated') => void;
   onLoginSuccess: (user: UserSession, workspace?: Partial<IspWorkspaceBundle>) => void;
   onOpenLegalDoc?: (doc: LegalDocType) => void;
   initialMode?: 'signin' | 'signup';
@@ -66,6 +66,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
+  const [invalidField, setInvalidField] = useState<'company' | 'email' | 'password' | 'consent' | null>(null);
+
+  const companyInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const consentInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialResetToken) {
@@ -82,12 +88,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const switchMode = (nextMode: 'signin' | 'signup' | 'reset' | 'confirm_reset') => {
     setErrorMessage('');
     setInfoMessage('');
+    setInvalidField(null);
     setMode(nextMode);
   };
 
   useEffect(() => {
     setErrorMessage('');
     setInfoMessage('');
+    setInvalidField(null);
   }, [mode]);
 
   useEffect(() => {
@@ -96,6 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (isOpen) {
       setErrorMessage('');
       setInfoMessage('');
+      setInvalidField(null);
       if (!dialog.open) {
         dialog.showModal();
       }
@@ -152,25 +161,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (loading) return;
     setErrorMessage('');
     setInfoMessage('');
+    setInvalidField(null);
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !EMAIL_REGEX.test(trimmedEmail)) {
-      setErrorMessage('Пожалуйста, укажите корректный email (например, name@company.by)');
+    // Validate fields strictly in visual top-to-bottom DOM order and focus the first invalid field
+    if (mode === 'signup' && !companyName.trim()) {
+      setInvalidField('company');
+      setErrorMessage('Пожалуйста, укажите название компании или ИП');
+      companyInputRef.current?.focus();
       return;
     }
 
-    if (mode === 'signup' && !companyName.trim()) {
-      setErrorMessage('Пожалуйста, укажите название компании или ИП');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !EMAIL_REGEX.test(trimmedEmail)) {
+      setInvalidField('email');
+      setErrorMessage('Пожалуйста, укажите корректный email (например, name@company.by)');
+      emailInputRef.current?.focus();
       return;
     }
 
     if (mode !== 'reset' && (!password || password.length < 6)) {
+      setInvalidField('password');
       setErrorMessage('Пароль должен содержать не менее 6 символов');
+      passwordInputRef.current?.focus();
       return;
     }
 
     if (mode === 'signup' && !consentAccepted) {
+      setInvalidField('consent');
       setErrorMessage('Для регистрации необходимо согласие на обработку персональных данных (Закон РБ № 99-З)');
+      consentInputRef.current?.focus();
       return;
     }
 
@@ -190,7 +209,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (mode === 'confirm_reset' && initialResetToken) {
         const bundle = await ispConfirmResetPassword(trimmedEmail, initialResetToken, password);
         onLoginSuccess(bundle.user, bundle);
-        onClose();
+        onClose('authenticated');
         return;
       }
 
@@ -199,7 +218,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ? await ispSignUp(trimmedEmail, password, companyName.trim())
           : await ispSignIn(trimmedEmail, password);
       onLoginSuccess(bundle.user, bundle);
-      onClose();
+      onClose('authenticated');
     } catch (err: unknown) {
       const rawMsg = err instanceof Error ? err.message : 'Ошибка авторизации';
       setErrorMessage(localizeAuthError(rawMsg));
@@ -247,7 +266,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ? 'Закрыть окно смены пароля'
               : 'Закрыть окно входа'
           }
-          onClick={onClose}
+          onClick={() => onClose('dismiss')}
           className="w-11 h-11 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-[#525252] flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           <CloseCircleIcon size={18} aria-hidden="true" />
@@ -257,7 +276,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       {/* Body */}
       <div className="p-7 space-y-5 max-h-[82vh] overflow-y-auto">
         {errorMessage && (
-          <div role="alert" className="p-3.5 rounded-[14px] bg-[#FFF5F3] border border-[#FE432A]/40 text-[#991B1B] font-medium text-[12.5px]">
+          <div id="auth-form-error" role="alert" className="p-3.5 rounded-[14px] bg-[#FFF5F3] border border-[#FE432A]/40 text-[#991B1B] font-medium text-[12.5px]">
             {errorMessage}
           </div>
         )}
@@ -284,15 +303,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="relative">
                 <Buildings2Icon size={17} className="text-[#737373] absolute left-3.5 top-3 pointer-events-none" aria-hidden="true" />
                 <input
+                  ref={companyInputRef}
                   id="auth-company"
                   name="organization"
                   type="text"
                   autoComplete="organization"
+                  aria-invalid={invalidField === 'company' ? true : undefined}
+                  aria-describedby={invalidField === 'company' ? 'auth-form-error' : undefined}
                   required
                   value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                  onChange={(e) => {
+                    setCompanyName(e.target.value);
+                    if (invalidField === 'company') {
+                      setInvalidField(null);
+                      setErrorMessage('');
+                    }
+                  }}
                   placeholder="Название компании или ИП"
-                  className="w-full pl-10 pr-4 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-black text-[13px] focus:outline-none transition-colors"
+                  className={`w-full pl-10 pr-4 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border text-black text-[13px] focus:outline-none transition-colors ${
+                    invalidField === 'company'
+                      ? 'border-[#FE432A] focus:border-[#FE432A]'
+                      : 'border-black/[0.08] focus:border-black'
+                  }`}
                 />
               </div>
             </div>
@@ -305,17 +337,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="relative">
               <LetterIcon size={17} className="text-[#737373] absolute left-3.5 top-3 pointer-events-none" aria-hidden="true" />
               <input
+                ref={emailInputRef}
                 id="auth-email"
                 name="email"
                 type="email"
                 autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
                 spellCheck={false}
+                aria-invalid={invalidField === 'email' ? true : undefined}
+                aria-describedby={invalidField === 'email' ? 'auth-form-error' : undefined}
                 required
                 value={email}
                 readOnly={mode === 'confirm_reset' && Boolean(initialResetEmail)}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (invalidField === 'email') {
+                    setInvalidField(null);
+                    setErrorMessage('');
+                  }
+                }}
                 placeholder="name@company.by"
-                className="w-full pl-10 pr-4 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-black text-[13px] focus:outline-none transition-colors read-only:opacity-65"
+                className={`w-full pl-10 pr-4 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border text-black text-[13px] focus:outline-none transition-colors read-only:opacity-65 ${
+                  invalidField === 'email'
+                    ? 'border-[#FE432A] focus:border-[#FE432A]'
+                    : 'border-black/[0.08] focus:border-black'
+                }`}
               />
             </div>
           </div>
@@ -344,20 +391,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="relative">
                 <LockKeyholeMinimalisticIcon size={17} className="text-[#737373] absolute left-3.5 top-3 pointer-events-none" aria-hidden="true" />
                 <input
+                  ref={passwordInputRef}
                   id="auth-password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                  aria-describedby={mode === 'signup' ? 'auth-password-hint' : undefined}
+                  aria-invalid={invalidField === 'password' ? true : undefined}
+                  aria-describedby={
+                    invalidField === 'password'
+                      ? mode === 'signup'
+                        ? 'auth-form-error auth-password-hint'
+                        : 'auth-form-error'
+                      : mode === 'signup'
+                      ? 'auth-password-hint'
+                      : undefined
+                  }
                   minLength={6}
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (invalidField === 'password') {
+                      setInvalidField(null);
+                      setErrorMessage('');
+                    }
+                  }}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-11 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border border-black/[0.08] focus:border-black text-black text-[13px] focus:outline-none transition-colors"
+                  className={`w-full pl-10 pr-11 py-2.5 min-h-[42px] rounded-[12px] bg-[#F5F5F5] focus:bg-white border text-black text-[13px] focus:outline-none transition-colors ${
+                    invalidField === 'password'
+                      ? 'border-[#FE432A] focus:border-[#FE432A]'
+                      : 'border-black/[0.08] focus:border-black'
+                  }`}
                 />
                 <button
                   type="button"
+                  aria-pressed={showPassword}
                   aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-2.5 text-[#737373] hover:text-black p-1 rounded-full cursor-pointer"
@@ -371,10 +439,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode === 'signup' && (
             <div className="flex items-start gap-2.5 pt-1">
               <input
+                ref={consentInputRef}
                 id="auth-consent-99z"
                 type="checkbox"
                 checked={consentAccepted}
-                onChange={(e) => setConsentAccepted(e.target.checked)}
+                aria-invalid={invalidField === 'consent' ? true : undefined}
+                aria-describedby={invalidField === 'consent' ? 'auth-form-error' : undefined}
+                onChange={(e) => {
+                  setConsentAccepted(e.target.checked);
+                  if (invalidField === 'consent') {
+                    setInvalidField(null);
+                    setErrorMessage('');
+                  }
+                }}
                 required
                 className="mt-0.5 h-4 w-4 rounded border-black/25 text-black shrink-0 accent-black"
               />

@@ -127,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setMobileMenuOpen(false);
                   onOpenAuth('signin');
                 }}
-                className="min-h-[44px] sm:min-h-[40px] px-3 sm:px-5 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.12] text-[12.5px] sm:text-[13px] font-semibold text-black transition-colors cursor-pointer whitespace-nowrap"
+                className="hidden sm:inline-flex items-center justify-center min-h-[40px] px-5 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.12] text-[13px] font-semibold text-black transition-colors cursor-pointer whitespace-nowrap"
               >
                 Войти
               </button>
@@ -183,6 +183,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               </li>
             ))}
           </ul>
+          {!user && (
+            <div className="mt-3 pt-3 border-t border-black/[0.08] sm:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAuth('signin');
+                }}
+                className="w-full min-h-[44px] px-4 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.14] text-[14px] font-semibold text-black transition-colors cursor-pointer"
+              >
+                Войти в кабинет
+              </button>
+            </div>
+          )}
           <div className="mt-3 pt-3 border-t border-black/[0.08] flex flex-wrap items-center gap-2">
             <a
               href={VOXI_CONTACTS.phoneTel}

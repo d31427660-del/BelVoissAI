@@ -37,8 +37,8 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [showDetails, setShowDetails] = useState<boolean>(false);
-  const [functional, setFunctional] = useState<boolean>(true);
-  const [analytics, setAnalytics] = useState<boolean>(true);
+  const [functional, setFunctional] = useState<boolean>(false);
+  const [analytics, setAnalytics] = useState<boolean>(false);
 
   useEffect(() => {
     const saved = getSavedCookieConsent();

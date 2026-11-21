@@ -48,6 +48,7 @@ const DIAL_TICKS = Array.from({ length: 90 }, (_, idx) => idx * 4);
  */
 export const CallJourneyScroll: React.FC<CallJourneyScrollProps> = ({ onOpenAuth }) => {
   const runwayRef = useRef<HTMLDivElement>(null);
+  const manualJumpUntilRef = useRef<number>(0);
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const prefersReducedMotion = useReducedMotion();
 
@@ -72,6 +73,7 @@ export const CallJourneyScroll: React.FC<CallJourneyScrollProps> = ({ onOpenAuth
   const dialScale = useTransform(progress, [0, 0.5, 1], [0.96, 1.02, 0.98]);
 
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    if (Date.now() < manualJumpUntilRef.current) return;
     if (v < 0.33) setActiveIndex(0);
     else if (v < 0.67) setActiveIndex(1);
     else setActiveIndex(2);
@@ -80,16 +82,16 @@ export const CallJourneyScroll: React.FC<CallJourneyScrollProps> = ({ onOpenAuth
   const currentStep = CALL_STEPS[activeIndex] || CALL_STEPS[0];
 
   const jumpToStep = (idx: number) => {
+    manualJumpUntilRef.current = Date.now() + 750;
     setActiveIndex(idx);
     const el = runwayRef.current;
     if (!el || typeof window === 'undefined') return;
     const rect = el.getBoundingClientRect();
-    const headerOffset = window.innerWidth >= 1024 ? 84 : window.innerWidth >= 640 ? 76 : 68;
-    const absTop = rect.top + window.scrollY - headerOffset;
-    const maxScroll = Math.max(0, el.offsetHeight - (window.innerHeight - headerOffset));
-    const targets = [0.06, 0.48, 0.88];
+    const elTop = rect.top + window.scrollY;
+    const maxScroll = Math.max(1, el.offsetHeight - window.innerHeight);
+    const targets = [0.05, 0.5, 0.92];
     window.scrollTo({
-      top: Math.max(0, absTop + maxScroll * targets[idx]),
+      top: Math.max(0, elTop + maxScroll * targets[idx]),
       behavior: prefersReducedMotion ? 'auto' : 'smooth',
     });
   };
@@ -116,16 +118,19 @@ export const CallJourneyScroll: React.FC<CallJourneyScrollProps> = ({ onOpenAuth
 
             {/* Interactive Step Switcher Pills (allows instant jump as well as scrolling) */}
             <div className="flex flex-col sm:items-end gap-2.5 shrink-0">
-              <div className="inline-flex items-center gap-1.5 p-1 rounded-full bg-[#F5F5F5] border border-black/[0.06]">
+              <div className="inline-flex items-center gap-1.5 p-1 rounded-full bg-[#F5F5F5] border border-black/[0.12] select-none">
                 {CALL_STEPS.map((s, idx) => {
                   const active = idx === activeIndex;
                   return (
                     <button
                       key={s.num}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => jumpToStep(idx)}
                       className={`min-h-[44px] sm:min-h-[36px] px-3.5 rounded-full font-mono text-[11px] font-semibold transition-colors cursor-pointer ${
-                        active ? 'bg-black text-white' : 'text-[#666666] hover:text-black'
+                        active
+                          ? 'bg-black text-white shadow-xs'
+                          : 'bg-white text-[#171717] hover:bg-black/[0.06] hover:text-black'
                       }`}
                     >
                       ШАГ {s.num}

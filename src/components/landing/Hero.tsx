@@ -113,16 +113,28 @@ export const Hero: React.FC<HeroProps> = ({ onOpenVoiceTest, onOpenAuth }) => {
     <section id="showcase" className="relative bg-white pb-16 lg:pb-24">
       <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12">
         {/* 1-to-1 shopify.design Monumental 2-Line Centered Hero Lockup */}
-        <div className="pt-8 sm:pt-14 lg:pt-16 pb-16 sm:pb-24 lg:pb-28 text-center flex flex-col items-center justify-center min-h-[430px] sm:min-h-[540px] lg:min-h-[600px]">
-          <h1 className="font-display font-bold text-black text-[48px] sm:text-[86px] lg:text-[124px] xl:text-[144px] leading-[0.94] tracking-[-0.048em] select-none">
+        <div className="pt-6 sm:pt-14 lg:pt-16 pb-8 sm:pb-24 lg:pb-28 text-center flex flex-col items-center justify-center sm:min-h-[540px] lg:min-h-[600px]">
+          <h1 className="font-display font-bold text-black text-[44px] sm:text-[86px] lg:text-[124px] xl:text-[144px] leading-[0.94] tracking-[-0.048em] select-none">
             Каждый звонок
             <br />
             в запись 24/7
           </h1>
 
-          <p className="mt-6 sm:mt-8 max-w-[560px] text-[15px] sm:text-[17px] leading-[1.45] font-medium text-black">
+          <p className="mt-4 sm:mt-8 max-w-[560px] text-[15px] sm:text-[17px] leading-[1.45] font-medium text-black">
             ИИ-администратор Voxi.by отвечает на звонки и заявки в Беларуси за 0.5 сек — без пропущенных и очередей.
           </p>
+
+          {/* Mobile-only Above-the-Fold Primary CTA */}
+          <div className="mt-5 flex sm:hidden flex-wrap items-center justify-center gap-2.5 w-full">
+            <button
+              type="button"
+              onClick={() => onOpenVoiceTest?.()}
+              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-full bg-black hover:bg-[#FE432A] text-white text-[13px] font-semibold transition-colors cursor-pointer"
+            >
+              <PhoneCallingRoundedIcon size={16} />
+              <span>Запустить живой звонок</span>
+            </button>
+          </div>
         </div>
 
         {/* Exact shopify.design Full-Width LIVE Hairline Bar */}

@@ -178,7 +178,7 @@ export const IntegrationsStrip: React.FC = () => {
             <div className="p-4 rounded-xl bg-slate-100/90 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-700">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-950">BYO-SIP (Bring Your Own SIP):</span>
-                <span>Подключайте уже существующие номера МТС, А1, Белтелеком, UniTalk или Zadarma — 0 BYN за интеграцию.</span>
+                <span>Подключайте уже существующие номера МТС, А1, Белтелеком, Unitalk или Zadarma — 0 BYN за интеграцию.</span>
               </div>
               <span className="font-mono text-emerald-700 font-medium shrink-0">Без смены оператора</span>
             </div>

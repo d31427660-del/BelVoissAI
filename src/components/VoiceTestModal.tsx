@@ -776,7 +776,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
               )}
 
               {/* SmoothUI Siri Orb + Waveform + Kokonut Voice Input */}
-              <div className="flex flex-col items-center gap-3 py-1">
+              <div className={`flex flex-col items-center ${micError ? 'gap-1.5 py-0' : 'gap-3 py-1'}`}>
                 <button
                   type="button"
                   onClick={handleCenterOrbClick}
@@ -784,7 +784,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   className="relative flex items-center justify-center rounded-full focus:outline-none cursor-pointer"
                 >
                   <SiriOrb
-                    size={92}
+                    size={micError ? 64 : 92}
                     amplitude={audioLevel}
                     state={
                       isBotThinking
@@ -799,11 +799,11 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                     {isBotThinking ? (
                       <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
                     ) : isBotSpeaking ? (
-                      <Volume2 className="w-8 h-8" />
+                      <Volume2 className={micError ? 'w-6 h-6' : 'w-8 h-8'} />
                     ) : !isMuted ? (
-                      <Mic className="w-8 h-8" />
+                      <Mic className={micError ? 'w-6 h-6' : 'w-8 h-8'} />
                     ) : (
-                      <MicOff className="w-8 h-8" />
+                      <MicOff className={micError ? 'w-6 h-6' : 'w-8 h-8'} />
                     )}
                   </SiriOrb>
                 </button>
@@ -824,17 +824,16 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                 )}
               </div>
 
-              {/* Mic warning if blocked */}
+              {/* Compact Mic warning if blocked — keeps greeting & quick prompts visible */}
               {micError && (
-                <div role="alert" className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-left space-y-1">
-                  <div className="font-semibold flex items-center gap-1.5 text-amber-800">
-                    <MicOff size={15} className="text-amber-700 shrink-0" />
-                    <span>Микрофон недоступен:</span>
-                  </div>
-                  <p className="leading-relaxed">{micError}</p>
-                  <p className="text-[11px] text-amber-800 font-medium">
-                    Вы можете свободно общаться через текстовое поле внизу — бот озвучит ответ голосом.
-                  </p>
+                <div
+                  role="alert"
+                  className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] text-left flex items-start gap-2 leading-snug"
+                >
+                  <MicOff size={14} className="text-amber-700 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span>
+                    <strong className="text-amber-950">Микрофон недоступен:</strong> общайтесь через быстрые вопросы или текстовое поле ниже — бот ответит голосом.
+                  </span>
                 </div>
               )}
 
@@ -859,7 +858,7 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
               {/* Light Transcript Box */}
               <div
                 ref={transcriptScrollRef}
-                className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/90 text-left space-y-2.5 max-h-44 overflow-y-auto voxi-scroll text-xs"
+                className="p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/90 text-left space-y-2.5 max-h-40 overflow-y-auto voxi-scroll text-xs"
               >
                 {transcript.map((msg, i) => (
                   <div
@@ -892,64 +891,6 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
                   </div>
                 ))}
               </div>
-
-              {/* Dynamic Category-Specific Quick Prompts */}
-              <div className="space-y-1.5 text-left">
-                <span className="text-[11px] text-[#777169] font-normal">
-                  Быстрые вопросы для сферы «{currentTemplate.name}»:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {quickQuestions.map((q) => (
-                    <button
-                      key={q.label}
-                      type="button"
-                      onClick={() => handleUserMessage(q.query)}
-                      className="px-3 py-1.5 rounded-full liquid-glass-pill text-black hover:bg-white text-xs font-normal transition-colors cursor-pointer"
-                    >
-                      {q.label}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => handleUserMessage('Соедините с человеком, пожалуйста')}
-                    className="px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold transition-colors shadow-2xs"
-                  >
-                    Соедините с человеком (Warm Handoff)
-                  </button>
-                </div>
-              </div>
-
-              {/* Text Input Fallback */}
-              {showTextInput && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (customText.trim()) handleUserMessage(customText.trim());
-                  }}
-                  className="flex gap-2 pt-1"
-                >
-                  <input
-                    type="text"
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                      }
-                    }}
-                    placeholder="Напишите вопрос, если неудобно говорить вслух..."
-                    className="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-white border border-black/[0.08] text-xs text-black placeholder-zinc-400 focus:outline-none focus:border-black"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!customText.trim()}
-                    aria-label="Отправить сообщение"
-                    className="px-4 py-2.5 rounded-full liquid-glass-btn-primary text-white text-xs font-normal disabled:opacity-40 flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <Send size={15} />
-                  </button>
-                </form>
-              )}
             </>
           ) : (
             /* Call Ended Summary Screen (Light Theme) */
@@ -1009,44 +950,99 @@ export const VoiceTestModal: React.FC<VoiceTestModalProps> = ({
           )}
         </div>
 
-        {/* Bottom Phone Action Bar (Light Theme) */}
+        {/* Pinned Quick Prompts + Text Input + Bottom Phone Action Bar */}
         {callState === 'connected' && (
-          <div className="px-3 sm:px-5 py-3 bg-white border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-            <button
-              type="button"
-              onClick={toggleMute}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                isMuted
-                  ? 'bg-amber-50 text-amber-800 border-amber-200'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              {isMuted ? <MicOff size={17} /> : <Mic size={17} className="text-emerald-600" />}
-              <span>{isMuted ? 'Вкл. микрофон' : 'Микрофон'}</span>
-            </button>
+          <div className="bg-white border-t border-slate-200/80 shrink-0">
+            <div className="px-4 sm:px-5 pt-2.5 pb-2 space-y-2 border-b border-slate-100">
+              <div className="flex flex-wrap gap-1.5">
+                {quickQuestions.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    onClick={() => handleUserMessage(q.query)}
+                    className="px-2.5 py-1 rounded-full liquid-glass-pill text-black hover:bg-slate-100 text-[11px] font-normal transition-colors cursor-pointer"
+                  >
+                    {q.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleUserMessage('Соедините с человеком, пожалуйста')}
+                  className="px-2.5 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-semibold transition-colors shadow-2xs cursor-pointer"
+                >
+                  Соедините с человеком
+                </button>
+              </div>
 
-            <button
-              type="button"
-              onClick={handleHangup}
-              title="Завершить вызов"
-              className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-2 shadow-sm shadow-rose-600/25 transition-all active:scale-95"
-            >
-              <PhoneOff size={18} />
-              <span>Завершить</span>
-            </button>
+              {showTextInput && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (customText.trim()) handleUserMessage(customText.trim());
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                      }
+                    }}
+                    placeholder="Напишите вопрос — бот ответит голосом..."
+                    className="flex-1 min-w-0 px-3.5 py-2 rounded-full bg-white border border-black/[0.12] text-xs text-black placeholder-zinc-400 focus:outline-none focus:border-black"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!customText.trim()}
+                    aria-label="Отправить сообщение"
+                    className="px-4 py-2 rounded-full liquid-glass-btn-primary text-white text-xs font-normal disabled:opacity-40 flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Send size={15} />
+                  </button>
+                </form>
+              )}
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setShowTextInput((prev) => !prev)}
-              className={`px-3.5 py-2 rounded-full border text-xs font-normal flex items-center gap-1.5 transition-all cursor-pointer ${
-                showTextInput
-                  ? 'liquid-glass-btn-primary text-white'
-                  : 'liquid-glass-pill text-black hover:bg-white'
-              }`}
-            >
-              <Keyboard size={17} />
-              <span>Текст</span>
-            </button>
+            <div className="px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+              <button
+                type="button"
+                onClick={toggleMute}
+                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  isMuted
+                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                {isMuted ? <MicOff size={17} /> : <Mic size={17} className="text-emerald-600" />}
+                <span>{isMuted ? 'Вкл. микрофон' : 'Микрофон'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleHangup}
+                title="Завершить вызов"
+                className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-2 shadow-sm shadow-rose-600/25 transition-all active:scale-95"
+              >
+                <PhoneOff size={18} />
+                <span>Завершить</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowTextInput((prev) => !prev)}
+                className={`px-3.5 py-2 rounded-full border text-xs font-normal flex items-center gap-1.5 transition-all cursor-pointer ${
+                  showTextInput
+                    ? 'liquid-glass-btn-primary text-white'
+                    : 'liquid-glass-pill text-black hover:bg-white'
+                }`}
+              >
+                <Keyboard size={17} />
+                <span>Текст</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

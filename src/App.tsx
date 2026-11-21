@@ -412,6 +412,15 @@ export function App() {
     }
   };
 
+  const openAuthModal = (
+    mode: 'signin' | 'signup' = 'signup',
+    pkgId: 'pack_300' | 'pack_1000' | null = null
+  ) => {
+    setPendingPackageId(pkgId);
+    setAuthModalInitialMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
   const handleLogout = async () => {
     await ispSignOut();
     setUser(null);
@@ -466,10 +475,7 @@ export function App() {
             currentView={currentView}
             setCurrentView={setCurrentView}
             user={user}
-            onOpenAuth={(mode = 'signin') => {
-              setAuthModalInitialMode(mode);
-              setIsAuthModalOpen(true);
-            }}
+            onOpenAuth={(mode = 'signin') => openAuthModal(mode, null)}
             onLogout={handleLogout}
             onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
           />
@@ -484,20 +490,14 @@ export function App() {
               onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
               onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
-                else {
-                  setAuthModalInitialMode('signup');
-                  setIsAuthModalOpen(true);
-                }
+                else openAuthModal('signup', null);
               }}
             />
 
             <CallJourneyScroll
               onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
-                else {
-                  setAuthModalInitialMode('signup');
-                  setIsAuthModalOpen(true);
-                }
+                else openAuthModal('signup', null);
               }}
             />
 
@@ -508,10 +508,7 @@ export function App() {
               }}
               onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
-                else {
-                  setAuthModalInitialMode('signup');
-                  setIsAuthModalOpen(true);
-                }
+                else openAuthModal('signup', null);
               }}
             />
 
@@ -521,15 +518,12 @@ export function App() {
 
             <ValueAndPricing
               onOpenAuth={(pkgId) => {
-                if (pkgId) {
-                  setPendingPackageId(pkgId);
-                }
                 if (user) {
+                  setPendingPackageId(pkgId ?? null);
                   setCurrentView('dashboard');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                  setAuthModalInitialMode('signup');
-                  setIsAuthModalOpen(true);
+                  openAuthModal('signup', pkgId ?? null);
                 }
               }}
             />
@@ -537,10 +531,7 @@ export function App() {
             <FaqAndPilotCta
               onOpenAuth={() => {
                 if (user) setCurrentView('dashboard');
-                else {
-                  setAuthModalInitialMode('signup');
-                  setIsAuthModalOpen(true);
-                }
+                else openAuthModal('signup', null);
               }}
               onOpenVoiceTest={() => setIsVoiceTestModalOpen(true)}
             />
@@ -650,10 +641,7 @@ export function App() {
           onOpenCookieSettings={() => setCookieSettingsTrigger((n) => n + 1)}
           onOpenAuth={() => {
             if (user) setCurrentView('dashboard');
-            else {
-              setAuthModalInitialMode('signup');
-              setIsAuthModalOpen(true);
-            }
+            else openAuthModal('signup', null);
           }}
           onNavigateSection={(sectionId) => {
             const el = document.getElementById(sectionId);
@@ -678,13 +666,16 @@ export function App() {
             initialResetToken={resetLinkData?.token}
             pendingPackageLabel={
               pendingPackageId === 'pack_300'
-                ? 'Пакет 300 мин (120 BYN)'
+                ? 'Пакет 300 минут (120 BYN)'
                 : pendingPackageId === 'pack_1000'
-                ? 'Пакет 1000 мин (350 BYN)'
+                ? 'Пакет 1 000 минут (350 BYN)'
                 : null
             }
-            onClose={() => {
+            onClose={(reason) => {
               setIsAuthModalOpen(false);
+              if (reason !== 'authenticated') {
+                setPendingPackageId(null);
+              }
               if (resetLinkData) {
                 setResetLinkData(null);
                 window.history.replaceState({}, '', window.location.pathname);
@@ -767,7 +758,7 @@ export function App() {
 
               if (!user) {
                 setPendingVoiceTestSelection({ niche: selectedNiche, voice: selectedVoice });
-                setIsAuthModalOpen(true);
+                openAuthModal('signup', null);
               } else {
                 setCurrentView('dashboard');
                 window.scrollTo({ top: 0, behavior: 'smooth' });

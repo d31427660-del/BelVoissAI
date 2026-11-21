@@ -514,7 +514,7 @@ export const ValueAndPricing: React.FC<ValueAndPricingProps> = ({ onOpenAuth }) 
                   <div className="flex items-start gap-3">
                     <ClockCircleIcon size={18} className="text-black shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-black">Счёт выставляется 1-го числа</div>
+                      <div className="font-semibold text-black">Счёт выставляется 1-го числа в 00:05</div>
                       <div className="text-[#666666] text-[12px]">
                         Детализация по каждому звонку в личном кабинете
                       </div>

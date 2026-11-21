@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef } from 'react';
 import { CloseCircleIcon, ShieldCheckIcon } from '@solar-icons/react/bold-duotone';
 import { VOXI_CONTACTS, TelegramIcon, WhatsAppIcon, InstagramIcon } from '../lib/contacts';
 
@@ -35,7 +35,7 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
   sla: {
     title: 'Соглашение об уровне качества обслуживания (SLA 99.9%)',
     content: [
-      '1. Целевой показатель доступности облачной платформы Voxi.by и SIP-шлюза (МТС, А1, Белтелеком IMS, UniTalk) составляет не менее 99.9% времени в расчётном месяце (за исключением плановых работ в ночное окно 03:00–05:00 по минскому времени).',
+      '1. Целевой показатель доступности облачной платформы Voxi.by и SIP-шлюза (МТС, А1, Белтелеком IMS, Unitalk) составляет не менее 99.9% времени в расчётном месяце (за исключением плановых работ в ночное окно 03:00–05:00 по минскому времени).',
       '2. Расчётное время голосового отклика ассистента с момента завершения реплики абонента (End-of-Speech Latency) при штатном соединении составляет 450–650 мс.',
       '3. Отказоустойчивость (SIP Failover): при превышении таймаута ответа облачного узла входящий вызов автоматически переадресуется на резервный телефонный номер администратора Заказчика.',
       '4. Техническая поддержка пользователей осуществляется по электронной почте info@voxi.by, по телефону +375 (29) 138-71-50 и в Telegram (@voxi_manager) ежедневно с 09:00 до 21:00 (среднее время первичной реакции — до 15 минут).',
@@ -84,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({
     onCloseExternalDocModal?.();
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (activeDocModal) {
@@ -193,7 +193,7 @@ export const Footer: React.FC<FooterProps> = ({
                 onClick={onOpenCookieSettings}
                 className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-1.5 sm:px-0 hover:text-black transition-colors cursor-pointer whitespace-nowrap"
               >
-                Cookie
+                Настройки файлов cookie
               </button>
             )}
             <button
