@@ -44,16 +44,16 @@ export const ValueAndPricing: React.FC<ValueAndPricingProps> = ({ onOpenAuth }) 
   return (
     <section
       id="calculator"
-      className="bg-white py-20 lg:py-28 scroll-mt-10"
+      className="bg-white py-20 lg:py-28 scroll-mt-24"
     >
       <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 space-y-20 lg:space-y-28">
         {/* PART 1: Value / ROI Calculator in BYN */}
         <div className="space-y-10">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
             <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-black shrink-0">
               КАЛЬКУЛЯТОР ЦЕННОСТИ · BYN
             </span>
-            <div className="h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
+            <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
             <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-[#737373] shrink-0">
               РАСЧЁТ ОКУПАЕМОСТИ
             </span>
@@ -86,7 +86,7 @@ export const ValueAndPricing: React.FC<ValueAndPricingProps> = ({ onOpenAuth }) 
                       >
                         Входящих звонков в день
                       </label>
-                      <span className="font-mono text-[14px] font-semibold text-black bg-white border border-black/[0.08] px-3 py-1 rounded-full tabular-nums">
+                      <span className="font-mono text-[14px] font-semibold text-black bg-white border border-black/[0.08] px-3 py-1 rounded-full tabular-nums whitespace-nowrap shrink-0">
                         {callsPerDay} / день
                       </span>
                     </div>
@@ -119,7 +119,7 @@ export const ValueAndPricing: React.FC<ValueAndPricingProps> = ({ onOpenAuth }) 
                       >
                         Доля пропущенных вызовов (вечер, пик, выходные)
                       </label>
-                      <span className="font-mono text-[14px] font-semibold text-[#C82A14] bg-[#FE432A]/12 px-3 py-1 rounded-full tabular-nums">
+                      <span className="font-mono text-[14px] font-semibold text-[#C82A14] bg-[#FE432A]/12 px-3 py-1 rounded-full tabular-nums whitespace-nowrap shrink-0">
                         {missedPercent}%
                       </span>
                     </div>
@@ -151,7 +151,7 @@ export const ValueAndPricing: React.FC<ValueAndPricingProps> = ({ onOpenAuth }) 
                       >
                         Средний чек услуги / заказа (BYN)
                       </label>
-                      <span className="font-mono text-[14px] font-semibold text-black bg-white border border-black/[0.08] px-3 py-1 rounded-full tabular-nums">
+                      <span className="font-mono text-[14px] font-semibold text-black bg-white border border-black/[0.08] px-3 py-1 rounded-full tabular-nums whitespace-nowrap shrink-0">
                         {averageCheck} BYN
                       </span>
                     </div>
@@ -250,12 +250,12 @@ export const ValueAndPricing: React.FC<ValueAndPricingProps> = ({ onOpenAuth }) 
         </div>
 
         {/* PART 2: Transparent BYN Pricing */}
-        <div id="pricing" className="pt-8 space-y-12 scroll-mt-12">
-          <div className="flex items-center gap-4">
+        <div id="pricing" className="pt-8 space-y-12 scroll-mt-24">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
             <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-black shrink-0">
               ТАРИФЫ В BYN
             </span>
-            <div className="h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
+            <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
             <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-[#737373] shrink-0">
               ЕРИП · BEPAID · УНП 193991846
             </span>

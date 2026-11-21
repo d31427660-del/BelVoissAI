@@ -99,17 +99,21 @@ Options -Indexes
   RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
   RewriteRule ^$ dist/index.html [L]
 
+  # Известные SPA-маршруты -> HTTP 200 (без Soft-404 для неизвестных путей)
   RewriteCond %{DOCUMENT_ROOT}/dist/index.html -f
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ dist/index.html [L]
+  RewriteRule ^(privacy|offer|sla|dashboard|admin|login|register|cabinet)(/.*)?$ dist/index.html [NC,L]
 
   # 2. Если сайт развернут напрямую из содержимого dist в корень
   RewriteCond %{DOCUMENT_ROOT}/index.html -f
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.html [L]
+  RewriteRule ^(privacy|offer|sla|dashboard|admin|login|register|cabinet)(/.*)?$ index.html [NC,L]
 </IfModule>
+
+# Несуществующие маршруты возвращают реальный HTTP 404 с отрисовкой SPA-страницы 404
+ErrorDocument 404 /index.html
 
 <FilesMatch "^\.">
   <IfModule mod_authz_core.c>

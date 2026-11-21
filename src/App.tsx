@@ -52,13 +52,26 @@ function getInitialViewFromLocation(): 'landing' | 'dashboard' | 'admin' | 'not_
   if (normalizedPath.startsWith('/admin') || window.location.hash === '#admin') {
     return 'admin';
   }
-  if (normalizedPath.startsWith('/dashboard') || window.location.hash === '#dashboard') {
+  if (
+    normalizedPath.startsWith('/dashboard') ||
+    normalizedPath === '/cabinet' ||
+    window.location.hash === '#dashboard'
+  ) {
     return 'dashboard';
   }
-  if (['/', '/index.html', '/privacy', '/offer', '/sla'].includes(normalizedPath)) {
+  if (['/', '/index.html', '/privacy', '/offer', '/sla', '/login', '/register'].includes(normalizedPath)) {
     return 'landing';
   }
   return 'not_found';
+}
+
+function getInitialAuthModeFromLocation(): 'signin' | 'signup' | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.location.pathname.toLowerCase();
+  const p = raw.length > 1 ? raw.replace(/\/+$/, '') : raw;
+  if (p === '/login') return 'signin';
+  if (p === '/register') return 'signup';
+  return null;
 }
 
 function getInitialLegalDocFromLocation(): LegalDocType | null {
@@ -89,8 +102,11 @@ export function App() {
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
+  const initialRouteAuthMode = getInitialAuthModeFromLocation();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(() => Boolean(initialRouteAuthMode));
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>(
+    () => initialRouteAuthMode || 'signin'
+  );
   const [isVoiceTestModalOpen, setIsVoiceTestModalOpen] = useState(false);
   const [pendingPackageId, setPendingPackageId] = useState<'pack_300' | 'pack_1000' | null>(null);
   const [pendingVoiceTestSelection, setPendingVoiceTestSelection] = useState<{

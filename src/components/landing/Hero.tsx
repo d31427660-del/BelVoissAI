@@ -178,7 +178,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenVoiceTest, onOpenAuth }) => {
                               setPlayingTrack(null);
                               setActiveId(demo.id);
                             }}
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                            className={`min-h-[36px] sm:min-h-[28px] px-3 sm:px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
                               selected ? 'bg-white text-black' : 'text-white/70 hover:text-white'
                             }`}
                           >
@@ -287,7 +287,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenVoiceTest, onOpenAuth }) => {
                           'maxim'
                         )
                       }
-                      className={`h-9 px-3.5 rounded-full text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      className={`min-h-[44px] sm:min-h-[36px] px-3.5 rounded-full text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                         playingTrack === 'ivr'
                           ? 'bg-[#FE432A] text-white'
                           : 'bg-white/10 text-white/80 hover:bg-white/20'
@@ -305,7 +305,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenVoiceTest, onOpenAuth }) => {
                           'anna'
                         )
                       }
-                      className={`h-9 px-3.5 rounded-full text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      className={`min-h-[44px] sm:min-h-[36px] px-3.5 rounded-full text-[11.5px] font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                         playingTrack === 'voxi'
                           ? 'bg-[#6BFF91] text-black'
                           : 'bg-white text-black hover:bg-[#6BFF91]'
@@ -400,7 +400,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenVoiceTest, onOpenAuth }) => {
                           </div>
                           <div className="mt-1 text-[12px] text-[#525252] flex items-center justify-between gap-2">
                             <span>{item.slot}</span>
-                            <span className="font-mono text-[10px] text-[#10B981]">● CRM + TG</span>
+                            <span className="font-mono text-[10px] text-[#10B981] whitespace-nowrap shrink-0">● CRM + TG</span>
                           </div>
                         </button>
                       );

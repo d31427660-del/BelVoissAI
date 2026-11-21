@@ -20,7 +20,7 @@ const CALL_STEPS = [
     tag: 'ВХОДЯЩИЙ ЗВОНОК · 0.5 СЕК',
     title: 'Клиент звонит вечером или когда линия занята',
     desc: 'Мастера в ремзоне, врачи на приёме, офис уже закрыт. Вместо гудков в пустоту Voxi.by снимает трубку на вашем номере А1, МТС или Unitalk за полсекунды.',
-    chip: '+375 (29) 642-18-90 · Принят без гудков',
+    chip: 'Пример · +375 (29) 642-18-90 · Принят без гудков',
   },
   {
     num: '02',
@@ -84,22 +84,23 @@ export const CallJourneyScroll: React.FC<CallJourneyScrollProps> = ({ onOpenAuth
     const el = runwayRef.current;
     if (!el || typeof window === 'undefined') return;
     const rect = el.getBoundingClientRect();
-    const absTop = rect.top + window.scrollY;
-    const maxScroll = Math.max(0, el.offsetHeight - window.innerHeight);
+    const headerOffset = window.innerWidth >= 1024 ? 84 : window.innerWidth >= 640 ? 76 : 68;
+    const absTop = rect.top + window.scrollY - headerOffset;
+    const maxScroll = Math.max(0, el.offsetHeight - (window.innerHeight - headerOffset));
     const targets = [0.06, 0.48, 0.88];
     window.scrollTo({
-      top: absTop + maxScroll * targets[idx],
+      top: Math.max(0, absTop + maxScroll * targets[idx]),
       behavior: prefersReducedMotion ? 'auto' : 'smooth',
     });
   };
 
   return (
-    <section id="how-it-works" className="relative bg-white scroll-mt-10">
+    <section id="how-it-works" className="relative bg-white scroll-mt-24">
       {/* Tall Scroll Runway driving the Sticky Colossal Dial (exact shopify.design countdown mechanics) */}
       <div ref={runwayRef} className="relative min-h-[260vh] lg:min-h-[300vh]">
-        <div className="sticky top-0 h-screen w-full overflow-hidden bg-white flex flex-col justify-between">
+        <div className="sticky top-[68px] sm:top-[76px] lg:top-[84px] h-[calc(100dvh-68px)] sm:h-[calc(100dvh-76px)] lg:h-[calc(100dvh-84px)] w-full overflow-hidden bg-white flex flex-col justify-between">
           {/* Top Minimal Step Header inside Sticky Viewport */}
-          <div className="relative z-20 w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 pt-8 sm:pt-10 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="relative z-20 w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 pt-5 sm:pt-7 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="max-w-md space-y-2">
               <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.11em] text-[#FF591D] font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF591D]" />
@@ -123,7 +124,7 @@ export const CallJourneyScroll: React.FC<CallJourneyScrollProps> = ({ onOpenAuth
                       key={s.num}
                       type="button"
                       onClick={() => jumpToStep(idx)}
-                      className={`h-8 px-3.5 rounded-full font-mono text-[11px] font-semibold transition-colors cursor-pointer ${
+                      className={`min-h-[44px] sm:min-h-[36px] px-3.5 rounded-full font-mono text-[11px] font-semibold transition-colors cursor-pointer ${
                         active ? 'bg-black text-white' : 'text-[#666666] hover:text-black'
                       }`}
                     >

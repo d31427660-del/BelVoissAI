@@ -77,6 +77,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   }, [initialResetEmail, initialResetToken, isOpen, initialMode]);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pressedOutsideRef = useRef(false);
+
+  const switchMode = (nextMode: 'signin' | 'signup' | 'reset' | 'confirm_reset') => {
+    setErrorMessage('');
+    setInfoMessage('');
+    setMode(nextMode);
+  };
+
+  useEffect(() => {
+    setErrorMessage('');
+    setInfoMessage('');
+  }, [mode]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -92,17 +104,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+  const isPointerOutside = (e: React.PointerEvent<HTMLDialogElement>, dialog: HTMLDialogElement) => {
     const rect = dialog.getBoundingClientRect();
-    const isOutside =
+    return (
       e.clientX < rect.left ||
       e.clientX > rect.right ||
       e.clientY < rect.top ||
-      e.clientY > rect.bottom;
-    if (isOutside) {
+      e.clientY > rect.bottom
+    );
+  };
+
+  const hasStackedDialogOnTop = () => {
+    const openDialogs = document.querySelectorAll('dialog[open]');
+    return openDialogs.length > 1 && openDialogs[openDialogs.length - 1] !== dialogRef.current;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog || hasStackedDialogOnTop()) {
+      pressedOutsideRef.current = false;
+      return;
+    }
+    pressedOutsideRef.current = isPointerOutside(e, dialog);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog || hasStackedDialogOnTop()) {
+      pressedOutsideRef.current = false;
+      return;
+    }
+    if (pressedOutsideRef.current && isPointerOutside(e, dialog)) {
       onClose();
+    }
+    pressedOutsideRef.current = false;
+  };
+
+  const handleCancel = (e: React.SyntheticEvent<HTMLDialogElement>) => {
+    if (hasStackedDialogOnTop()) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   };
 
@@ -171,9 +212,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <dialog
       ref={dialogRef}
       aria-labelledby="auth-modal-title"
-      onClose={onClose}
-      onClick={handleBackdropClick}
-      className="w-[calc(100%-1.5rem)] max-w-md rounded-[24px] bg-white border border-black/[0.1] shadow-2xl p-0 text-black backdrop:bg-black/55 backdrop:backdrop-blur-xs open:animate-fadeIn m-auto"
+      onCancel={handleCancel}
+      onClose={() => {
+        if (!hasStackedDialogOnTop()) onClose();
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      className="w-[calc(100%-1.5rem)] max-w-md rounded-[24px] bg-white border border-black/[0.1] shadow-2xl p-0 text-black backdrop:bg-black/65 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
     >
       {/* Header */}
       <div className="px-7 py-5 border-b border-black/[0.08] flex items-center justify-between">
@@ -193,11 +238,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
         <button
           type="button"
-          aria-label="Закрыть окно входа"
+          aria-label={
+            mode === 'signup'
+              ? 'Закрыть окно регистрации'
+              : mode === 'reset'
+              ? 'Закрыть окно восстановления доступа'
+              : mode === 'confirm_reset'
+              ? 'Закрыть окно смены пароля'
+              : 'Закрыть окно входа'
+          }
           onClick={onClose}
-          className="w-9 h-9 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-[#525252] flex items-center justify-center transition-colors cursor-pointer"
+          className="w-11 h-11 rounded-full bg-[#F5F5F5] hover:bg-black hover:text-white text-[#525252] flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
-          <CloseCircleIcon size={18} />
+          <CloseCircleIcon size={18} aria-hidden="true" />
         </button>
       </div>
 
@@ -276,7 +329,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {mode === 'signin' && (
                   <button
                     type="button"
-                    onClick={() => setMode('reset')}
+                    onClick={() => switchMode('reset')}
                     className="text-[11.5px] text-[#525252] hover:text-black underline underline-offset-4 cursor-pointer"
                   >
                     Забыли пароль?
@@ -387,7 +440,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </span>
           <button
             type="button"
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
             className="text-black hover:underline font-semibold cursor-pointer"
           >
             {mode === 'signin' ? 'Создать аккаунт' : 'Войти по паролю'}

@@ -87,7 +87,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
     <aside
       role="region"
       aria-label="Уведомление об использовании файлов cookie"
-      className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 sm:max-w-md z-50 max-h-[80vh] overflow-y-auto rounded-[16px] liquid-glass-card shadow-2xl p-3.5 sm:p-4 text-black"
+      className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 sm:max-w-md z-50 max-h-[60vh] sm:max-h-[75vh] overflow-y-auto rounded-[16px] liquid-glass-card shadow-2xl p-3.5 sm:p-4 text-black"
     >
       <div className="space-y-2.5">
         <div className="flex items-start gap-2.5">
@@ -123,9 +123,9 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
           <div className="p-3.5 rounded-[12px] liquid-glass-cream border border-black/[0.06] space-y-2.5 text-xs">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-medium text-black flex items-center gap-1.5">
+                <div className="font-medium text-black flex flex-wrap items-center gap-1.5">
                   <span>Технические (обязательные)</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium whitespace-nowrap shrink-0">
                     Всегда активны
                   </span>
                 </div>
@@ -176,20 +176,20 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
           <button
             type="button"
             onClick={() => savePreferences(true, true)}
-            className="px-4 py-2 rounded-full liquid-glass-btn-primary text-white text-xs font-normal inline-flex items-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
+            className="min-h-[44px] sm:min-h-[38px] px-3.5 py-2 rounded-full liquid-glass-btn-primary text-white text-xs font-normal inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98] whitespace-nowrap"
           >
-            <CheckCircleIcon size={14} />
+            <CheckCircleIcon size={14} aria-hidden="true" />
             <span>Принять все</span>
           </button>
 
           <button
             type="button"
             onClick={() => savePreferences(false, false)}
-            className="px-4 py-2 rounded-full liquid-glass-pill text-black text-xs font-normal transition-colors cursor-pointer hover:bg-white"
+            className="min-h-[44px] sm:min-h-[38px] px-3.5 py-2 rounded-full liquid-glass-pill text-black text-xs font-normal inline-flex items-center justify-center transition-colors cursor-pointer hover:bg-white whitespace-nowrap"
           >
             Только необходимые
           </button>
@@ -198,7 +198,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
             <button
               type="button"
               onClick={() => savePreferences(functional, analytics)}
-              className="px-4 py-2 rounded-full liquid-glass-pill text-black text-xs font-medium transition-colors cursor-pointer ml-auto hover:bg-white"
+              className="min-h-[44px] sm:min-h-[38px] px-3.5 py-2 rounded-full liquid-glass-pill text-black text-xs font-medium inline-flex items-center justify-center transition-colors cursor-pointer hover:bg-white whitespace-nowrap"
             >
               Сохранить выбор
             </button>
@@ -206,9 +206,9 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
             <button
               type="button"
               onClick={() => setShowDetails(true)}
-              className="px-3.5 py-2 rounded-full liquid-glass-pill text-[#59544F] hover:text-black text-xs font-normal inline-flex items-center gap-1.5 transition-colors cursor-pointer sm:ml-auto hover:bg-white"
+              className="min-h-[44px] sm:min-h-[38px] px-3.5 py-2 rounded-full liquid-glass-pill text-[#59544F] hover:text-black text-xs font-normal inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer hover:bg-white whitespace-nowrap"
             >
-              <SettingsIcon size={14} />
+              <SettingsIcon size={14} aria-hidden="true" />
               <span>Настроить</span>
             </button>
           )}

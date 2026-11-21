@@ -28,7 +28,7 @@ export const LEGAL_DOCS: Record<LegalDocType, { title: string; content: string[]
     content: [
       '1. Исполнитель — Индивидуальный предприниматель Беляков Кирилл Олегович, зарегистрированный Минским горисполкомом в Едином государственном регистре юридических лиц и индивидуальных предпринимателей за № 193991846 (адрес: Республика Беларусь, г. Минск, ул. Наполеона Орды, д. 11, кв. 58), публикует настоящий Публичный договор (ст. 396, 405 ГК РБ) об оказании услуг доступа к программной платформе голосовых ИИ-администраторов Voxi.by (ОКЭД 62010).',
       '2. Акцепт оферты осуществляется путём регистрации в сервисе и/или использования программной платформы Voxi.by. При регистрации новому Заказчику однократно предоставляется приветственный нетарифицируемый объём 15 минут голосовых диалогов бота без обязательной привязки банковской карты.',
-      '3. Порядок расчётов: стоимость услуг определяется в белорусских рублях (BYN) без НДС (Исполнитель применяет режим налогообложения без уплаты НДС согласно НК РБ). Расчётный период составляет календарный месяц. Оплата услуг производится по системе постоплаты: счёт выставляется 1-го числа месяца, следующего за отчётным, в 00:05. Заказчику предоставляется 7 календарных дней на оплату счёта без блокировки или приостановления работы бота. Досрочное погашение текущего начисления и покупка пакетов минут со скидкой доступны в любой момент в личном кабинете. При выборе выделенного номера А1 ВАТС абонентская плата составляет 15 BYN/мес; голосовой трафик тарифицируется поминутно (0.45 BYN/мин сверх 15 подарочных минут). Оплата осуществляется онлайн через платёжную систему bePaid (ООО «ИКомЧардж»): банковскими картами Visa, Mastercard, БЕЛКАРТ и через АИС «Расчёт» (ЕРИП).',
+      '3. Порядок расчётов: стоимость услуг определяется в белорусских рублях (BYN) без НДС (Исполнитель применяет режим налогообложения без уплаты НДС согласно НК РБ). Доступны два формата оплаты: (а) пакеты минут с бессрочным остатком без ежемесячного сгорания — «Пакет 300 минут» за 120 BYN (0.40 BYN/мин) и «Пакет 1 000 минут» за 350 BYN (0.35 BYN/мин); (б) поминутная постоплата (PAYG) по ставке 0.45 BYN/мин сверх 15 подарочных минут — счёт выставляется 1-го числа месяца, следующего за отчётным, в 00:05, с предоставлением 7 календарных дней на оплату без блокировки бота. Подключение собственного номера по BYO-SIP (А1, МТС, Unitalk, Белтелеком) — 0 BYN; аренда выделенного номера А1 ВАТС — 15 BYN/мес. Оплата осуществляется онлайн через платёжную систему bePaid (ООО «ИКомЧардж»): банковскими картами Visa, Mastercard, БЕЛКАРТ и через АИС «Расчёт» (ЕРИП).',
       '4. Закрывающие документы: по итогам отчётного месяца (либо по факту исполнения обязательств) для резидентов РБ оформляется первичный учётный документ — акт оказанных услуг, составляемый единолично в соответствии с постановлением Министерства финансов Республики Беларусь от 12.02.2018 № 13.',
     ],
   },
@@ -50,6 +50,7 @@ export const Footer: React.FC<FooterProps> = ({
 }) => {
   const [internalDocModal, setInternalDocModal] = useState<LegalDocType | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pressedOutsideRef = useRef(false);
 
   const activeDocModal = externalDocModal ?? internalDocModal;
 
@@ -78,7 +79,7 @@ export const Footer: React.FC<FooterProps> = ({
       ['/privacy', '/offer', '/sla'].includes(window.location.pathname.toLowerCase())
     ) {
       window.history.pushState({ view: 'landing' }, '', '/');
-      document.title = 'Voxi.by — ИИ-администратор для бизнеса в Беларуси 24/7';
+      document.title = 'Voxi.by — Голосовой ИИ-администратор для бизнеса в Беларуси';
     }
     onCloseExternalDocModal?.();
   };
@@ -95,39 +96,62 @@ export const Footer: React.FC<FooterProps> = ({
     }
   }, [activeDocModal]);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+  const isPointerOutside = (e: React.PointerEvent<HTMLDialogElement>, dialog: HTMLDialogElement) => {
     const rect = dialog.getBoundingClientRect();
-    const isOutside =
+    return (
       e.clientX < rect.left ||
       e.clientX > rect.right ||
       e.clientY < rect.top ||
-      e.clientY > rect.bottom;
-    if (isOutside) {
+      e.clientY > rect.bottom
+    );
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    pressedOutsideRef.current = isPointerOutside(e, dialog);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (pressedOutsideRef.current && isPointerOutside(e, dialog)) {
       closeDocModal();
     }
+    pressedOutsideRef.current = false;
+  };
+
+  const handleCancel = (e: React.SyntheticEvent<HTMLDialogElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeDocModal();
   };
 
   return (
     <footer className="bg-white text-[#666666] text-xs pb-10">
       <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12">
         <div className="border-t border-black/[0.08] pt-6 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-[11px] text-[#737373]">
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
             <span className="whitespace-nowrap">
               © 2026 Voxi.by · ИП Беляков К. О. (УНП {VOXI_CONTACTS.unp})
             </span>
             <a
               href={VOXI_CONTACTS.phoneTel}
-              className="font-mono text-black font-medium hover:underline whitespace-nowrap"
+              className="inline-flex items-center min-h-[44px] sm:min-h-0 px-1 sm:px-0 font-mono text-black font-medium hover:underline whitespace-nowrap"
             >
               {VOXI_CONTACTS.phoneDisplay}
+            </a>
+            <a
+              href={VOXI_CONTACTS.emailMailto}
+              className="inline-flex items-center min-h-[44px] sm:min-h-0 px-1 sm:px-0 font-mono text-black hover:underline whitespace-nowrap"
+            >
+              {VOXI_CONTACTS.email}
             </a>
             <a
               href={VOXI_CONTACTS.telegramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-black hover:underline whitespace-nowrap"
+              className="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 px-1 sm:px-0 text-black hover:underline whitespace-nowrap"
             >
               <TelegramIcon size={12} />
               <span>{VOXI_CONTACTS.telegramHandle}</span>
@@ -136,7 +160,7 @@ export const Footer: React.FC<FooterProps> = ({
               href={VOXI_CONTACTS.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-black hover:underline whitespace-nowrap"
+              className="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 px-1 sm:px-0 text-black hover:underline whitespace-nowrap"
             >
               <WhatsAppIcon size={12} />
               <span>WhatsApp</span>
@@ -145,21 +169,21 @@ export const Footer: React.FC<FooterProps> = ({
               href={VOXI_CONTACTS.instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-black hover:underline whitespace-nowrap"
+              className="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 px-1 sm:px-0 text-black hover:underline whitespace-nowrap"
             >
               <InstagramIcon size={12} />
               <span>{VOXI_CONTACTS.instagramHandle}</span>
             </a>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-mono text-[10px] text-[#8E8E8E] whitespace-nowrap">
               bePaid · ЕРИП · БЕЛКАРТ · Visa · MC
             </span>
             <button
               type="button"
               onClick={() => openInternalDoc('privacy')}
-              className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-1.5 sm:px-0 hover:text-black transition-colors cursor-pointer whitespace-nowrap"
             >
               99‑З
             </button>
@@ -167,7 +191,7 @@ export const Footer: React.FC<FooterProps> = ({
               <button
                 type="button"
                 onClick={onOpenCookieSettings}
-                className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-1.5 sm:px-0 hover:text-black transition-colors cursor-pointer whitespace-nowrap"
               >
                 Cookie
               </button>
@@ -175,14 +199,14 @@ export const Footer: React.FC<FooterProps> = ({
             <button
               type="button"
               onClick={() => openInternalDoc('offer')}
-              className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-1.5 sm:px-0 hover:text-black transition-colors cursor-pointer whitespace-nowrap"
             >
               Оферта
             </button>
             <button
               type="button"
               onClick={() => openInternalDoc('sla')}
-              className="hover:text-black transition-colors cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-1.5 sm:px-0 hover:text-black transition-colors cursor-pointer whitespace-nowrap"
             >
               SLA 99.9%
             </button>
@@ -194,9 +218,11 @@ export const Footer: React.FC<FooterProps> = ({
       <dialog
         ref={dialogRef}
         aria-labelledby="legal-modal-title"
+        onCancel={handleCancel}
         onClose={closeDocModal}
-        onClick={handleBackdropClick}
-        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[20px] bg-white border border-black/[0.1] shadow-2xl p-0 text-black backdrop:bg-black/45 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        className="w-[calc(100%-1.5rem)] max-w-lg rounded-[20px] bg-white border border-black/[0.1] shadow-2xl p-0 text-black backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fadeIn m-auto"
       >
         {activeDocModal && (
           <div>

@@ -98,9 +98,12 @@ Options -Indexes
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Все остальные клиентские маршруты отдают index.html (SPA fallback)
-  RewriteRule ^ index.html [L]
+  # Известные SPA-маршруты отдают index.html с HTTP 200
+  RewriteRule ^(privacy|offer|sla|dashboard|admin|login|register|cabinet)(/.*)?$ index.html [NC,L]
 </IfModule>
+
+# Несуществующие маршруты возвращают реальный HTTP 404 с отрисовкой SPA-страницы 404
+ErrorDocument 404 /index.html
 
 # 6. Защита скрытых файлов (.env, .htaccess и др.)
 <FilesMatch "^\.">

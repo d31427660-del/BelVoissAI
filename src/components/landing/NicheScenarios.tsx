@@ -74,7 +74,7 @@ const EDITORIAL_CARDS: EditorialNicheCard[] = [
     voice: 'anna',
     audioPhrase:
       'Да, конечно! Сегодня в восемнадцать тридцать есть свободное место на вводное занятие. Подскажите ваше имя, и я сразу отправлю пропуск вам в Телеграм.',
-    company: 'Автошкола «Драйв-Минск» · м. Академия наук',
+    company: 'Автошкола «Драйв-Минск» · ул. Сурганова, 24 (м. Академия наук)',
     tasks: [
       'Ответы по цене обучения в BYN, топливу и рассрочке на 4 платежа',
       'Подбор вечерней, утренней или группы выходного дня по филиалу',
@@ -181,7 +181,7 @@ export const NicheScenarios: React.FC<NicheScenariosProps> = ({
   };
 
   return (
-    <section id="scenarios" className="relative bg-white py-20 lg:py-28 scroll-mt-10 overflow-x-clip">
+    <section id="scenarios" className="relative bg-white py-20 lg:py-28 scroll-mt-24 overflow-x-clip">
       {/* Giant Centered 2-Line Editorial Heading (exact shopify.design "Design in public" lockup) */}
       <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 text-center">
         <h2 className="font-display font-bold text-black text-[50px] sm:text-[88px] lg:text-[124px] leading-[0.94] tracking-[-0.048em]">
@@ -291,7 +291,7 @@ export const NicheScenarios: React.FC<NicheScenariosProps> = ({
                       <button
                         type="button"
                         onClick={(e) => handlePlay(card, e)}
-                        className="self-start inline-flex items-center gap-1.5 text-[12px] font-semibold text-black hover:text-[#0225AC] cursor-pointer"
+                        className="self-start inline-flex items-center gap-1.5 min-h-[44px] min-w-[44px] -ml-2 px-2 text-[12px] font-semibold text-black hover:text-[#0225AC] cursor-pointer"
                       >
                         {isPlaying ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
                         <span>{isPlaying ? 'Pause' : 'Play'}</span>
@@ -322,7 +322,7 @@ export const NicheScenarios: React.FC<NicheScenariosProps> = ({
                       <button
                         type="button"
                         onClick={(e) => handlePlay(card, e)}
-                        className={`self-start inline-flex items-center gap-1.5 text-[12.5px] font-medium cursor-pointer transition-opacity hover:opacity-80 ${
+                        className={`self-start inline-flex items-center gap-1.5 min-h-[44px] min-w-[44px] -ml-2 px-2 text-[12.5px] font-medium cursor-pointer transition-opacity hover:opacity-80 ${
                           isPlaying ? 'text-[#6BFF91]' : ''
                         }`}
                       >

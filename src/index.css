@@ -82,10 +82,30 @@
   * {
     border-color: hsl(var(--border));
   }
+  html {
+    scroll-padding-top: 96px;
+  }
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-wrap: break-word;
+  }
+}
+
+/* Touch-friendly target sizing (Modern Web Guidance: form-factor-adaptation) */
+:root {
+  --target-size: 24px;
+}
+@media (pointer: coarse) {
+  :root {
+    --target-size: 44px;
+  }
+  footer a,
+  footer button {
+    min-block-size: var(--target-size);
+    display: inline-flex;
+    align-items: center;
   }
 }
 

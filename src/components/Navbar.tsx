@@ -1,6 +1,13 @@
-import React from 'react';
-import { ArrowRightUpIcon, Widget5Icon, Logout2Icon } from '@solar-icons/react/bold-duotone';
+import React, { useState, useEffect } from 'react';
+import {
+  ArrowRightUpIcon,
+  Widget5Icon,
+  Logout2Icon,
+  HamburgerMenuIcon,
+  CloseCircleIcon,
+} from '@solar-icons/react/bold-duotone';
 import { UserSession } from '../types';
+import { VOXI_CONTACTS, TelegramIcon } from '../lib/contacts';
 
 interface NavbarProps {
   currentView: 'landing' | 'dashboard';
@@ -14,6 +21,7 @@ interface NavbarProps {
 const NAV_LINKS = [
   { href: '#how-it-works', label: 'Как работает' },
   { href: '#scenarios', label: 'Ниши' },
+  { href: '#calculator', label: 'Калькулятор' },
   { href: '#pricing', label: 'Тарифы' },
   { href: '#faq', label: 'FAQ' },
 ];
@@ -25,6 +33,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onLogout,
 }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mobileMenuOpen]);
+
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-black/[0.06]">
       <div className="relative w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 h-[68px] sm:h-[76px] lg:h-[84px] flex items-center justify-between gap-2 sm:gap-4">
@@ -33,10 +52,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           href="/"
           onClick={(e) => {
             e.preventDefault();
+            setMobileMenuOpen(false);
             setCurrentView('landing');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="inline-flex items-center gap-2 sm:gap-2.5 group shrink-0"
+          className="inline-flex items-center gap-2 sm:gap-2.5 group shrink-0 min-h-[44px]"
         >
           <svg
             viewBox="0 0 32 32"
@@ -64,13 +84,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         {currentView === 'landing' && (
           <nav
             aria-label="Навигация по разделам"
-            className="hidden md:flex items-center gap-1 lg:gap-2 lg:absolute lg:left-1/2 lg:-translate-x-1/2"
+            className="hidden md:flex items-center gap-1 lg:gap-1.5 lg:absolute lg:left-1/2 lg:-translate-x-1/2"
           >
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="px-3.5 py-2 rounded-full text-[13.5px] font-medium text-[#525252] hover:text-black hover:bg-[#F5F5F5] transition-colors whitespace-nowrap"
+                className="px-3 py-2 rounded-full text-[13.5px] font-medium text-[#525252] hover:text-black hover:bg-[#F5F5F5] transition-colors whitespace-nowrap"
               >
                 {link.label}
               </a>
@@ -78,14 +98,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
         )}
 
-        {/* Right: Sign In + Primary CTA */}
+        {/* Right: Sign In + Primary CTA + Mobile Menu Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {user ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setCurrentView(currentView === 'landing' ? 'dashboard' : 'landing')}
-                className="inline-flex items-center gap-2 h-9 sm:h-10 px-3.5 sm:px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] sm:text-[13px] font-semibold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 min-h-[44px] sm:min-h-[40px] px-3.5 sm:px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] sm:text-[13px] font-semibold transition-colors cursor-pointer"
               >
                 <Widget5Icon size={16} className="text-[#6BFF91]" />
                 <span>{currentView === 'landing' ? 'Личный кабинет' : 'На главную'}</span>
@@ -94,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={onLogout}
                 aria-label="Выйти из аккаунта"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-[#FFF5F3] border border-black/[0.12] hover:border-[#FE432A]/40 hover:text-[#FE432A] text-black flex items-center justify-center transition-colors cursor-pointer"
+                className="w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-[#FFF5F3] border border-black/[0.12] hover:border-[#FE432A]/40 hover:text-[#FE432A] text-black flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Logout2Icon size={16} />
               </button>
@@ -103,16 +123,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => onOpenAuth('signin')}
-                className="h-9 sm:h-10 px-3 sm:px-5 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.12] text-[12.5px] sm:text-[13px] font-semibold text-black transition-colors cursor-pointer whitespace-nowrap"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAuth('signin');
+                }}
+                className="min-h-[44px] sm:min-h-[40px] px-3 sm:px-5 rounded-full bg-white hover:bg-[#F5F5F5] border border-black/[0.12] text-[12.5px] sm:text-[13px] font-semibold text-black transition-colors cursor-pointer whitespace-nowrap"
               >
                 Войти
               </button>
 
               <button
                 type="button"
-                onClick={() => onOpenAuth('signup')}
-                className="h-9 sm:h-10 px-3 sm:px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] sm:text-[13px] font-semibold inline-flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer whitespace-nowrap"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAuth('signup');
+                }}
+                className="min-h-[44px] sm:min-h-[40px] px-3 sm:px-5 rounded-full bg-black hover:bg-[#171717] text-white text-[12.5px] sm:text-[13px] font-semibold inline-flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <span>Попробовать</span>
                 <span className="font-mono text-[10.5px] sm:text-[11px] font-bold text-[#6BFF91]">+15 мин</span>
@@ -120,8 +146,62 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           )}
+
+          {currentView === 'landing' && (
+            <button
+              type="button"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav-menu"
+              aria-label={mobileMenuOpen ? 'Закрыть меню навигации' : 'Открыть меню навигации'}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="md:hidden w-11 h-11 rounded-full border border-black/[0.12] bg-white hover:bg-[#F5F5F5] text-black inline-flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            >
+              {mobileMenuOpen ? <CloseCircleIcon size={20} aria-hidden="true" /> : <HamburgerMenuIcon size={20} aria-hidden="true" />}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {currentView === 'landing' && mobileMenuOpen && (
+        <nav
+          id="mobile-nav-menu"
+          aria-label="Мобильная навигация по разделам"
+          className="md:hidden border-t border-black/[0.08] bg-white px-4 py-3 shadow-lg"
+        >
+          <ul className="flex flex-col gap-1">
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between min-h-[44px] px-3.5 rounded-[12px] text-[15px] font-medium text-black hover:bg-[#F5F5F5] transition-colors"
+                >
+                  <span>{link.label}</span>
+                  <ArrowRightUpIcon size={16} className="text-[#737373]" aria-hidden="true" />
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 pt-3 border-t border-black/[0.08] flex flex-wrap items-center gap-2">
+            <a
+              href={VOXI_CONTACTS.phoneTel}
+              className="inline-flex items-center min-h-[44px] px-3.5 rounded-full border border-black/[0.12] text-[12.5px] font-mono text-black"
+            >
+              {VOXI_CONTACTS.phoneDisplay}
+            </a>
+            <a
+              href={VOXI_CONTACTS.telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-full bg-[#F5F5F5] text-[12.5px] font-medium text-black"
+            >
+              <TelegramIcon size={14} />
+              <span>{VOXI_CONTACTS.telegramHandle}</span>
+            </a>
+          </div>
+        </nav>
+      )}
     </header>
   );
 };

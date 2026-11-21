@@ -47,14 +47,14 @@ export const FaqAndPilotCta: React.FC<FaqAndPilotCtaProps> = () => {
   return (
     <section
       id="faq"
-      className="bg-white py-20 lg:py-28 scroll-mt-10"
+      className="bg-white py-20 lg:py-28 scroll-mt-24"
     >
       <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 space-y-12">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
           <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-black shrink-0">
             ВОПРОСЫ И ВОЗРАЖЕНИЯ
           </span>
-          <div className="h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
+          <div className="hidden sm:block h-px flex-1 bg-black/[0.08]" aria-hidden="true" />
           <span className="font-mono text-[11px] tracking-[0.11em] uppercase text-[#737373] shrink-0">
             ЧЕСТНЫЕ ОТВЕТЫ
           </span>
